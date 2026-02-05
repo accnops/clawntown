@@ -1,0 +1,21 @@
+import type { Metadata } from 'next';
+import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'Clawntawn - Coastal Lobster Town',
+  description: 'A self-evolving public town powered by AI',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen">
+        {children}
+      </body>
+    </html>
+  );
+}
