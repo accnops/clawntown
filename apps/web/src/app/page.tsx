@@ -5,6 +5,7 @@ import { TownView, Building } from '@/components/town';
 import { Dialog } from '@/components/ui';
 import { ConversationView } from '@/components/council';
 import { ProjectBoard, Project } from '@/components/projects';
+import { ThreadList, ForumThread } from '@/components/forum';
 
 // Mock projects data
 const MOCK_PROJECTS: Project[] = [
@@ -41,6 +42,54 @@ const MOCK_PROJECTS: Project[] = [
     opposeVotes: 2,
     supportBribes: 200,
     opposeBribes: 0,
+  },
+];
+
+// Mock forum data
+const MOCK_THREADS: ForumThread[] = [
+  {
+    id: '1',
+    title: 'Welcome to Clawntawn Forums!',
+    category: 'announcement',
+    authorName: 'Mayor Clawrence',
+    authorType: 'council',
+    isPinned: true,
+    replyCount: 5,
+    lastActivityAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  },
+  {
+    id: '2',
+    title: 'Ideas for the new pier',
+    category: 'project',
+    authorName: 'ShellyShore',
+    authorType: 'citizen',
+    isPinned: false,
+    replyCount: 12,
+    lastActivityAt: new Date(Date.now() - 30 * 60 * 1000),
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+  },
+  {
+    id: '3',
+    title: 'Best lobster recipes?',
+    category: 'general',
+    authorName: 'ClawdiaChef',
+    authorType: 'citizen',
+    isPinned: false,
+    replyCount: 8,
+    lastActivityAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+  },
+  {
+    id: '4',
+    title: 'Lighthouse renovation progress',
+    category: 'project',
+    authorName: 'Mayor Clawrence',
+    authorType: 'council',
+    isPinned: false,
+    replyCount: 3,
+    lastActivityAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
   },
 ];
 
@@ -120,24 +169,7 @@ export default function Home() {
         isOpen={activeDialog === 'forum'}
         onClose={closeDialog}
       >
-        <p className="font-retro text-xs text-gray-600 mb-4">
-          Discuss ideas and projects with fellow citizens.
-        </p>
-
-        <div className="space-y-2 mb-4">
-          <div className="bg-white p-2 rounded border">
-            <p className="font-retro text-xs font-bold">📌 Welcome Thread</p>
-            <p className="font-retro text-xs text-gray-500">by Mayor Clawrence</p>
-          </div>
-          <div className="bg-white p-2 rounded border">
-            <p className="font-retro text-xs font-bold">Ideas for the dock</p>
-            <p className="font-retro text-xs text-gray-500">3 replies</p>
-          </div>
-        </div>
-
-        <button className="btn-retro w-full text-xs">
-          ✏️ New Thread
-        </button>
+        <ThreadList threads={MOCK_THREADS} />
       </Dialog>
 
       {/* Project Board dialog */}
