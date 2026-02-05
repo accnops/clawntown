@@ -12,6 +12,7 @@
   "dependencies": {
     "@clawntawn/shared": "workspace:*",
     "@supabase/supabase-js": "^2.47.0",
+    "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.24",
     "next": "^15.1.0",
     "postcss": "^8.5.6",

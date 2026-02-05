@@ -5,7 +5,9 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "validate": "turbo build && turbo test",
+    "ci": "turbo build && turbo lint && turbo test"
   },
   "devDependencies": {
     "turbo": "^2.4.0",

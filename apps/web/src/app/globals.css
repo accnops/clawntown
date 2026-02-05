@@ -1,8 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* RCT-inspired palette */
+  --color-rct-green: #4a7c59;
+  --color-rct-brown: #8b7355;
+  --color-rct-sand: #d4c4a8;
+  --color-rct-water: #5b8fa8;
+  --color-rct-sky: #87ceeb;
+  --color-rct-red: #c44536;
+  --color-rct-yellow: #f0c808;
+
+  /* Lobster theme */
+  --color-lobster-red: #c41e3a;
+  --color-lobster-shell: #8b0000;
+
+  /* Retro UI */
+  --color-retro-white: #f5f5dc;
+  --color-retro-gray: #c0c0c0;
+  --color-retro-dark: #2f2f2f;
+
+  /* Fonts */
+  --font-pixel: "Press Start 2P", monospace;
+  --font-retro: Chicago, Monaco, monospace;
+}
 
 :root {
   --color-bg: #87ceeb;
@@ -17,28 +38,61 @@ body {
 
 /* Retro button styles */
 .btn-retro {
-  @apply px-4 py-2 bg-retro-gray text-retro-dark font-retro text-sm;
-  @apply border-2 border-t-white border-l-white border-b-gray-600 border-r-gray-600;
-  @apply active:border-t-gray-600 active:border-l-gray-600 active:border-b-white active:border-r-white;
+  @apply px-4 py-2 bg-retro-gray text-retro-dark text-sm;
+  font-family: var(--font-retro);
+  border-width: 2px;
+  border-top-color: white;
+  border-left-color: white;
+  border-bottom-color: #666;
+  border-right-color: #666;
 }
 
 .btn-retro:hover {
   @apply bg-gray-300;
 }
 
+.btn-retro:active {
+  border-top-color: #666;
+  border-left-color: #666;
+  border-bottom-color: white;
+  border-right-color: white;
+}
+
 /* Retro window styles */
 .window-retro {
-  @apply bg-retro-gray border-2;
-  @apply border-t-white border-l-white border-b-gray-600 border-r-gray-600;
+  @apply bg-retro-gray;
+  border-width: 2px;
+  border-top-color: white;
+  border-left-color: white;
+  border-bottom-color: #666;
+  border-right-color: #666;
 }
 
 .window-title {
-  @apply bg-gradient-to-r from-blue-800 to-blue-600 text-white px-2 py-1 font-retro text-sm;
+  @apply text-white px-2 py-1 text-sm;
+  font-family: var(--font-retro);
+  background: linear-gradient(to right, #1e40af, #2563eb);
 }
 
 /* Retro input */
 .input-retro {
-  @apply px-2 py-1 bg-white border-2;
-  @apply border-t-gray-600 border-l-gray-600 border-b-white border-r-white;
-  @apply focus:outline-none;
+  @apply px-2 py-1 bg-white;
+  border-width: 2px;
+  border-top-color: #666;
+  border-left-color: #666;
+  border-bottom-color: white;
+  border-right-color: white;
+}
+
+.input-retro:focus {
+  outline: none;
+}
+
+/* Font utilities */
+.font-pixel {
+  font-family: var(--font-pixel);
+}
+
+.font-retro {
+  font-family: var(--font-retro);
 }
