@@ -7,3 +7,8 @@ dist/
 .turbo/
 *.log
 .DS_Store
+
+# Playwright
+playwright-report/
+test-results/
+e2e/screenshots/
