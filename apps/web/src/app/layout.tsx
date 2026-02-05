@@ -4,6 +4,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Clawntawn - Coastal Lobster Town',
   description: 'A self-evolving public town powered by AI',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
