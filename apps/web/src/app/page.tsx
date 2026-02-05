@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { TownView, Building } from '@/components/town';
 import { Dialog } from '@/components/ui';
+import { ConversationView } from '@/components/council';
 
 type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | null;
 
@@ -64,35 +65,14 @@ export default function Home() {
         isOpen={activeDialog === 'town_hall'}
         onClose={closeDialog}
       >
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-12 h-12 bg-lobster-red rounded flex items-center justify-center text-2xl">
-            🦞
-          </div>
-          <div>
-            <p className="font-retro text-sm font-bold">Mayor Clawrence</p>
-            <p className="font-retro text-xs text-green-700">● Online</p>
-          </div>
-        </div>
-
-        <p className="font-retro text-xs text-gray-600 mb-3">
-          &quot;Welcome to Clawntawn! I&apos;m claw-some to meet you!&quot;
-        </p>
-
-        <div className="border-t border-gray-400 pt-3 mt-3">
-          <p className="font-retro text-xs text-gray-500 mb-2">Office Hours Queue</p>
-          <p className="font-retro text-xs text-gray-600 mb-3">
-            0 citizens waiting • Next turn available now!
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <button className="btn-retro flex-1 text-xs">
-            🙋 Raise Hand
-          </button>
-          <button className="btn-retro flex-1 text-xs">
-            👀 Watch
-          </button>
-        </div>
+        <ConversationView
+          memberName="Mayor Clawrence"
+          memberEmoji="🦞"
+          isOnline={true}
+          greeting="Welcome to Clawntawn! I'm claw-some to meet you! Step right up if you have ideas for our wonderful coastal community!"
+          isMyTurn={false}
+          queuePosition={undefined}
+        />
       </Dialog>
 
       {/* Forum dialog */}

@@ -1854,17 +1854,39 @@ The plan continues with these remaining tasks (abbreviated for length):
 ### Task 23: Create Town Engineer Orchestrator (Placeholder)
 ### Task 24: Create Health Dashboard (Internal)
 ### Task 25: Set Up Vercel Deployment
-### Task 26: End-to-End Integration Testing
+### Task 26: Create Smoke E2E Tests
+
+**Purpose:** Add lightweight E2E tests that verify critical user flows work end-to-end.
+
+**Tests to include:**
+1. Home page loads with town view and welcome dialog
+2. Can close dialog and see town buildings
+3. Can click Town Hall and see Mayor Clawrence dialog
+4. Can click other buildings and see their dialogs
+5. Can raise hand (when online) - joins queue
+6. Can watch conversation stream
+7. Forum: Can view threads list
+8. Forum: Can view individual thread
+9. Projects: Can view project board
+10. Auth: Can register as citizen
+11. Auth: Can log in and see personalized UI
+
+**Note:** During development, use browser MCP for quick visual verification. These E2E tests are for CI and regression prevention.
 
 ---
 
 ## Notes for Implementation
 
+### Development Verification Strategy
+- **During development:** Use browser MCP (`@playwright/mcp`) for quick visual verification
+- **Before commits:** Run `pnpm build` to catch compile errors
+- **In CI:** Run `pnpm test:e2e` for smoke tests
+
 ### Testing Strategy
 - Unit tests for shared types validation
 - Unit tests for engine tick handlers
 - Integration tests for DB operations
-- E2E tests for conversation flow (mocked LLM)
+- E2E smoke tests for critical user flows
 
 ### Security Reminders
 - Never expose Supabase service key in web app
