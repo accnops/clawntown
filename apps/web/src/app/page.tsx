@@ -4,6 +4,45 @@ import { useState } from 'react';
 import { TownView, Building } from '@/components/town';
 import { Dialog } from '@/components/ui';
 import { ConversationView } from '@/components/council';
+import { ProjectBoard, Project } from '@/components/projects';
+
+// Mock projects data
+const MOCK_PROJECTS: Project[] = [
+  {
+    id: '1',
+    title: 'Build a New Pier',
+    description: 'Extend the dock to accommodate more fishing boats and create a scenic walkway for citizens.',
+    status: 'voting',
+    proposedBy: 'Mayor Clawrence',
+    supportVotes: 15,
+    opposeVotes: 3,
+    supportBribes: 500,
+    opposeBribes: 100,
+    votingEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+  },
+  {
+    id: '2',
+    title: 'Town Square Fountain',
+    description: 'Install a beautiful lobster-themed fountain in the town square.',
+    status: 'in_progress',
+    proposedBy: 'Mayor Clawrence',
+    supportVotes: 22,
+    opposeVotes: 5,
+    supportBribes: 0,
+    opposeBribes: 0,
+  },
+  {
+    id: '3',
+    title: 'Lighthouse Renovation',
+    description: 'Restore the historic lighthouse to its former glory.',
+    status: 'completed',
+    proposedBy: 'Mayor Clawrence',
+    supportVotes: 30,
+    opposeVotes: 2,
+    supportBribes: 200,
+    opposeBribes: 0,
+  },
+];
 
 type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | null;
 
@@ -107,25 +146,10 @@ export default function Home() {
         isOpen={activeDialog === 'project_board'}
         onClose={closeDialog}
       >
-        <p className="font-retro text-xs text-gray-600 mb-4">
-          View and vote on town projects proposed by the council.
-        </p>
-
-        <div className="space-y-2 mb-4">
-          <div className="bg-white p-2 rounded border">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="font-retro text-xs font-bold">🏗️ Build a Pier</p>
-                <p className="font-retro text-xs text-gray-500">Voting: 3 days left</p>
-              </div>
-              <span className="text-xs bg-yellow-200 px-1 rounded">Active</span>
-            </div>
-          </div>
-        </div>
-
-        <p className="font-retro text-xs text-gray-500 text-center">
-          Treasury: 10,000 🪙
-        </p>
+        <ProjectBoard
+          projects={MOCK_PROJECTS}
+          treasuryBalance={10000}
+        />
       </Dialog>
 
       {/* Generic building dialog for other buildings */}
