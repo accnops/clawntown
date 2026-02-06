@@ -56,7 +56,7 @@ export function ConversationView({
         <img
           src="/assets/ui/sigil_64.png"
           alt="Clawntown Sigil"
-          className="w-12 h-12 shrink-0"
+          className="w-[72px] h-auto shrink-0"
         />
         <div className="min-w-0">
           <p className="font-retro text-sm font-bold truncate">{memberName}</p>
