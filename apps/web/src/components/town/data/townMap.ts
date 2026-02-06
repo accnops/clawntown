@@ -14,8 +14,9 @@ const k1 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null,
 const k2 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 2 });
 
 // Tree types at different elevations
-// Palm trees - near coast but on grass, not sand
+// Palm trees - near coast on grass, or on beach (sand)
 const pm1 = (): GridCell => ({ ground: TileType.Grass, building: null, deco: "palm_tree", elevation: 1 });
+const pms = (): GridCell => ({ ground: TileType.Sand, building: null, deco: "palm_tree", elevation: 0 }); // Palm on sand (beach)
 // Oak trees - inland, full canopy - good for forests
 const ok1 = (): GridCell => ({ ground: TileType.Grass, building: null, deco: "oak_tree", elevation: 1 });
 const ok2 = (): GridCell => ({ ground: TileType.Grass, building: null, deco: "oak_tree", elevation: 2 });
@@ -96,27 +97,27 @@ export const TOWN_MAP: GridCell[][] = [
   [s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g3(),g3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),g3(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),w()],
   // Rows 16-17: Main road descending - CHAOTIC OAK FOREST begins
   [s(),g1(),ok1(),ok1(),g1(),ok1(),ok1(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
-  [s(),ok1(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),g2(),g2(),r2(),g2(),g2(),g2(),ok2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
+  [s(),g1(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),g2(),g2(),r2(),g2(),g2(),g2(),ok2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
   // Rows 18-19: Road to dock - IRREGULAR FOREST SHAPE
-  [s(),ok1(),ok1(),g1(),ok1(),ok1(),ok1(),ok1(),g1(),g2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
+  [s(),g1(),g1(),g1(),ok1(),ok1(),ok1(),ok1(),g1(),g2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
   [s(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),ok1(),ok1(),g2(),r1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
   // Rows 20-21: South inland - dock area, forest with clearings
-  [s(),ok1(),ok1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),r1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),s(),s(),s(),s(),s(),dock()],
-  [s(),ok1(),g1(),ok1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),w(),w()],
+  [s(),g1(),g1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),r1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),s(),s(),s(),s(),s(),dock()],
+  [s(),g1(),g1(),ok1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),w(),w()],
   // Rows 22-23: South area - lighthouse, forest thins out irregularly
   [s(),s(),g1(),ok1(),ok1(),g1(),ok1(),ok1(),g1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w()],
-  [s(),s(),ok1(),g1(),ok1(),ok1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),wl1(),g1(),g1(),s(),s(),k1(),lighthouse(),k1(),s(),s(),s(),w(),w(),w(),w()],
+  [s(),s(),g1(),g1(),ok1(),ok1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),wl1(),g1(),g1(),s(),s(),k1(),lighthouse(),k1(),s(),s(),s(),w(),w(),w(),w()],
   // Rows 24-25: Grass to beach - scattered trees at forest edge
   [s(),s(),s(),ok1(),g1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w(),w()],
   [s(),s(),s(),s(),g1(),ok1(),wl1(),wl1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),k1(),s(),s(),s(),w(),w(),w(),w(),w()],
   // Rows 26-27: South beach with rocks
-  [w(),s(),s(),s(),s(),s(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w()],
-  [w(),s(),s(),k1(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w()],
+  [w(),s(),s(),pms(),s(),s(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w()],
+  [w(),s(),s(),k1(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w()],
   // Rows 28-29: Beach to water
-  [w(),w(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w()],
-  [w(),w(),w(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w()],
+  [w(),w(),s(),s(),s(),s(),s(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w()],
+  [w(),w(),w(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w()],
   // Rows 30-31: Water
-  [w(),w(),w(),w(),w(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w()],
+  [w(),w(),w(),w(),w(),s(),s(),pms(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w()],
   [w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w(),w()],
 ];
 
