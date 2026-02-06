@@ -98,7 +98,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     },
     renderHeight: 10,
     interactive: true,
-    scale: 0.28,
+    scale: 0.35,
   },
 
   [BuildingType.LobsterRestaurant]: {
