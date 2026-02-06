@@ -53,9 +53,11 @@ export function ConversationView({
     <div className="flex flex-col h-full max-h-[60vh]">
       {/* Council member header */}
       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-400">
-        <div className="w-12 h-12 bg-lobster-red rounded flex items-center justify-center text-2xl shrink-0">
-          {memberEmoji}
-        </div>
+        <img
+          src="/assets/ui/sigil_64.png"
+          alt="Clawntown Sigil"
+          className="w-12 h-12 shrink-0"
+        />
         <div className="min-w-0">
           <p className="font-retro text-sm font-bold truncate">{memberName}</p>
           <p className={`font-retro text-xs ${isOnline ? 'text-green-700' : 'text-gray-500'}`}>
@@ -68,9 +70,7 @@ export function ConversationView({
       <div className="flex-1 overflow-y-auto mb-3 space-y-3 min-h-[150px]">
         {/* Greeting message */}
         <div className="flex gap-2">
-          <div className="w-6 h-6 bg-lobster-red rounded flex items-center justify-center text-xs shrink-0">
-            {memberEmoji}
-          </div>
+          <span className="text-lg shrink-0">{memberEmoji}</span>
           <div className="bg-white border border-gray-300 rounded p-2 max-w-[85%]">
             <p className="font-retro text-xs text-gray-700">{greeting}</p>
           </div>
@@ -82,13 +82,9 @@ export function ConversationView({
             key={msg.id}
             className={`flex gap-2 ${msg.role === 'citizen' ? 'flex-row-reverse' : ''}`}
           >
-            <div
-              className={`w-6 h-6 rounded flex items-center justify-center text-xs shrink-0 ${
-                msg.role === 'council' ? 'bg-lobster-red' : 'bg-blue-500'
-              }`}
-            >
+            <span className="text-lg shrink-0">
               {msg.role === 'council' ? memberEmoji : '👤'}
-            </div>
+            </span>
             <div
               className={`border rounded p-2 max-w-[85%] ${
                 msg.role === 'council'
@@ -106,9 +102,7 @@ export function ConversationView({
         {/* Streaming message */}
         {isStreaming && streamingContent && (
           <div className="flex gap-2">
-            <div className="w-6 h-6 bg-lobster-red rounded flex items-center justify-center text-xs shrink-0">
-              {memberEmoji}
-            </div>
+            <span className="text-lg shrink-0">{memberEmoji}</span>
             <div className="bg-white border border-gray-300 rounded p-2 max-w-[85%]">
               <p className="font-retro text-xs text-gray-700 whitespace-pre-wrap">
                 {streamingContent}
