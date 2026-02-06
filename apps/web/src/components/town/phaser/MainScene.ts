@@ -441,9 +441,8 @@ export class MainScene extends Phaser.Scene {
 
     // Add building name label above the building
     const labelKey = `label_${building.id}`;
-    // Scale factor affects visual height; base sprite is ~512px, scale determines actual size
-    const visualHeight = 512 * buildingDef.scale * 0.85; // 0.85 is the origin offset
-    const labelY = pos.y - visualHeight - 5;
+    // Position label above building: use renderHeight for tall buildings, scale for visual size
+    const labelY = pos.y - buildingDef.renderHeight * 12 - 20;
     const label = this.add.text(pos.x, labelY, building.name, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: "8px",
@@ -481,17 +480,25 @@ export class MainScene extends Phaser.Scene {
     if (!cell.deco) return;
 
     const key = `deco_${x}_${y}`;
-    let textureKey = `${cell.deco}_0`; // Use south-facing orientation
+    const isTree = cell.deco?.includes("tree") || cell.deco?.includes("pine");
+
+    // Pick random orientation for trees (0, 90, 180, 270)
+    const orientations = [0, 90, 180, 270];
+    const orientationIndex = Math.floor(this.seededRandom(x, y, 3) * 4);
+    const orientation = orientations[orientationIndex];
+    let textureKey = `${cell.deco}_${orientation}`;
 
     // Fall back to coastal_pine for missing tree textures
     if (!this.textures.exists(textureKey)) {
-      textureKey = "coastal_pine_0";
+      textureKey = `coastal_pine_${orientation}`;
+      if (!this.textures.exists(textureKey)) {
+        textureKey = "coastal_pine_0";
+      }
     }
 
     const pos = this.gridToScreen(x, y, cell.elevation);
 
     // Add random offset to break up the grid pattern (trees only)
-    const isTree = cell.deco?.includes("tree") || cell.deco?.includes("pine");
     let offsetX = 0;
     let offsetY = 0;
     if (isTree) {
