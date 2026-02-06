@@ -125,7 +125,7 @@ export default function Home() {
             CLAWNTOWN
           </h1>
           <p className="font-retro text-sm">
-            A coastal lobster town that evolves itself
+            An evolving coastal lobster town
           </p>
         </div>
 
@@ -136,14 +136,14 @@ export default function Home() {
         </div>
 
         <p className="font-retro text-xs text-gray-600 mb-4">
-          Explore the town by tapping on buildings. Visit Town Hall to speak with Mayor Clawrence!
+          Explore the town by tapping on buildings. Visit the Town Hall to speak with Mayor Clawrence!
         </p>
 
         <button
           onClick={closeDialog}
           className="btn-retro w-full"
         >
-          Explore Town
+          Start Exploring
         </button>
       </Dialog>
 
