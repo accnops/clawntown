@@ -34,7 +34,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     },
     renderHeight: 5,
     interactive: true,
-    scale: 0.22,
+    scale: 0.28,
   },
 
   [BuildingType.Forum]: {
