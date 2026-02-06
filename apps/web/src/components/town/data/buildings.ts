@@ -82,7 +82,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     },
     renderHeight: 1,
     interactive: true,
-    scale: 0.18,
+    scale: 0.24,
   },
 
   [BuildingType.Lighthouse]: {

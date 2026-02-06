@@ -441,7 +441,9 @@ export class MainScene extends Phaser.Scene {
 
     // Add building name label above the building
     const labelKey = `label_${building.id}`;
-    const labelY = pos.y - buildingDef.renderHeight * 8 - 20; // Above the building
+    // Scale factor affects visual height; base sprite is ~512px, scale determines actual size
+    const visualHeight = 512 * buildingDef.scale * 0.85; // 0.85 is the origin offset
+    const labelY = pos.y - visualHeight - 5;
     const label = this.add.text(pos.x, labelY, building.name, {
       fontFamily: '"Press Start 2P", monospace',
       fontSize: "8px",
