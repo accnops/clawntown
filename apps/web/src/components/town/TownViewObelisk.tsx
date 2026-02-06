@@ -4,6 +4,28 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 // Simple isometric renderer
 const ISO = {
+  // Draw a flat isometric tile (just the top diamond - no sides)
+  drawFlatTile(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    depth: number,
+    color: string
+  ) {
+    const w = width;
+    const d = depth;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y + w * 0.5);
+    ctx.lineTo(x + w + d, y + (w - d) * 0.5);
+    ctx.lineTo(x + d, y - d * 0.5);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  },
+
   // Draw an isometric cube
   drawCube(
     ctx: CanvasRenderingContext2D,
@@ -212,7 +234,7 @@ const seededRandom = (x: number, y: number) => {
 };
 
 // Town grid data
-type TileType = 'grass' | 'water' | 'sand' | 'road' | 'plaza';
+type TileType = 'grass' | 'water' | 'sand' | 'road' | 'plaza' | 'rock';
 type BuildingType = 'town_hall' | 'forum' | 'project_board' | 'dock' | 'lighthouse' | null;
 type DecoType = 'tree' | null;
 
@@ -246,14 +268,17 @@ const p3: MapCell = { ground: 'plaza', building: null, elevation: 3 };
 const t1: MapCell = { ground: 'grass', building: null, deco: 'tree', elevation: 1 };
 const t2: MapCell = { ground: 'grass', building: null, deco: 'tree', elevation: 2 };
 const t3: MapCell = { ground: 'grass', building: null, deco: 'tree', elevation: 3 };
+// Rocky outcrops
+const k1: MapCell = { ground: 'rock', building: null, elevation: 1 };
+const k2: MapCell = { ground: 'rock', building: null, elevation: 2 };
 
 const TOWN_MAP: MapCell[][] = [
   // Rows 0-1: Water
   [w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w],
   [w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w,w],
-  // Rows 2-3: North beach
-  [w,w,w,w,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w,w],
-  [w,w,w,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w],
+  // Rows 2-3: North beach with rocky outcrops
+  [w,w,w,w,s,s,s,k1,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w,w],
+  [w,w,w,s,s,s,k1,k1,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w],
   // Rows 4-5: Beach to grass
   [w,w,s,s,s,s,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,s,s,s,s,s,w,w],
   [w,s,s,s,g1,g1,g1,t1,g1,g1,g1,g2,g2,g2,g2,g2,g2,g2,g2,g2,g1,g1,t1,g1,g1,g1,s,s,s,s,s,w],
@@ -281,15 +306,15 @@ const TOWN_MAP: MapCell[][] = [
   // Rows 20-21: South inland - dock moved right
   [s,g1,g1,g1,g1,g1,g1,g1,g1,g1,r1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,r1,r1,s,s,s,{ ground: 'sand', building: 'dock', buildingHeight: 1, elevation: 0 },s,w],
   [s,g1,g1,g1,g1,t1,g1,g1,g1,g1,g1,g1,g1,t1,g1,g1,g1,g1,g1,t1,g1,g1,g1,g1,s,s,s,s,s,s,w,w],
-  // Rows 22-23: South area - lighthouse moved left
-  [s,s,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,s,s,s,s,s,s,w,w,w],
-  [s,s,g1,g1,g1,g1,g1,t1,g1,g1,g1,g1,g1,g1,g1,g1,g1,t1,g1,g1,s,s,s,{ ground: 'sand', building: 'lighthouse', buildingHeight: 10, elevation: 0 },s,s,s,s,w,w,w,w],
-  // Rows 24-25: Grass to beach
-  [s,s,s,g1,g1,g1,g1,g1,g1,g1,g1,g1,t1,g1,g1,g1,g1,g1,g1,g1,g1,s,s,s,s,s,s,s,w,w,w,w],
-  [s,s,s,s,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,s,s,s,s,s,s,s,w,w,w,w,w],
-  // Rows 26-27: South beach
+  // Rows 22-23: South area - lighthouse on rocky outcrop
+  [s,s,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,s,k1,k1,s,s,s,s,w,w,w],
+  [s,s,g1,g1,g1,g1,g1,t1,g1,g1,g1,g1,g1,g1,g1,g1,g1,t1,g1,g1,s,s,k1,{ ground: 'rock', building: 'lighthouse', buildingHeight: 10, elevation: 2 },k1,s,s,s,w,w,w,w],
+  // Rows 24-25: Grass to beach - rocks near lighthouse
+  [s,s,s,g1,g1,g1,g1,g1,g1,g1,g1,g1,t1,g1,g1,g1,g1,g1,g1,g1,g1,s,k1,k1,s,s,s,s,w,w,w,w],
+  [s,s,s,s,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,g1,s,s,s,k1,s,s,s,w,w,w,w,w],
+  // Rows 26-27: South beach with rocks
   [w,s,s,s,s,s,g1,g1,g1,g1,g1,t1,g1,g1,g1,g1,g1,g1,s,s,s,s,s,s,s,s,w,w,w,w,w,w],
-  [w,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w,w,w,w,w],
+  [w,s,s,k1,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w,w,w,w,w],
   // Rows 28-29: Beach to water
   [w,w,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w,w,w,w,w,w],
   [w,w,w,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,s,w,w,w,w,w,w,w,w,w,w],
@@ -323,6 +348,7 @@ const COLORS = {
   road: { top: 0x606060, left: 0x505050, right: 0x404040 },
   plaza: { top: 0x808080, left: 0x606060, right: 0x505050 },
   cliff: { top: 0x8b7355, left: 0x6b5335, right: 0x5b4325 }, // Earth/cliff color for elevation
+  rock: { top: 0x707070, left: 0x585858, right: 0x484848 }, // Rocky terrain
   town_hall: { top: 0xc04040, left: 0xa03030, right: 0x802020 },
   forum: { top: 0x4080c0, left: 0x3060a0, right: 0x204080 },
   project_board: { top: 0x80c040, left: 0x60a030, right: 0x408020 },
@@ -578,21 +604,16 @@ export function TownViewObelisk({ onBuildingClick }: TownViewProps) {
             rightColor = Math.max(0, Math.min(0xffffff, waterColors.right + colorShift * 0x010101));
           }
 
-          ISO.drawCube(
-            ctx, screenX, screenY,
-            tileSize, tileSize, tileHeight,
-            hexToCSS(topColor),
-            hexToCSS(leftColor),
-            hexToCSS(rightColor)
-          );
+          // Flat tile for sea (no sides visible at elevation 0)
+          ISO.drawFlatTile(ctx, screenX, screenY, tileSize, tileSize, hexToCSS(topColor));
 
-          // Draw fishing boats at specific locations
+          // Draw fishing boats at specific locations (raised above water surface)
           if (x === -3 && y === 15) {
-            ISO.drawBoat(ctx, screenX + tileSize * 0.2, screenY - tileHeight, zoom);
+            ISO.drawBoat(ctx, screenX + tileSize * 0.2, screenY - tileHeight * 0.8, zoom);
           }
           // Larger cargo boat further out
           if (x === 35 && y === 10) {
-            ISO.drawLargeBoat(ctx, screenX, screenY - tileHeight, zoom);
+            ISO.drawLargeBoat(ctx, screenX, screenY - tileHeight * 0.8, zoom);
           }
 
           continue;
@@ -614,14 +635,18 @@ export function TownViewObelisk({ onBuildingClick }: TownViewProps) {
         const groundColors = COLORS[cell.ground];
         const elevatedY = screenY - elevOffset;
 
-        // Draw ground
-        ISO.drawCube(
-          ctx, elevatedY < screenY ? screenX : screenX, elevatedY,
-          tileSize, tileSize, tileHeight,
-          hexToCSS(groundColors.top),
-          hexToCSS(groundColors.left),
-          hexToCSS(groundColors.right)
-        );
+        // Draw ground - use flat tile for elevation 0 (no sides visible)
+        if (elevation === 0) {
+          ISO.drawFlatTile(ctx, screenX, elevatedY, tileSize, tileSize, hexToCSS(groundColors.top));
+        } else {
+          ISO.drawCube(
+            ctx, screenX, elevatedY,
+            tileSize, tileSize, tileHeight,
+            hexToCSS(groundColors.top),
+            hexToCSS(groundColors.left),
+            hexToCSS(groundColors.right)
+          );
+        }
 
         // Draw decoration (tree)
         if (cell.deco === 'tree') {
