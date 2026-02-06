@@ -17,6 +17,14 @@ import {
 import { GRID_OFFSET_X, GRID_OFFSET_Y } from "./gameConfig";
 import { BUILDINGS, getBuilding, getBuildingSprite } from "../data/buildings";
 import { TOWN_MAP, extractBuildings } from "../data/townMap";
+import {
+  Character,
+  CharacterType,
+  CHARACTER_TYPES,
+  getCharacterSpriteKey,
+  createInitialBoats,
+  updateCharacterPosition,
+} from "../data/characters";
 
 // Event types for React communication
 export interface SceneEvents {
@@ -30,6 +38,10 @@ export class MainScene extends Phaser.Scene {
   private buildingSprites: Map<string, Phaser.GameObjects.Image> = new Map();
   private decoSprites: Map<string, Phaser.GameObjects.Image> = new Map();
   private waterSprites: Map<string, Phaser.GameObjects.Image> = new Map();
+  private characterSprites: Map<string, Phaser.GameObjects.Image> = new Map();
+
+  // Characters (moving entities with path loops)
+  private characters: Character[] = [];
 
   // Track camera state for dynamic water rendering
   private lastCameraBounds: { x: number; y: number; zoom: number } = { x: 0, y: 0, zoom: 1 };
@@ -114,6 +126,10 @@ export class MainScene extends Phaser.Scene {
     this.renderBuildings();
     this.renderDecorations();
 
+    // Initialize characters (boats, etc.)
+    this.characters = createInitialBoats();
+    this.renderCharacters();
+
     // Enable input
     this.input.on("pointermove", this.handlePointerMove, this);
     this.input.on("pointerdown", this.handlePointerDown, this);
@@ -142,8 +158,11 @@ export class MainScene extends Phaser.Scene {
     this.centerCamera();
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
     if (!this.isReady) return;
+
+    // Update characters (boats, etc.) - convert delta from ms to seconds
+    this.updateCharacters(delta / 1000);
 
     // Check for multi-touch pinch zoom
     const pointers = this.input.manager.pointers;
@@ -250,9 +269,6 @@ export class MainScene extends Phaser.Scene {
 
     // Initial water tile render based on current viewport
     this.updateDynamicWater();
-
-    // Add fishing boats on the water
-    this.addBoatsToWater();
   }
 
   private updateDynamicWater(): void {
@@ -326,30 +342,6 @@ export class MainScene extends Phaser.Scene {
 
         this.waterSprites.set(key, sprite);
       }
-    }
-  }
-
-  private addBoatsToWater(): void {
-    // Check if boat texture is loaded
-    const boatDef = BUILDINGS[BuildingType.Boat];
-    if (!boatDef) return;
-
-    // Add boats at specific water locations with different orientations
-    const boatLocations = [
-      { x: -3, y: 10, direction: Direction.East },
-      { x: -2, y: 20, direction: Direction.South },
-      { x: 35, y: 8, direction: Direction.West },
-    ];
-
-    for (const loc of boatLocations) {
-      const pos = this.gridToScreen(loc.x, loc.y, 0);
-      const depth = (loc.x + loc.y) * DEPTH_Y_MULT + 50;
-      const textureKey = `${boatDef.name}_${loc.direction}`;
-
-      const boat = this.add.image(pos.x, pos.y, textureKey);
-      boat.setOrigin(0.5, 0.85);
-      boat.setScale(boatDef.scale);
-      boat.setDepth(depth);
     }
   }
 
@@ -564,6 +556,41 @@ export class MainScene extends Phaser.Scene {
 
     sprite.setScale(0.08); // Props are smaller
     sprite.setDepth(depth);
+  }
+
+  // Character movement system
+  private updateCharacters(deltaSeconds: number): void {
+    // Update each character's position along its path
+    for (let i = 0; i < this.characters.length; i++) {
+      this.characters[i] = updateCharacterPosition(this.characters[i], deltaSeconds);
+    }
+
+    // Re-render characters at new positions
+    this.renderCharacters();
+  }
+
+  private renderCharacters(): void {
+    for (const char of this.characters) {
+      const key = `char_${char.id}`;
+      const pos = this.gridToScreen(char.x, char.y, 0); // Characters are at elevation 0 (water level)
+      const depth = (char.x + char.y) * DEPTH_Y_MULT + 50; // Slightly above water
+
+      const textureKey = getCharacterSpriteKey(char.type, char.direction);
+      const typeDef = CHARACTER_TYPES[char.type];
+
+      let sprite = this.characterSprites.get(key);
+      if (!sprite) {
+        sprite = this.add.image(pos.x, pos.y, textureKey);
+        sprite.setOrigin(0.5, 0.85);
+        this.characterSprites.set(key, sprite);
+      } else {
+        sprite.setTexture(textureKey);
+        sprite.setPosition(pos.x, pos.y);
+      }
+
+      sprite.setScale(char.scale ?? typeDef.defaultScale);
+      sprite.setDepth(depth);
+    }
   }
 
   // Input handlers
