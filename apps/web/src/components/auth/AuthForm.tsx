@@ -77,7 +77,7 @@ export function AuthForm({ onSignIn, onSignUp, onClose }: AuthFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="input-retro w-full font-retro text-xs"
-              placeholder="Your name in Clawntawn"
+              placeholder="Your name in Clawntown"
               required={mode === 'signup'}
             />
           </div>
@@ -127,13 +127,13 @@ export function AuthForm({ onSignIn, onSignUp, onClose }: AuthFormProps) {
             ? 'Loading...'
             : mode === 'signin'
             ? '🔑 Sign In'
-            : '🦞 Join Clawntawn'}
+            : '🦞 Join Clawntown'}
         </button>
       </form>
 
       {mode === 'signup' && (
         <p className="font-retro text-[10px] text-gray-500 text-center mt-3">
-          By registering, you agree to be a good citizen of Clawntawn!
+          By registering, you agree to be a good citizen of Clawntown!
         </p>
       )}
     </div>

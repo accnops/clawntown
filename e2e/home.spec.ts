@@ -5,13 +5,13 @@ test.describe('Home Page', () => {
     await page.goto('/');
 
     // Check page title
-    await expect(page).toHaveTitle(/Clawntawn/);
+    await expect(page).toHaveTitle(/Clawntown/);
 
     // Check main heading is visible in the town view (first one, not the dialog one)
-    await expect(page.getByRole('heading', { name: 'CLAWNTAWN' }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'CLAWNTOWN' }).first()).toBeVisible();
 
     // Check welcome dialog opens by default
-    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntawn' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntown' })).toBeVisible();
 
     // Check tagline is visible in dialog
     await expect(page.getByText('A coastal lobster town that evolves itself')).toBeVisible();
@@ -24,7 +24,7 @@ test.describe('Home Page', () => {
     await page.getByRole('button', { name: 'Explore Town' }).click();
 
     // Dialog should be closed
-    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntawn' })).not.toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntown' })).not.toBeVisible();
 
     // Town view should show buildings
     await expect(page.getByRole('button', { name: 'Town Hall' })).toBeVisible();
@@ -77,25 +77,25 @@ test.describe('Home Page', () => {
     await page.goto('/');
 
     // Welcome dialog should be open
-    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntawn' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntown' })).toBeVisible();
 
     // Click close button
     await page.getByRole('button', { name: 'Close dialog' }).click();
 
     // Dialog should be closed
-    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntawn' })).not.toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntown' })).not.toBeVisible();
   });
 
   test('should close dialog with Escape key', async ({ page }) => {
     await page.goto('/');
 
     // Welcome dialog should be open
-    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntawn' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntown' })).toBeVisible();
 
     // Press Escape
     await page.keyboard.press('Escape');
 
     // Dialog should be closed
-    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntawn' })).not.toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Welcome to Clawntown' })).not.toBeVisible();
   });
 });

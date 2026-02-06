@@ -1,17 +1,19 @@
 {
-  "name": "@clawntawn/web",
+  "name": "@clawntown/web",
   "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:check": "BUILD_DIR=.next-check next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest"
   },
   "dependencies": {
-    "@clawntawn/shared": "workspace:*",
+    "@clawntown/shared": "workspace:*",
     "@supabase/supabase-js": "^2.47.0",
+    "phaser": "^3.90.0",
     "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.24",
     "next": "^15.1.0",

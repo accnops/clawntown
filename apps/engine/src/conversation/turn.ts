@@ -1,4 +1,4 @@
-import type { ConversationTurn, ConversationMessage } from '@clawntawn/shared';
+import type { ConversationTurn, ConversationMessage } from '@clawntown/shared';
 import { queryTownData, insertTownData, updateTownData } from '../db/town-data.js';
 
 const DEFAULT_TOKEN_BUDGET = 2000;

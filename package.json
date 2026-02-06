@@ -1,9 +1,10 @@
 {
-  "name": "clawntawn",
+  "name": "clawntown",
   "private": true,
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "build:check": "turbo build:check --filter=@clawntown/web",
     "test": "turbo test",
     "lint": "turbo lint",
     "test:e2e": "playwright test",

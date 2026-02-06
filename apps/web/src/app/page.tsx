@@ -49,7 +49,7 @@ const MOCK_PROJECTS: Project[] = [
 const MOCK_THREADS: ForumThread[] = [
   {
     id: '1',
-    title: 'Welcome to Clawntawn Forums!',
+    title: 'Welcome to Clawntown Forums!',
     category: 'announcement',
     authorName: 'Mayor Clawrence',
     authorType: 'council',
@@ -116,13 +116,13 @@ export default function Home() {
 
       {/* Welcome dialog */}
       <Dialog
-        title="Welcome to Clawntawn"
+        title="Welcome to Clawntown"
         isOpen={activeDialog === 'welcome'}
         onClose={closeDialog}
       >
         <div className="text-center mb-4">
           <h1 className="font-pixel text-lg text-lobster-red mb-2">
-            CLAWNTAWN
+            CLAWNTOWN
           </h1>
           <p className="font-retro text-sm">
             A coastal lobster town that evolves itself
@@ -157,7 +157,7 @@ export default function Home() {
           memberName="Mayor Clawrence"
           memberEmoji="🦞"
           isOnline={true}
-          greeting="Welcome to Clawntawn! I'm claw-some to meet you! Step right up if you have ideas for our wonderful coastal community!"
+          greeting="Welcome to Clawntown! I'm claw-some to meet you! Step right up if you have ideas for our wonderful coastal community!"
           isMyTurn={false}
           queuePosition={undefined}
         />

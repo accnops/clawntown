@@ -1,4 +1,4 @@
-import type { ConversationTurn } from '@clawntawn/shared';
+import type { ConversationTurn } from '@clawntown/shared';
 import { getCouncilMember } from '../council/index.js';
 import { broadcaster } from '../realtime/index.js';
 import { getActiveTurn, getMessages, addMessage, updateTurnTokens, endTurn, startTurn } from './turn.js';
@@ -11,7 +11,7 @@ async function* streamLLMResponse(
   _messages: { role: string; content: string }[]
 ): AsyncGenerator<{ token: string; done: boolean }> {
   // TODO: Replace with actual LLM proxy call
-  const mockResponse = "Ah, greetings citizen! Welcome to Clawntawn. I'm Mayor Clawrence, and I'm absolutely claw-some to meet you! How may I help our wonderful coastal community today?";
+  const mockResponse = "Ah, greetings citizen! Welcome to Clawntown. I'm Mayor Clawrence, and I'm absolutely claw-some to meet you! How may I help our wonderful coastal community today?";
 
   for (const char of mockResponse) {
     yield { token: char, done: false };

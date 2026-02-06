@@ -1,5 +1,5 @@
 {
-  "name": "@clawntawn/engine",
+  "name": "@clawntown/engine",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.0",
-    "@clawntawn/shared": "workspace:*"
+    "@clawntown/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -1,4 +1,4 @@
-import type { QueueEntry } from '@clawntawn/shared';
+import type { QueueEntry } from '@clawntown/shared';
 import { queryTownData, insertTownData, updateTownData, deleteTownData } from '../db/town-data.js';
 import { broadcaster } from '../realtime/index.js';
 

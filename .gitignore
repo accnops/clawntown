@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-check/
 dist/
 .env
 .env.local

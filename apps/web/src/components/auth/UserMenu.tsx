@@ -36,7 +36,7 @@ export function UserMenu({ citizenName, onSignOut }: UserMenuProps) {
           <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-400 rounded shadow-lg min-w-[150px]">
             <div className="px-3 py-2 border-b border-gray-200">
               <p className="font-retro text-xs font-bold truncate">{citizenName}</p>
-              <p className="font-retro text-[10px] text-gray-500">Citizen of Clawntawn</p>
+              <p className="font-retro text-[10px] text-gray-500">Citizen of Clawntown</p>
             </div>
 
             <button

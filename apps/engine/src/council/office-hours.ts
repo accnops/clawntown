@@ -1,4 +1,4 @@
-import type { CouncilMember, CouncilMemberState, OfficeHours } from '@clawntawn/shared';
+import type { CouncilMember, CouncilMemberState, OfficeHours } from '@clawntown/shared';
 import { queryTownData, insertTownData, updateTownData } from '../db/town-data.js';
 import { councilMembers } from './members.js';
 

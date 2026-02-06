@@ -6,7 +6,7 @@ import { councilMembers } from './council/members.js';
 import { broadcaster } from './realtime/index.js';
 
 console.log('=================================');
-console.log('  CLAWNTAWN ENGINE');
+console.log('  CLAWNTOWN ENGINE');
 console.log('  Coastal Lobster Town Simulator');
 console.log('=================================');
 
