@@ -74,12 +74,10 @@ export class MainScene extends Phaser.Scene {
   // Hover state
   private hoveredBuilding: Building | null = null;
 
-  // Touch state for pinch zoom
+  // Touch state for pinch zoom (using native touch tracking for reliability)
   private lastPinchDistance: number = 0;
-  private pinchStartZoom: number = 1;
-  private pinchCenterX: number = 0;
-  private pinchCenterY: number = 0;
   private isPinching: boolean = false;
+  private activeTouches: Map<number, { x: number; y: number }> = new Map();
 
   constructor() {
     super({ key: "MainScene" });
@@ -136,6 +134,13 @@ export class MainScene extends Phaser.Scene {
     this.input.on("pointerup", this.handlePointerUp, this);
     this.input.on("wheel", this.handleWheel, this);
 
+    // Native touch events for reliable multi-touch pinch zoom on mobile
+    const canvas = this.game.canvas;
+    canvas.addEventListener("touchstart", this.handleTouchStart.bind(this), { passive: false });
+    canvas.addEventListener("touchmove", this.handleTouchMove.bind(this), { passive: false });
+    canvas.addEventListener("touchend", this.handleTouchEnd.bind(this), { passive: false });
+    canvas.addEventListener("touchcancel", this.handleTouchEnd.bind(this), { passive: false });
+
     // Handle clicks on interactive game objects (buildings)
     this.input.on("gameobjectup", (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject) => {
       const dragDistance = Math.sqrt(
@@ -163,55 +168,6 @@ export class MainScene extends Phaser.Scene {
 
     // Update characters (boats, etc.) - convert delta from ms to seconds
     this.updateCharacters(delta / 1000);
-
-    // Check for multi-touch pinch zoom
-    const pointers = this.input.manager.pointers;
-    const activePointers = pointers.filter(p => p.isDown);
-
-    if (activePointers.length >= 2) {
-      const p1 = activePointers[0];
-      const p2 = activePointers[1];
-      const dx = p1.x - p2.x;
-      const dy = p1.y - p2.y;
-      const currentDistance = Math.sqrt(dx * dx + dy * dy);
-      const centerX = (p1.x + p2.x) / 2;
-      const centerY = (p1.y + p2.y) / 2;
-
-      if (!this.isPinching) {
-        // Start pinching - initialize
-        this.lastPinchDistance = currentDistance;
-        this.isPinching = true;
-        this.isPanning = false;
-      } else if (this.lastPinchDistance > 0 && currentDistance > 0) {
-        // Continue pinch - incremental zoom
-        const zoomDelta = currentDistance / this.lastPinchDistance;
-        const newZoom = Phaser.Math.Clamp(this.zoomLevel * zoomDelta, 0.8, 3);
-
-        if (Math.abs(newZoom - this.zoomLevel) > 0.0001) {
-          const camera = this.cameras.main;
-
-          // Zoom centered on current pinch point
-          const worldBefore = camera.getWorldPoint(centerX, centerY);
-          this.zoomLevel = newZoom;
-          camera.setZoom(newZoom);
-          const worldAfter = camera.getWorldPoint(centerX, centerY);
-
-          camera.scrollX += worldBefore.x - worldAfter.x;
-          camera.scrollY += worldBefore.y - worldAfter.y;
-
-          this.baseScrollX = camera.scrollX;
-          this.baseScrollY = camera.scrollY;
-          this.events.emit("zoomChanged", newZoom);
-        }
-
-        // Update for next frame (incremental)
-        this.lastPinchDistance = currentDistance;
-      }
-    } else if (this.isPinching && activePointers.length < 2) {
-      // End pinch when fingers lifted
-      this.isPinching = false;
-      this.lastPinchDistance = 0;
-    }
 
     // Check if camera has moved significantly - update dynamic water tiles
     const camera = this.cameras.main;
@@ -773,6 +729,90 @@ export class MainScene extends Phaser.Scene {
 
       // Emit zoom change event
       this.events.emit("zoomChanged", newZoom);
+    }
+  }
+
+  // Native touch handlers for reliable mobile pinch zoom
+  private handleTouchStart(event: TouchEvent): void {
+    // Track all active touches
+    for (let i = 0; i < event.changedTouches.length; i++) {
+      const touch = event.changedTouches[i];
+      this.activeTouches.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+    }
+
+    // Start pinch if we have 2 touches
+    if (this.activeTouches.size === 2) {
+      event.preventDefault();
+      const touches = Array.from(this.activeTouches.values());
+      const dx = touches[0].x - touches[1].x;
+      const dy = touches[0].y - touches[1].y;
+      this.lastPinchDistance = Math.sqrt(dx * dx + dy * dy);
+      this.isPinching = true;
+      this.isPanning = false;
+    }
+  }
+
+  private handleTouchMove(event: TouchEvent): void {
+    // Update tracked touch positions
+    for (let i = 0; i < event.changedTouches.length; i++) {
+      const touch = event.changedTouches[i];
+      if (this.activeTouches.has(touch.identifier)) {
+        this.activeTouches.set(touch.identifier, { x: touch.clientX, y: touch.clientY });
+      }
+    }
+
+    // Handle pinch zoom
+    if (this.isPinching && this.activeTouches.size >= 2) {
+      event.preventDefault();
+
+      const touches = Array.from(this.activeTouches.values());
+      const dx = touches[0].x - touches[1].x;
+      const dy = touches[0].y - touches[1].y;
+      const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+      // Calculate pinch center in canvas coordinates
+      const canvas = this.game.canvas;
+      const rect = canvas.getBoundingClientRect();
+      const centerX = ((touches[0].x + touches[1].x) / 2 - rect.left) * (canvas.width / rect.width);
+      const centerY = ((touches[0].y + touches[1].y) / 2 - rect.top) * (canvas.height / rect.height);
+
+      if (this.lastPinchDistance > 0 && currentDistance > 0) {
+        const zoomDelta = currentDistance / this.lastPinchDistance;
+        const newZoom = Phaser.Math.Clamp(this.zoomLevel * zoomDelta, 0.8, 3);
+
+        if (Math.abs(newZoom - this.zoomLevel) > 0.0001) {
+          const camera = this.cameras.main;
+
+          // Zoom centered on pinch point
+          const worldBefore = camera.getWorldPoint(centerX, centerY);
+          this.zoomLevel = newZoom;
+          camera.setZoom(newZoom);
+          const worldAfter = camera.getWorldPoint(centerX, centerY);
+
+          camera.scrollX += worldBefore.x - worldAfter.x;
+          camera.scrollY += worldBefore.y - worldAfter.y;
+
+          this.baseScrollX = camera.scrollX;
+          this.baseScrollY = camera.scrollY;
+          this.events.emit("zoomChanged", newZoom);
+        }
+
+        this.lastPinchDistance = currentDistance;
+      }
+    }
+  }
+
+  private handleTouchEnd(event: TouchEvent): void {
+    // Remove ended touches
+    for (let i = 0; i < event.changedTouches.length; i++) {
+      const touch = event.changedTouches[i];
+      this.activeTouches.delete(touch.identifier);
+    }
+
+    // End pinch if we no longer have 2 touches
+    if (this.activeTouches.size < 2 && this.isPinching) {
+      this.isPinching = false;
+      this.lastPinchDistance = 0;
     }
   }
 
