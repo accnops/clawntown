@@ -145,39 +145,33 @@ export class MainScene extends Phaser.Scene {
   update(): void {
     if (!this.isReady) return;
 
-    // Check for multi-touch pinch zoom (handles case where second touch is added during pan)
+    // Check for multi-touch pinch zoom
     const pointers = this.input.manager.pointers;
     const activePointers = pointers.filter(p => p.isDown);
 
-    if (activePointers.length >= 2 && !this.isPinching) {
-      // Switch from panning to pinching
-      const p1 = activePointers[0];
-      const p2 = activePointers[1];
-      const dx = p1.x - p2.x;
-      const dy = p1.y - p2.y;
-      this.lastPinchDistance = Math.sqrt(dx * dx + dy * dy);
-      this.pinchStartZoom = this.zoomLevel;
-      this.pinchCenterX = (p1.x + p2.x) / 2;
-      this.pinchCenterY = (p1.y + p2.y) / 2;
-      this.isPinching = true;
-      this.isPanning = false;
-    } else if (activePointers.length >= 2 && this.isPinching) {
-      // Continue pinch zoom
+    if (activePointers.length >= 2) {
       const p1 = activePointers[0];
       const p2 = activePointers[1];
       const dx = p1.x - p2.x;
       const dy = p1.y - p2.y;
       const currentDistance = Math.sqrt(dx * dx + dy * dy);
+      const centerX = (p1.x + p2.x) / 2;
+      const centerY = (p1.y + p2.y) / 2;
 
-      if (this.lastPinchDistance > 0) {
-        const scale = currentDistance / this.lastPinchDistance;
-        const newZoom = Phaser.Math.Clamp(this.pinchStartZoom * scale, 0.8, 3);
+      if (!this.isPinching) {
+        // Start pinching - initialize
+        this.lastPinchDistance = currentDistance;
+        this.isPinching = true;
+        this.isPanning = false;
+      } else if (this.lastPinchDistance > 0 && currentDistance > 0) {
+        // Continue pinch - incremental zoom
+        const zoomDelta = currentDistance / this.lastPinchDistance;
+        const newZoom = Phaser.Math.Clamp(this.zoomLevel * zoomDelta, 0.8, 3);
 
-        if (Math.abs(newZoom - this.zoomLevel) > 0.001) {
+        if (Math.abs(newZoom - this.zoomLevel) > 0.0001) {
           const camera = this.cameras.main;
-          const centerX = (p1.x + p2.x) / 2;
-          const centerY = (p1.y + p2.y) / 2;
 
+          // Zoom centered on current pinch point
           const worldBefore = camera.getWorldPoint(centerX, centerY);
           this.zoomLevel = newZoom;
           camera.setZoom(newZoom);
@@ -190,7 +184,14 @@ export class MainScene extends Phaser.Scene {
           this.baseScrollY = camera.scrollY;
           this.events.emit("zoomChanged", newZoom);
         }
+
+        // Update for next frame (incremental)
+        this.lastPinchDistance = currentDistance;
       }
+    } else if (this.isPinching && activePointers.length < 2) {
+      // End pinch when fingers lifted
+      this.isPinching = false;
+      this.lastPinchDistance = 0;
     }
 
     // Check if camera has moved significantly - update dynamic water tiles
@@ -567,39 +568,8 @@ export class MainScene extends Phaser.Scene {
 
   // Input handlers
   private handlePointerMove(pointer: Phaser.Input.Pointer): void {
-    // Handle pinch zoom (multi-touch)
-    if (this.isPinching && pointer.event && "touches" in pointer.event && pointer.event.touches.length === 2) {
-      const touches = pointer.event.touches;
-      const dx = touches[0].clientX - touches[1].clientX;
-      const dy = touches[0].clientY - touches[1].clientY;
-      const currentDistance = Math.sqrt(dx * dx + dy * dy);
-
-      if (this.lastPinchDistance > 0) {
-        const scale = currentDistance / this.lastPinchDistance;
-        const newZoom = Phaser.Math.Clamp(this.pinchStartZoom * scale, 0.8, 3);
-
-        if (Math.abs(newZoom - this.zoomLevel) > 0.001) {
-          const camera = this.cameras.main;
-
-          // Get canvas bounds to convert pinch center to canvas coordinates
-          const rect = this.game.canvas.getBoundingClientRect();
-          const canvasX = this.pinchCenterX - rect.left;
-          const canvasY = this.pinchCenterY - rect.top;
-
-          // Zoom toward pinch center
-          const worldBefore = camera.getWorldPoint(canvasX, canvasY);
-          this.zoomLevel = newZoom;
-          camera.setZoom(newZoom);
-          const worldAfter = camera.getWorldPoint(canvasX, canvasY);
-
-          camera.scrollX += worldBefore.x - worldAfter.x;
-          camera.scrollY += worldBefore.y - worldAfter.y;
-
-          this.baseScrollX = camera.scrollX;
-          this.baseScrollY = camera.scrollY;
-          this.events.emit("zoomChanged", newZoom);
-        }
-      }
+    // Skip if pinching (handled in update loop)
+    if (this.isPinching) {
       return;
     }
 
@@ -664,23 +634,12 @@ export class MainScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    // Check for pinch zoom (multi-touch)
-    if (pointer.event && "touches" in pointer.event && pointer.event.touches.length === 2) {
-      const touches = pointer.event.touches;
-      const dx = touches[0].clientX - touches[1].clientX;
-      const dy = touches[0].clientY - touches[1].clientY;
-      this.lastPinchDistance = Math.sqrt(dx * dx + dy * dy);
-      this.pinchStartZoom = this.zoomLevel;
-      // Store pinch center in screen coordinates
-      this.pinchCenterX = (touches[0].clientX + touches[1].clientX) / 2;
-      this.pinchCenterY = (touches[0].clientY + touches[1].clientY) / 2;
-      this.isPinching = true;
-      this.isPanning = false;
+    // Don't start panning if we're already pinching (handled in update)
+    if (this.isPinching) {
       return;
     }
 
     // Start panning (single touch or mouse)
-    this.isPinching = false;
     this.isPanning = true;
     this.panStartX = pointer.x;
     this.panStartY = pointer.y;
