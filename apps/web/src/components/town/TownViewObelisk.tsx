@@ -100,20 +100,19 @@ const ISO = {
   ) {
     const treeScale = scale * 0.5;
     const trunkW = 3 * treeScale;
-    const trunkH = 12 * treeScale; // Taller trunk so bottom is visible below foliage
+    const trunkH = 12 * treeScale;
     const foliageW = 10 * treeScale;
     const foliageH = 10 * treeScale;
 
-    // Center position for the tree
-    const centerX = x + 10 * scale;
-
-    // Trunk (brown cube) - tall so it extends below the foliage
-    const trunkX = centerX - trunkW / 2;
+    // In isometric, visual center of a cube is at x + width (the front-facing corner)
+    // Position trunk first
+    const trunkX = x + 10 * scale - trunkW;
     ISO.drawCube(ctx, trunkX, y, trunkW, trunkW, trunkH, '#8B5A2B', '#6B4423', '#4B2F1A');
 
-    // Foliage (green cube) - centered on trunk, positioned so trunk shows below
-    const foliageX = centerX - foliageW / 2;
-    const foliageY = y - trunkH + treeScale * 4; // Lift foliage so trunk bottom visible
+    // Foliage centered on trunk's visual center (trunkX + trunkW)
+    const trunkVisualCenter = trunkX + trunkW;
+    const foliageX = trunkVisualCenter - foliageW;
+    const foliageY = y - trunkH + treeScale * 4;
     ISO.drawCube(ctx, foliageX, foliageY, foliageW, foliageW, foliageH, '#4CAF50', '#388E3C', '#2E7D32');
   },
 
