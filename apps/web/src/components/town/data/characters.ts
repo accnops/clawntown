@@ -48,14 +48,15 @@ export const DIRECTION_VECTORS: Record<Direction, { dx: number; dy: number }> = 
 
 // Calculate direction from movement delta (adjusted for isometric projection)
 // In isometric: +X = down-right, +Y = down-left, -X = up-left, -Y = up-right
+// Boat bow should point in the direction of travel
 export function getDirectionFromDelta(dx: number, dy: number): Direction {
   // Prioritize the larger component for diagonal-ish movement
   if (Math.abs(dx) > Math.abs(dy)) {
-    // Moving along X axis: +X = Southeast (show South), -X = Northwest (show North)
-    return dx > 0 ? Direction.South : Direction.North;
+    // Moving along X axis: +X = Southeast (show North), -X = Northwest (show South)
+    return dx > 0 ? Direction.North : Direction.South;
   } else {
-    // Moving along Y axis: +Y = Southwest (show West), -Y = Northeast (show East)
-    return dy > 0 ? Direction.West : Direction.East;
+    // Moving along Y axis: +Y = Southwest (show East), -Y = Northeast (show West)
+    return dy > 0 ? Direction.East : Direction.West;
   }
 }
 
