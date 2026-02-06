@@ -53,9 +53,21 @@ export function TownView({ onBuildingClick }: TownViewProps) {
 
       {/* Town name overlay (HUD) */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none">
-        <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
-          CLAWNTOWN
-        </h1>
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <img
+            src="/assets/ui/sigil_64.png"
+            alt="Clawntown Sigil"
+            className="w-8 h-8 md:w-10 md:h-10 drop-shadow-lg"
+          />
+          <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
+            CLAWNTOWN
+          </h1>
+          <img
+            src="/assets/ui/sigil_64.png"
+            alt="Clawntown Sigil"
+            className="w-8 h-8 md:w-10 md:h-10 drop-shadow-lg scale-x-[-1]"
+          />
+        </div>
         <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
           Population: 42 | Treasury: 10,000
         </p>

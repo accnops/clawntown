@@ -121,6 +121,12 @@ export default function Home() {
         onClose={closeDialog}
       >
         <div className="text-center mb-4">
+          {/* Town Sigil */}
+          <img
+            src="/assets/ui/sigil_spin.gif"
+            alt="Clawntown Sigil"
+            className="w-48 h-48 mx-auto mb-3"
+          />
           <h1 className="font-pixel text-lg text-lobster-red mb-2">
             CLAWNTOWN
           </h1>
@@ -131,7 +137,7 @@ export default function Home() {
 
         <div className="bg-rct-water/30 p-3 rounded mb-4">
           <p className="font-retro text-xs text-center">
-            🦞 Where citizens shape the future 🦞
+            Where citizens shape the future
           </p>
         </div>
 
