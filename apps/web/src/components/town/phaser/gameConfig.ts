@@ -33,8 +33,13 @@ export function createGameConfig(
     antialias: false,
     scene,
     scale: {
-      mode: Phaser.Scale.NONE,
-      autoCenter: Phaser.Scale.NO_CENTER,
+      mode: Phaser.Scale.RESIZE, // Responsive to container size
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
+    input: {
+      touch: {
+        capture: true, // Capture touch events
+      },
     },
   };
 }

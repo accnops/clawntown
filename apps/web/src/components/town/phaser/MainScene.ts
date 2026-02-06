@@ -145,6 +145,54 @@ export class MainScene extends Phaser.Scene {
   update(): void {
     if (!this.isReady) return;
 
+    // Check for multi-touch pinch zoom (handles case where second touch is added during pan)
+    const pointers = this.input.manager.pointers;
+    const activePointers = pointers.filter(p => p.isDown);
+
+    if (activePointers.length >= 2 && !this.isPinching) {
+      // Switch from panning to pinching
+      const p1 = activePointers[0];
+      const p2 = activePointers[1];
+      const dx = p1.x - p2.x;
+      const dy = p1.y - p2.y;
+      this.lastPinchDistance = Math.sqrt(dx * dx + dy * dy);
+      this.pinchStartZoom = this.zoomLevel;
+      this.pinchCenterX = (p1.x + p2.x) / 2;
+      this.pinchCenterY = (p1.y + p2.y) / 2;
+      this.isPinching = true;
+      this.isPanning = false;
+    } else if (activePointers.length >= 2 && this.isPinching) {
+      // Continue pinch zoom
+      const p1 = activePointers[0];
+      const p2 = activePointers[1];
+      const dx = p1.x - p2.x;
+      const dy = p1.y - p2.y;
+      const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+      if (this.lastPinchDistance > 0) {
+        const scale = currentDistance / this.lastPinchDistance;
+        const newZoom = Phaser.Math.Clamp(this.pinchStartZoom * scale, 0.8, 3);
+
+        if (Math.abs(newZoom - this.zoomLevel) > 0.001) {
+          const camera = this.cameras.main;
+          const centerX = (p1.x + p2.x) / 2;
+          const centerY = (p1.y + p2.y) / 2;
+
+          const worldBefore = camera.getWorldPoint(centerX, centerY);
+          this.zoomLevel = newZoom;
+          camera.setZoom(newZoom);
+          const worldAfter = camera.getWorldPoint(centerX, centerY);
+
+          camera.scrollX += worldBefore.x - worldAfter.x;
+          camera.scrollY += worldBefore.y - worldAfter.y;
+
+          this.baseScrollX = camera.scrollX;
+          this.baseScrollY = camera.scrollY;
+          this.events.emit("zoomChanged", newZoom);
+        }
+      }
+    }
+
     // Check if camera has moved significantly - update dynamic water tiles
     const camera = this.cameras.main;
     const cameraMoved =
@@ -472,6 +520,12 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  // Simple seeded random for deterministic offsets
+  private seededRandom(x: number, y: number, seed: number = 12345): number {
+    const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+    return n - Math.floor(n);
+  }
+
   private renderDecoration(x: number, y: number, cell: GridCell): void {
     if (!cell.deco) return;
 
@@ -484,16 +538,27 @@ export class MainScene extends Phaser.Scene {
     }
 
     const pos = this.gridToScreen(x, y, cell.elevation);
+
+    // Add random offset to break up the grid pattern (trees only)
+    const isTree = cell.deco?.includes("tree") || cell.deco?.includes("pine");
+    let offsetX = 0;
+    let offsetY = 0;
+    if (isTree) {
+      // Random offset up to ~40% of tile size in each direction
+      offsetX = (this.seededRandom(x, y, 1) - 0.5) * TILE_WIDTH * 0.4;
+      offsetY = (this.seededRandom(x, y, 2) - 0.5) * TILE_HEIGHT * 0.4;
+    }
+
     const depth = (x + y) * DEPTH_Y_MULT + cell.elevation * 100 + 5;
 
     let sprite = this.decoSprites.get(key);
     if (!sprite) {
-      sprite = this.add.image(pos.x, pos.y, textureKey);
+      sprite = this.add.image(pos.x + offsetX, pos.y + offsetY, textureKey);
       sprite.setOrigin(0.5, 0.85);
       this.decoSprites.set(key, sprite);
     } else {
       sprite.setTexture(textureKey);
-      sprite.setPosition(pos.x, pos.y);
+      sprite.setPosition(pos.x + offsetX, pos.y + offsetY);
     }
 
     sprite.setScale(0.08); // Props are smaller
