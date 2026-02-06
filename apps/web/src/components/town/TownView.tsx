@@ -22,7 +22,6 @@ interface TownViewProps {
 }
 
 export function TownView({ onBuildingClick }: TownViewProps) {
-  const [zoom, setZoom] = useState(1.0);
   const [hoveredBuilding, setHoveredBuilding] = useState<Building | null>(null);
   const phaserRef = useRef<PhaserGameHandle>(null);
 
@@ -37,18 +36,12 @@ export function TownView({ onBuildingClick }: TownViewProps) {
     setHoveredBuilding(building);
   }, []);
 
-  const handleZoomChange = useCallback((newZoom: number) => {
-    setZoom(newZoom);
-  }, []);
-
   return (
     <div className="w-full h-full bg-gradient-to-b from-sky-400 via-cyan-500 to-blue-600 overflow-hidden relative">
       <PhaserGame
         ref={phaserRef}
         onBuildingClick={handleBuildingClick}
         onBuildingHover={handleBuildingHover}
-        zoom={zoom}
-        onZoomChange={handleZoomChange}
       />
 
       {/* Town name overlay (HUD) */}
@@ -71,11 +64,6 @@ export function TownView({ onBuildingClick }: TownViewProps) {
         <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
           Population: 42 | Treasury: 10,000
         </p>
-      </div>
-
-      {/* Zoom indicator */}
-      <div className="absolute bottom-16 right-4 bg-black/50 text-white px-2 py-1 rounded text-xs font-retro">
-        {Math.round(zoom * 100)}%
       </div>
 
       {/* Instructions */}
