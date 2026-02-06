@@ -231,18 +231,6 @@ else:
     fill_energy = 2.5
     ambient_strength = 0.8
 
-# Add lighting - main sun
-bpy.ops.object.light_add(type='SUN', location=(10, -10, 10))
-sun = bpy.context.object
-sun.data.energy = sun_energy
-sun.rotation_euler = (math.radians(45), math.radians(-15), math.radians(30))
-
-# Add fill light from opposite side
-bpy.ops.object.light_add(type='SUN', location=(-10, 10, 5))
-fill = bpy.context.object
-fill.data.energy = fill_energy
-fill.rotation_euler = (math.radians(60), math.radians(15), math.radians(-150))
-
 # Set up world ambient lighting
 world = bpy.context.scene.world
 if world is None:
@@ -271,6 +259,10 @@ else:
     orientations = [0, 90, 180, 270]
 base_output = output_path.replace('.png', '')
 
+# Keep track of light objects so we can update them per orientation
+sun = None
+fill = None
+
 for angle in orientations:
     # Position camera at isometric angle, rotating around Z axis
     rad = math.radians(45 + angle)  # 45° offset for corner view
@@ -279,6 +271,36 @@ for angle in orientations:
         center.y + distance * math.sin(rad) * math.cos(iso_elevation),
         center.z + distance * math.sin(iso_elevation)
     )
+
+    # Create or update lights to rotate WITH the camera
+    # This ensures consistent lighting relative to camera view
+    if sun is None:
+        bpy.ops.object.light_add(type='SUN', location=(0, 0, 10))
+        sun = bpy.context.object
+        sun.data.energy = sun_energy
+    if fill is None:
+        bpy.ops.object.light_add(type='SUN', location=(0, 0, 5))
+        fill = bpy.context.object
+        fill.data.energy = fill_energy
+
+    # Position lights relative to camera angle (rotate with camera)
+    # Main sun: above and to the right of camera view
+    sun_rad = rad + math.radians(-30)  # 30 degrees right of camera
+    sun.location = (
+        center.x + 10 * math.cos(sun_rad),
+        center.y + 10 * math.sin(sun_rad),
+        center.z + 10
+    )
+    sun.rotation_euler = (math.radians(45), 0, sun_rad + math.radians(90))
+
+    # Fill light: opposite side, lower
+    fill_rad = rad + math.radians(150)  # opposite side
+    fill.location = (
+        center.x + 10 * math.cos(fill_rad),
+        center.y + 10 * math.sin(fill_rad),
+        center.z + 5
+    )
+    fill.rotation_euler = (math.radians(60), 0, fill_rad + math.radians(90))
 
     # Set output path for this orientation
     render_path = f"{base_output}_{angle}.png"
