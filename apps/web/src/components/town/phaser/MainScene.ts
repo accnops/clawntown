@@ -78,6 +78,9 @@ export class MainScene extends Phaser.Scene {
   private lastPinchDistance: number = 0;
   private isPinching: boolean = false;
   private activeTouches: Map<number, { x: number; y: number }> = new Map();
+  private pinchStartZoom: number = 1;
+  private pinchStartWorldX: number = 0;
+  private pinchStartWorldY: number = 0;
 
   constructor() {
     super({ key: "MainScene" });
@@ -747,6 +750,17 @@ export class MainScene extends Phaser.Scene {
       const dx = touches[0].x - touches[1].x;
       const dy = touches[0].y - touches[1].y;
       this.lastPinchDistance = Math.sqrt(dx * dx + dy * dy);
+      this.pinchStartZoom = this.zoomLevel;
+
+      // Calculate pinch center and store its world position
+      const canvas = this.game.canvas;
+      const rect = canvas.getBoundingClientRect();
+      const centerX = ((touches[0].x + touches[1].x) / 2 - rect.left) * (canvas.width / rect.width);
+      const centerY = ((touches[0].y + touches[1].y) / 2 - rect.top) * (canvas.height / rect.height);
+      const worldPoint = this.cameras.main.getWorldPoint(centerX, centerY);
+      this.pinchStartWorldX = worldPoint.x;
+      this.pinchStartWorldY = worldPoint.y;
+
       this.isPinching = true;
       this.isPanning = false;
     }
@@ -770,32 +784,31 @@ export class MainScene extends Phaser.Scene {
       const dy = touches[0].y - touches[1].y;
       const currentDistance = Math.sqrt(dx * dx + dy * dy);
 
-      // Calculate pinch center in canvas coordinates
+      // Calculate current pinch center in canvas coordinates
       const canvas = this.game.canvas;
       const rect = canvas.getBoundingClientRect();
       const centerX = ((touches[0].x + touches[1].x) / 2 - rect.left) * (canvas.width / rect.width);
       const centerY = ((touches[0].y + touches[1].y) / 2 - rect.top) * (canvas.height / rect.height);
 
       if (this.lastPinchDistance > 0 && currentDistance > 0) {
-        const zoomDelta = currentDistance / this.lastPinchDistance;
-        const newZoom = Phaser.Math.Clamp(this.zoomLevel * zoomDelta, 0.8, 3);
+        // Calculate new zoom based on pinch scale relative to start
+        const scale = currentDistance / this.lastPinchDistance;
+        const newZoom = Phaser.Math.Clamp(this.zoomLevel * scale, 0.8, 3);
 
-        if (Math.abs(newZoom - this.zoomLevel) > 0.0001) {
-          const camera = this.cameras.main;
+        const camera = this.cameras.main;
 
-          // Zoom centered on pinch point
-          const worldBefore = camera.getWorldPoint(centerX, centerY);
-          this.zoomLevel = newZoom;
-          camera.setZoom(newZoom);
-          const worldAfter = camera.getWorldPoint(centerX, centerY);
+        // Apply zoom
+        this.zoomLevel = newZoom;
+        camera.setZoom(newZoom);
 
-          camera.scrollX += worldBefore.x - worldAfter.x;
-          camera.scrollY += worldBefore.y - worldAfter.y;
+        // Position camera so the initial pinch world point is at the current screen center
+        // This keeps the pinch point stable under the user's fingers
+        camera.scrollX = this.pinchStartWorldX - centerX / newZoom;
+        camera.scrollY = this.pinchStartWorldY - centerY / newZoom;
 
-          this.baseScrollX = camera.scrollX;
-          this.baseScrollY = camera.scrollY;
-          this.events.emit("zoomChanged", newZoom);
-        }
+        this.baseScrollX = camera.scrollX;
+        this.baseScrollY = camera.scrollY;
+        this.events.emit("zoomChanged", newZoom);
 
         this.lastPinchDistance = currentDistance;
       }
