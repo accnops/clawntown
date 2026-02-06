@@ -73,7 +73,7 @@ export const CHARACTER_TYPES: Record<CharacterType, CharacterTypeDefinition> = {
   [CharacterType.Boat]: {
     name: "boat",
     spritePath: "/assets/buildings/core/boat_sprite_{dir}.png",
-    defaultSpeed: 0.8, // Grid units per second
+    defaultSpeed: 0.4, // Grid units per second
     defaultScale: 0.12,
   },
 };
@@ -129,7 +129,7 @@ export function createInitialBoats(): Character[] {
     x: path[0].x,
     y: path[0].y,
     direction: Direction.South,
-    speed: CHARACTER_TYPES[CharacterType.Boat].defaultSpeed + (index * 0.1), // Slight speed variation
+    speed: CHARACTER_TYPES[CharacterType.Boat].defaultSpeed + (index * 0.05), // Slight speed variation
     path,
     pathIndex: 0,
     scale: CHARACTER_TYPES[CharacterType.Boat].defaultScale,
