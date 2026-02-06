@@ -701,28 +701,33 @@ export class MainScene extends Phaser.Scene {
     const event = pointer.event as WheelEvent | undefined;
     const isTrackpadPinch = event?.ctrlKey ?? false;
 
+    const oldZoom = this.zoomLevel;
     let newZoom: number;
     if (isTrackpadPinch) {
       // Trackpad pinch: use exponential scaling for natural, smooth feel
       const zoomFactor = Math.exp(-deltaY / 300);
-      newZoom = Phaser.Math.Clamp(this.zoomLevel * zoomFactor, 0.8, 3);
+      newZoom = Phaser.Math.Clamp(oldZoom * zoomFactor, 0.8, 3);
     } else {
       // Regular mouse wheel: use smaller multiplicative step for smoother zoom
       const zoomFactor = deltaY > 0 ? 0.95 : 1.05;
-      newZoom = Phaser.Math.Clamp(this.zoomLevel * zoomFactor, 0.8, 3);
+      newZoom = Phaser.Math.Clamp(oldZoom * zoomFactor, 0.8, 3);
     }
 
-    if (Math.abs(newZoom - this.zoomLevel) > 0.001) {
-      // Zoom toward pointer position
+    if (Math.abs(newZoom - oldZoom) > 0.001) {
       const camera = this.cameras.main;
-      const worldBefore = camera.getWorldPoint(pointer.x, pointer.y);
+
+      // Calculate offset from screen center (Phaser camera is center-based)
+      const offsetX = pointer.x - camera.width / 2;
+      const offsetY = pointer.y - camera.height / 2;
+
+      // Adjust scroll to keep the world point under cursor fixed
+      // Formula: newScroll = oldScroll + offset * (1/oldZoom - 1/newZoom)
+      const zoomDiff = 1 / oldZoom - 1 / newZoom;
+      camera.scrollX += offsetX * zoomDiff;
+      camera.scrollY += offsetY * zoomDiff;
 
       this.zoomLevel = newZoom;
       camera.setZoom(newZoom);
-
-      const worldAfter = camera.getWorldPoint(pointer.x, pointer.y);
-      camera.scrollX += worldBefore.x - worldAfter.x;
-      camera.scrollY += worldBefore.y - worldAfter.y;
 
       this.baseScrollX = camera.scrollX;
       this.baseScrollY = camera.scrollY;
@@ -777,26 +782,24 @@ export class MainScene extends Phaser.Scene {
       const centerY = ((touches[0].y + touches[1].y) / 2 - rect.top) * (canvas.height / rect.height);
 
       if (this.lastPinchDistance > 0 && currentDistance > 0) {
-        // Calculate new zoom based on pinch scale relative to last frame
+        const oldZoom = this.zoomLevel;
         const scale = currentDistance / this.lastPinchDistance;
-        const newZoom = Phaser.Math.Clamp(this.zoomLevel * scale, 0.8, 3);
+        const newZoom = Phaser.Math.Clamp(oldZoom * scale, 0.8, 3);
 
-        if (Math.abs(newZoom - this.zoomLevel) > 0.0001) {
+        if (Math.abs(newZoom - oldZoom) > 0.0001) {
           const camera = this.cameras.main;
 
-          // Get world point at pinch center BEFORE zoom change
-          const worldBefore = camera.getWorldPoint(centerX, centerY);
+          // Calculate offset from screen center (Phaser camera is center-based)
+          const offsetX = centerX - camera.width / 2;
+          const offsetY = centerY - camera.height / 2;
 
-          // Apply new zoom
+          // Adjust scroll to keep the world point under pinch center fixed
+          const zoomDiff = 1 / oldZoom - 1 / newZoom;
+          camera.scrollX += offsetX * zoomDiff;
+          camera.scrollY += offsetY * zoomDiff;
+
           this.zoomLevel = newZoom;
           camera.setZoom(newZoom);
-
-          // Get world point at pinch center AFTER zoom change
-          const worldAfter = camera.getWorldPoint(centerX, centerY);
-
-          // Adjust scroll to keep the same world point at the pinch center
-          camera.scrollX += worldBefore.x - worldAfter.x;
-          camera.scrollY += worldBefore.y - worldAfter.y;
 
           this.baseScrollX = camera.scrollX;
           this.baseScrollY = camera.scrollY;
