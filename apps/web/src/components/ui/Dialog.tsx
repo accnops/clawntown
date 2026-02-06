@@ -51,7 +51,7 @@ export function Dialog({ title, isOpen, onClose, children, className = '' }: Dia
           <span id="dialog-title">{title}</span>
           <button
             onClick={onClose}
-            className="w-5 h-5 bg-retro-gray border border-t-white border-l-white border-b-gray-600 border-r-gray-600 flex items-center justify-center text-xs font-bold hover:bg-gray-300 active:border-t-gray-600 active:border-l-gray-600 active:border-b-white active:border-r-white"
+            className="w-5 h-5 bg-retro-gray border border-t-white border-l-white border-b-gray-600 border-r-gray-600 flex items-center justify-center text-xs font-bold text-gray-800 hover:bg-gray-300 active:border-t-gray-600 active:border-l-gray-600 active:border-b-white active:border-r-white"
             aria-label="Close dialog"
           >
             ✕

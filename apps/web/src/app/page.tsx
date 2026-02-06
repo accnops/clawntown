@@ -191,7 +191,7 @@ export default function Home() {
         onClose={closeDialog}
       >
         <div className="text-center">
-          <span className="text-4xl mb-2 block">{selectedBuilding?.emoji}</span>
+          <span className="text-4xl mb-2 block">🏗️</span>
           <p className="font-retro text-sm font-bold mb-2">{selectedBuilding?.name}</p>
           <p className="font-retro text-xs text-gray-600">
             This building is under construction. Check back soon!
