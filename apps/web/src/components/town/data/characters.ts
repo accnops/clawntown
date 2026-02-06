@@ -84,31 +84,31 @@ export function getCharacterSpriteKey(type: CharacterType, direction: Direction)
   return `${typeDef.name}_${direction}`;
 }
 
-// Predefined boat patrol routes around the island
+// Predefined boat patrol routes around the island (grid is 0-31, stay outside)
 export const BOAT_PATHS: PathWaypoint[][] = [
-  // Route 1: Northwest patrol (counterclockwise around north side)
+  // Route 1: Full island patrol (counterclockwise)
   [
     { x: -4, y: 5 },
     { x: -4, y: 15 },
-    { x: -3, y: 25 },
-    { x: 5, y: 32 },
-    { x: 15, y: 34 },
-    { x: 25, y: 32 },
-    { x: 30, y: 25 },
-    { x: 32, y: 15 },
-    { x: 32, y: 5 },
-    { x: 25, y: -2 },
-    { x: 15, y: -3 },
-    { x: 5, y: -2 },
+    { x: -4, y: 25 },
+    { x: 5, y: 36 },
+    { x: 15, y: 38 },
+    { x: 25, y: 36 },
+    { x: 34, y: 25 },
+    { x: 36, y: 15 },
+    { x: 36, y: 5 },
+    { x: 25, y: -4 },
+    { x: 15, y: -5 },
+    { x: 5, y: -4 },
   ],
-  // Route 2: Small loop near lighthouse (southeast)
+  // Route 2: Southeast fishing loop (outside lighthouse area)
   [
-    { x: 28, y: 28 },
-    { x: 32, y: 24 },
-    { x: 35, y: 20 },
-    { x: 35, y: 28 },
-    { x: 32, y: 32 },
-    { x: 28, y: 32 },
+    { x: 34, y: 34 },
+    { x: 38, y: 28 },
+    { x: 40, y: 20 },
+    { x: 38, y: 34 },
+    { x: 36, y: 38 },
+    { x: 32, y: 36 },
   ],
   // Route 3: Western fishing route
   [
