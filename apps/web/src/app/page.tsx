@@ -125,7 +125,7 @@ export default function Home() {
           <img
             src="/assets/ui/sigil_spin.gif"
             alt="Clawntown Sigil"
-            className="w-48 h-48 mx-auto mb-3"
+            className="w-32 h-auto mx-auto mb-3"
           />
           <h1 className="font-pixel text-lg text-lobster-red mb-2">
             CLAWNTOWN
