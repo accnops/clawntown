@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { TownView, Building } from '@/components/town';
 import { Dialog } from '@/components/ui';
-import { ConversationView } from '@/components/council';
 import { ProjectBoard, Project } from '@/components/projects';
 import { ThreadList, ForumThread } from '@/components/forum';
+import { TownHallLobby, CouncilOffice, CitizenRegistry } from '@/components/town-hall';
+import { useCouncilOffice } from '@/hooks';
+import type { CouncilMember } from '@clawntown/shared';
 
 // Mock projects data
 const MOCK_PROJECTS: Project[] = [
@@ -98,6 +100,14 @@ type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | null;
 export default function Home() {
   const [activeDialog, setActiveDialog] = useState<DialogType>('welcome');
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+  const [townHallView, setTownHallView] = useState<'lobby' | 'office' | 'registry'>('lobby');
+  const [selectedCouncilMember, setSelectedCouncilMember] = useState<CouncilMember | null>(null);
+
+  // Use the council office hook when a member is selected
+  const councilOffice = useCouncilOffice({
+    member: selectedCouncilMember || { id: '', name: '', role: 'mayor', personality: '', avatar: '', avatarSpinning: '', schedule: [] },
+    citizenId: undefined, // Will be set when auth is implemented
+  });
 
   const handleBuildingClick = (building: Building) => {
     setSelectedBuilding(building);
@@ -107,6 +117,30 @@ export default function Home() {
   const closeDialog = () => {
     setActiveDialog(null);
     setSelectedBuilding(null);
+    // Reset Town Hall state when closing
+    setTownHallView('lobby');
+    setSelectedCouncilMember(null);
+  };
+
+  const handleSelectCouncilMember = (member: CouncilMember) => {
+    setSelectedCouncilMember(member);
+    setTownHallView('office');
+  };
+
+  const handleBackToLobby = () => {
+    setTownHallView('lobby');
+    setSelectedCouncilMember(null);
+  };
+
+  const getTownHallTitle = () => {
+    switch (townHallView) {
+      case 'office':
+        return selectedCouncilMember?.name || 'Council Office';
+      case 'registry':
+        return 'Citizen Registry';
+      default:
+        return 'Town Hall';
+    }
   };
 
   return (
@@ -155,18 +189,48 @@ export default function Home() {
 
       {/* Town Hall dialog */}
       <Dialog
-        title="Town Hall - Mayor Clawrence"
+        title={getTownHallTitle()}
         isOpen={activeDialog === 'town_hall'}
         onClose={closeDialog}
       >
-        <ConversationView
-          memberName="Mayor Clawrence"
-          memberEmoji="🦞"
-          isOnline={true}
-          greeting="Welcome to Clawntown! I'm claw-some to meet you! Step right up if you have ideas for our wonderful coastal community!"
-          isMyTurn={false}
-          queuePosition={undefined}
-        />
+        {townHallView === 'lobby' && (
+          <TownHallLobby
+            onSelectMember={handleSelectCouncilMember}
+            onOpenRegistry={() => setTownHallView('registry')}
+          />
+        )}
+
+        {townHallView === 'office' && selectedCouncilMember && (
+          <CouncilOffice
+            member={selectedCouncilMember}
+            messages={councilOffice.messages}
+            spectatorCount={councilOffice.spectatorCount}
+            queueLength={councilOffice.queueLength}
+            queuePosition={councilOffice.queuePosition}
+            currentTurn={councilOffice.currentTurn}
+            isMyTurn={councilOffice.isMyTurn}
+            isAuthenticated={false}
+            isStreaming={councilOffice.isStreaming}
+            streamingContent={councilOffice.streamingContent}
+            onSendMessage={councilOffice.sendMessage}
+            onRaiseHand={() => councilOffice.raiseHand('Guest', '')}
+            onLeaveQueue={councilOffice.leaveQueue}
+            onBack={handleBackToLobby}
+          />
+        )}
+
+        {townHallView === 'registry' && (
+          <CitizenRegistry
+            onRegister={async () => {
+              // Placeholder - will be implemented with real auth
+            }}
+            onSignIn={async () => {
+              // Placeholder - will be implemented with real auth
+            }}
+            onBack={handleBackToLobby}
+            isAuthenticated={false}
+          />
+        )}
       </Dialog>
 
       {/* Forum dialog */}
