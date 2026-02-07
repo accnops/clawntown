@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!isGeminiConfigured()) {
+      console.error('GEMINI_API_KEY not found. Available env keys:', Object.keys(process.env).filter(k => k.includes('GEMINI') || k.includes('gemini')));
       return NextResponse.json({
         error: 'Gemini API not configured',
         response: `*${councilMember.name} is currently unavailable. Please try again later.*`

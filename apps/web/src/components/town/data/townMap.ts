@@ -119,7 +119,7 @@ export const TOWN_MAP: GridCell[][] = [
   [s(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),ok1(),ok1(),g2(),r1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
   // Rows 20-21: South inland - dock area, forest with clearings
   [s(),g1(),g1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),r1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
-  [s(),g1(),g1(),ok1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),w(),w(),dock()],
+  [s(),g1(),g1(),ok1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),w(),dock()],
   // Rows 22-23: South area - lighthouse, forest thins out irregularly
   [s(),s(),g1(),ok1(),ok1(),g1(),ok1(),ok1(),g1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w()],
   [s(),s(),g1(),g1(),ok1(),ok1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),wl1(),g1(),g1(),s(),s(),k1(),k1(),k1(),s(),s(),s(),w(),w(),w(),w()],
