@@ -45,7 +45,7 @@ export function AuthForm({ onSignIn, onSignUp, onClose }: AuthFormProps) {
         <button
           type="button"
           onClick={() => setMode('signin')}
-          className={`flex-1 py-2 font-retro text-xs ${
+          className={`flex-1 py-2 font-retro text-xs cursor-pointer ${
             mode === 'signin'
               ? 'bg-white border-t border-l border-r border-gray-400 -mb-px'
               : 'bg-gray-200'
@@ -56,7 +56,7 @@ export function AuthForm({ onSignIn, onSignUp, onClose }: AuthFormProps) {
         <button
           type="button"
           onClick={() => setMode('signup')}
-          className={`flex-1 py-2 font-retro text-xs ${
+          className={`flex-1 py-2 font-retro text-xs cursor-pointer ${
             mode === 'signup'
               ? 'bg-white border-t border-l border-r border-gray-400 -mb-px'
               : 'bg-gray-200'

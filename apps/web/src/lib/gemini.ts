@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = process.env.GEMINI_API_KEY;
-
-export const isGeminiConfigured = !!apiKey;
+// Check lazily at runtime, not at module load time
+export const isGeminiConfigured = () => !!process.env.GEMINI_API_KEY;
 
 export function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not configured');
   }

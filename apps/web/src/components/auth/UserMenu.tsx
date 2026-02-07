@@ -14,7 +14,7 @@ export function UserMenu({ citizenName, onSignOut }: UserMenuProps) {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-white/90 border border-gray-400 rounded px-2 py-1 hover:bg-white"
+        className="flex items-center gap-2 bg-white/90 border border-gray-400 rounded px-2 py-1 hover:bg-white cursor-pointer"
       >
         <span className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center text-xs text-white">
           👤
@@ -44,7 +44,7 @@ export function UserMenu({ citizenName, onSignOut }: UserMenuProps) {
                 setIsOpen(false);
                 onSignOut();
               }}
-              className="w-full text-left px-3 py-2 font-retro text-xs hover:bg-gray-100"
+              className="w-full text-left px-3 py-2 font-retro text-xs hover:bg-gray-100 cursor-pointer"
             >
               🚪 Sign Out
             </button>

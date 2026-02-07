@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Council member not found' }, { status: 404 });
     }
 
-    if (!isGeminiConfigured) {
+    if (!isGeminiConfigured()) {
       return NextResponse.json({
         error: 'Gemini API not configured',
         response: `*${councilMember.name} is currently unavailable. Please try again later.*`

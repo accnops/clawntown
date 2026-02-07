@@ -220,6 +220,23 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     interactive: false,
     scale: 0.15,
   },
+
+  // Community Buildings
+  [BuildingType.NoticeBoard]: {
+    id: BuildingType.NoticeBoard,
+    name: "notice_board",
+    displayName: "Town Crier",
+    footprint: { width: 1, height: 1 },
+    sprites: {
+      [Direction.South]: "/assets/buildings/core/notice_board_sprite_0.png",
+      [Direction.West]: "/assets/buildings/core/notice_board_sprite_90.png",
+      [Direction.North]: "/assets/buildings/core/notice_board_sprite_180.png",
+      [Direction.East]: "/assets/buildings/core/notice_board_sprite_270.png",
+    },
+    renderHeight: 2,
+    interactive: true,
+    scale: 0.12,
+  },
 };
 
 export function getBuilding(type: BuildingType): BuildingDefinition | undefined {

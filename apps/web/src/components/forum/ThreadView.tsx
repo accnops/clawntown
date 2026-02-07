@@ -52,7 +52,7 @@ export function ThreadView({
         {onBack && (
           <button
             onClick={onBack}
-            className="font-retro text-[10px] text-blue-600 hover:underline mb-2"
+            className="font-retro text-[10px] text-blue-600 hover:underline mb-2 cursor-pointer"
           >
             ← Back to threads
           </button>

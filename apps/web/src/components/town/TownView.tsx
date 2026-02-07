@@ -54,7 +54,7 @@ export function TownView({ onBuildingClick }: TownViewProps) {
           <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦞</span>
         </div>
         <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
-          Population: 42 | Treasury: 10,000
+          Population: 42
         </p>
       </div>
 

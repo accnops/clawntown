@@ -34,7 +34,7 @@ export function Dialog({ title, isOpen, onClose, children, className = '' }: Dia
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/30"
+        className="absolute inset-0 bg-black/30 cursor-pointer"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -51,7 +51,7 @@ export function Dialog({ title, isOpen, onClose, children, className = '' }: Dia
           <span id="dialog-title">{title}</span>
           <button
             onClick={onClose}
-            className="w-5 h-5 bg-retro-gray border border-t-white border-l-white border-b-gray-600 border-r-gray-600 flex items-center justify-center text-xs font-bold text-gray-800 hover:bg-gray-300 active:border-t-gray-600 active:border-l-gray-600 active:border-b-white active:border-r-white"
+            className="w-5 h-5 bg-retro-gray border border-t-white border-l-white border-b-gray-600 border-r-gray-600 flex items-center justify-center text-xs font-bold text-gray-800 hover:bg-gray-300 active:border-t-gray-600 active:border-l-gray-600 active:border-b-white active:border-r-white cursor-pointer"
             aria-label="Close dialog"
           >
             ✕

@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     // Generate council response if Gemini is configured
     let councilMessage = null;
 
-    if (isGeminiConfigured) {
+    if (isGeminiConfigured()) {
       try {
         // Fetch recent conversation history
         const { data: historyData } = await supabase

@@ -165,6 +165,7 @@ function getBuildingDisplayName(type: BuildingType): string {
     [BuildingType.BaitTackleShop]: "Bait & Tackle Shop",
     [BuildingType.FishMarket]: "Fish Market",
     [BuildingType.GeneralStore]: "General Store",
+    [BuildingType.NoticeBoard]: "Town Crier",
   };
   return names[type] || type;
 }

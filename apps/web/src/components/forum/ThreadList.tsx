@@ -81,7 +81,7 @@ export function ThreadList({ threads, onThreadClick, onNewThread }: ThreadListPr
             <button
               key={thread.id}
               onClick={() => onThreadClick?.(thread.id)}
-              className="w-full text-left bg-white border border-gray-300 rounded p-2 hover:bg-gray-50 transition-colors"
+              className="w-full text-left bg-white border border-gray-300 rounded p-2 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <div className="flex items-start gap-2">
                 {thread.isPinned && (

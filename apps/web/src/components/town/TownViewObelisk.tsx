@@ -1061,7 +1061,7 @@ export function TownViewObelisk({ onBuildingClick }: TownViewProps) {
           CLAWNTAWN
         </h1>
         <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
-          Population: 42 | Treasury: 10,000
+          Population: 42
         </p>
       </div>
 
