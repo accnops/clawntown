@@ -18,22 +18,29 @@ export async function generateCouncilResponse(
   conversationHistory: Array<{ role: 'citizen' | 'council'; content: string }>
 ): Promise<string> {
   const client = getGeminiClient();
-  const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
-
-  // Build conversation context
-  const historyText = conversationHistory
-    .map((msg) => `${msg.role === 'citizen' ? citizenName : 'You'}: ${msg.content}`)
-    .join('\n');
-
-  const prompt = `${personality}
+  const model = client.getGenerativeModel({
+    model: 'gemini-2.0-flash',
+    systemInstruction: `${personality}
 
 You are having a conversation with a citizen named "${citizenName}".
 
-${historyText ? `Previous conversation:\n${historyText}\n\n` : ''}${citizenName}: ${citizenMessage}
+IMPORTANT: Remember and reference previous messages in the conversation. If the citizen asks you to recall something they said, refer back to the conversation history.
 
-Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`;
+Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`,
+  });
 
-  const result = await model.generateContent(prompt);
+  // Convert history to Gemini's chat format
+  const chatHistory = conversationHistory.map((msg) => ({
+    role: msg.role === 'citizen' ? 'user' : 'model',
+    parts: [{ text: msg.content }],
+  }));
+
+  // Use the chat API for proper multi-turn conversation
+  const chat = model.startChat({
+    history: chatHistory as any,
+  });
+
+  const result = await chat.sendMessage(citizenMessage);
   const response = result.response;
   return response.text();
 }
