@@ -80,7 +80,7 @@ const noticeBoard = (): GridCell => ({
   building: BuildingType.NoticeBoard,
   buildingOrientation: Direction.East,
   deco: null,
-  elevation: 1,
+  elevation: 2,
 });
 
 // 32x32 town map with elevation (0=sea level, 1+=elevated)
