@@ -2,20 +2,20 @@ import type { CouncilMember, CouncilMemberState, OfficeHours } from '@clawntown/
 import { queryTownData, insertTownData, updateTownData } from '../db/town-data.js';
 import { councilMembers } from './members.js';
 
-function isWithinOfficeHours(officeHours: OfficeHours[], now: Date): boolean {
+function isWithinOfficeHours(schedule: OfficeHours[], now: Date): boolean {
   const day = now.getDay();
   const hour = now.getHours();
 
-  return officeHours.some(
+  return schedule.some(
     oh => oh.dayOfWeek === day && hour >= oh.startHour && hour < oh.endHour
   );
 }
 
-function getSessionEndTime(officeHours: OfficeHours[], now: Date): Date | null {
+function getSessionEndTime(schedule: OfficeHours[], now: Date): Date | null {
   const day = now.getDay();
   const hour = now.getHours();
 
-  const currentSlot = officeHours.find(
+  const currentSlot = schedule.find(
     oh => oh.dayOfWeek === day && hour >= oh.startHour && hour < oh.endHour
   );
 
@@ -40,18 +40,20 @@ export async function updateCouncilStates(): Promise<{
   const wentOffline: CouncilMember[] = [];
 
   for (const member of councilMembers) {
-    const shouldBeOnline = isWithinOfficeHours(member.officeHours, now);
+    const shouldBeOnline = isWithinOfficeHours(member.schedule, now);
     const records = await queryTownData<CouncilMemberState>('council_state', { index_1: member.id });
     const existingRecord = records[0];
     const currentState = existingRecord?.data;
 
     if (shouldBeOnline && !currentState?.isOnline) {
       // Going online
+      const sessionId = crypto.randomUUID();
       const newState: CouncilMemberState = {
         memberId: member.id,
         isOnline: true,
-        currentSessionStart: now,
-        sessionEndsAt: getSessionEndTime(member.officeHours, now),
+        currentSessionId: sessionId,
+        sessionStartedAt: now,
+        sessionEndsAt: getSessionEndTime(member.schedule, now),
       };
 
       if (existingRecord) {
@@ -65,7 +67,8 @@ export async function updateCouncilStates(): Promise<{
       const newState: CouncilMemberState = {
         memberId: member.id,
         isOnline: false,
-        currentSessionStart: null,
+        currentSessionId: null,
+        sessionStartedAt: null,
         sessionEndsAt: null,
       };
 

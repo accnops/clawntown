@@ -1,24 +1,27 @@
 import type { QueueEntry } from '@clawntown/shared';
-import { queryTownData, insertTownData, updateTownData, deleteTownData } from '../db/town-data.js';
+import { queryTownData, insertTownData, deleteTownData } from '../db/town-data.js';
 import { broadcaster } from '../realtime/index.js';
 
 export async function getQueue(memberId: string): Promise<QueueEntry[]> {
   const records = await queryTownData<QueueEntry>('queue_entry', {
     index_1: memberId,
-    index_3: 'waiting'
   });
 
   return records
     .map(r => r.data)
-    .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
+    .sort((a, b) => a.joinedAt - b.joinedAt);
 }
 
-export async function joinQueue(memberId: string, citizenId: string): Promise<QueueEntry> {
+export async function joinQueue(
+  memberId: string,
+  citizenId: string,
+  citizenName: string,
+  citizenAvatar: string
+): Promise<QueueEntry> {
   // Check if already in queue
   const existing = await queryTownData<QueueEntry>('queue_entry', {
     index_1: memberId,
     index_2: citizenId,
-    index_3: 'waiting'
   });
 
   if (existing.length > 0) {
@@ -28,14 +31,14 @@ export async function joinQueue(memberId: string, citizenId: string): Promise<Qu
   const entry: QueueEntry = {
     id: crypto.randomUUID(),
     citizenId,
-    joinedAt: new Date(),
-    status: 'waiting',
+    citizenName,
+    citizenAvatar,
+    joinedAt: Date.now(),
   };
 
   await insertTownData('queue_entry', entry, {
     index_1: memberId,
     index_2: citizenId,
-    index_3: 'waiting',
   });
 
   // Broadcast queue update
@@ -49,7 +52,6 @@ export async function leaveQueue(memberId: string, citizenId: string): Promise<v
   const records = await queryTownData<QueueEntry>('queue_entry', {
     index_1: memberId,
     index_2: citizenId,
-    index_3: 'waiting'
   });
 
   for (const record of records) {
@@ -66,22 +68,7 @@ export async function getNextInQueue(memberId: string): Promise<QueueEntry | nul
   return queue[0] ?? null;
 }
 
-export async function markQueueEntryActive(
-  memberId: string,
-  citizenId: string
-): Promise<void> {
-  const records = await queryTownData<QueueEntry>('queue_entry', {
-    index_1: memberId,
-    index_2: citizenId,
-    index_3: 'waiting'
-  });
-
-  for (const record of records) {
-    await updateTownData(record.id, { ...record.data, status: 'active' }, { index_3: 'active' });
-  }
-}
-
-export async function markQueueEntryCompleted(
+export async function removeFromQueue(
   memberId: string,
   citizenId: string
 ): Promise<void> {

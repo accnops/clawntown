@@ -23,7 +23,8 @@ When drafting projects, you create formal proposals with:
 
 You sign off at the end of your office hours with a warm farewell.`,
     avatar: '/avatars/mayor-clawrence.png',
-    officeHours: [
+    avatarSpinning: '/avatars/mayor-clawrence-spinning.gif',
+    schedule: [
       { dayOfWeek: 0, startHour: 14, endHour: 17 }, // Sunday 2-5pm
       { dayOfWeek: 1, startHour: 9, endHour: 12 },  // Monday 9am-12pm
       { dayOfWeek: 2, startHour: 9, endHour: 12 },

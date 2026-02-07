@@ -1,13 +1,8 @@
+import type { QueueEntry, ConversationMessage } from './turn.js';
+
 export interface ConversationQueue {
   memberId: string;
   queue: QueueEntry[];
-}
-
-export interface QueueEntry {
-  id: string;
-  citizenId: string;
-  joinedAt: Date;
-  status: 'waiting' | 'active' | 'completed';
 }
 
 export interface ConversationTurn {
@@ -19,14 +14,6 @@ export interface ConversationTurn {
   startedAt: Date;
   timeoutAt: Date;
   status: 'active' | 'completed' | 'timed_out';
-}
-
-export interface ConversationMessage {
-  id: string;
-  turnId: string;
-  role: 'citizen' | 'council';
-  content: string;
-  createdAt: Date;
 }
 
 export interface ConversationTranscript {

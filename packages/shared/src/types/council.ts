@@ -1,10 +1,20 @@
+export type CouncilRole =
+  | 'mayor'
+  | 'treasurer'
+  | 'clerk'
+  | 'harbormaster'
+  | 'chef'
+  | 'lighthouse_keeper'
+  | 'sheriff';
+
 export interface CouncilMember {
   id: string;
   name: string;
-  role: 'mayor' | 'treasurer' | 'clerk' | 'engineer';
+  role: CouncilRole;
   personality: string;
   avatar: string;
-  officeHours: OfficeHours[];
+  avatarSpinning: string;
+  schedule: OfficeHours[];
 }
 
 export interface OfficeHours {
@@ -16,6 +26,7 @@ export interface OfficeHours {
 export interface CouncilMemberState {
   memberId: string;
   isOnline: boolean;
-  currentSessionStart: Date | null;
+  currentSessionId: string | null;
+  sessionStartedAt: Date | null;
   sessionEndsAt: Date | null;
 }

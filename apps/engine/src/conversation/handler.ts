@@ -2,7 +2,7 @@ import type { ConversationTurn } from '@clawntown/shared';
 import { getCouncilMember } from '../council/index.js';
 import { broadcaster } from '../realtime/index.js';
 import { getActiveTurn, getMessages, addMessage, updateTurnTokens, endTurn, startTurn } from './turn.js';
-import { markQueueEntryCompleted, getNextInQueue, markQueueEntryActive } from './queue.js';
+import { removeFromQueue, getNextInQueue } from './queue.js';
 import { queryTownData } from '../db/town-data.js';
 
 // Placeholder for LLM integration
@@ -23,6 +23,7 @@ async function* streamLLMResponse(
 export async function handleCitizenMessage(
   memberId: string,
   citizenId: string,
+  citizenName: string,
   content: string
 ): Promise<void> {
   const member = getCouncilMember(memberId);
@@ -36,7 +37,7 @@ export async function handleCitizenMessage(
   }
 
   // Add citizen message
-  await addMessage(turn.id, 'citizen', content);
+  await addMessage(turn.id, 'citizen', content, citizenId, citizenName);
 
   // Get conversation history
   const messages = await getMessages(turn.id);
@@ -65,14 +66,14 @@ export async function handleCitizenMessage(
   }
 
   // Save council response
-  await addMessage(turn.id, 'council', fullResponse);
+  await addMessage(turn.id, 'council', fullResponse, null, null);
   await updateTurnTokens(turn.id, turn.tokensUsed + tokenCount);
 
   // Check if turn should end
   turn = (await getActiveTurn(memberId))!;
   if (turn.tokensUsed >= turn.tokenBudget) {
     await endTurn(turn.id, 'completed');
-    await markQueueEntryCompleted(memberId, citizenId);
+    await removeFromQueue(memberId, citizenId);
     await broadcaster.broadcastConversationEnd(memberId, turn.id, 'budget_exhausted');
 
     // Start next turn if someone is waiting
@@ -87,7 +88,8 @@ export async function maybeStartNextTurn(memberId: string): Promise<Conversation
   const next = await getNextInQueue(memberId);
   if (!next) return null; // Queue empty
 
-  await markQueueEntryActive(memberId, next.citizenId);
+  // Remove from queue when their turn starts
+  await removeFromQueue(memberId, next.citizenId);
   const turn = await startTurn(memberId, next.citizenId);
 
   // Broadcast that it's their turn
@@ -111,7 +113,7 @@ export async function checkTimeoutsAndBudgets(): Promise<void> {
 
     if (now >= new Date(turn.timeoutAt)) {
       await endTurn(turn.id, 'timed_out');
-      await markQueueEntryCompleted(turn.memberId, turn.citizenId);
+      await removeFromQueue(turn.memberId, turn.citizenId);
       await broadcaster.broadcastConversationEnd(turn.memberId, turn.id, 'timed_out');
       await maybeStartNextTurn(turn.memberId);
     }

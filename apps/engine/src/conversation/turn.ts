@@ -39,29 +39,33 @@ export async function startTurn(
 }
 
 export async function addMessage(
-  turnId: string,
+  sessionId: string,
   role: 'citizen' | 'council',
-  content: string
+  content: string,
+  citizenId: string | null = null,
+  citizenName: string | null = null
 ): Promise<ConversationMessage> {
   const message: ConversationMessage = {
     id: crypto.randomUUID(),
-    turnId,
+    sessionId,
     role,
+    citizenId,
+    citizenName,
     content,
     createdAt: new Date(),
   };
 
   await insertTownData('conversation_message', message, {
-    index_1: turnId,
+    index_1: sessionId,
     index_2: role,
   });
 
   return message;
 }
 
-export async function getMessages(turnId: string): Promise<ConversationMessage[]> {
+export async function getMessages(sessionId: string): Promise<ConversationMessage[]> {
   const records = await queryTownData<ConversationMessage>('conversation_message', {
-    index_1: turnId,
+    index_1: sessionId,
   });
 
   return records
