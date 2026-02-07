@@ -1,9 +1,16 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Check if Supabase is properly configured
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+// Create client only if configured, otherwise create a dummy that won't crash
+// Operations will fail gracefully when not configured
+export const supabase: SupabaseClient = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createClient('http://localhost:54321', 'dummy-key-for-local-dev');
 
 // Type-safe wrapper for town_data queries
 export interface TownDataRecord<T = unknown> {
