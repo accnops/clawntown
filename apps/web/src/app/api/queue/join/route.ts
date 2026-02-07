@@ -1,55 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { kv, KV_KEYS } from '@/lib/kv';
-import { createClient } from '@supabase/supabase-js';
-import type { QueueEntry } from '@clawntown/shared';
-
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { getSupabaseAdmin } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
-    const { memberId, citizenId, citizenName, citizenAvatar } = await request.json();
+    const supabase = getSupabaseAdmin();
+    const { memberId, citizenId } = await request.json();
 
-    if (!memberId || !citizenId || !citizenName) {
+    if (!memberId || !citizenId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const queueKey = KV_KEYS.queue(memberId);
+    // Check if already in queue (unique index will also prevent this)
+    const { data: existing } = await supabase
+      .from('queue_entries')
+      .select('id')
+      .eq('member_id', memberId)
+      .eq('citizen_id', citizenId)
+      .eq('status', 'waiting')
+      .single();
 
-    // Check if already in queue
-    const existingQueue = await kv.lrange<QueueEntry>(queueKey, 0, -1);
-    if (existingQueue.some(e => e.citizenId === citizenId)) {
+    if (existing) {
       return NextResponse.json({ error: 'Already in queue' }, { status: 400 });
     }
 
     // Add to queue
-    const entry: QueueEntry = {
-      id: crypto.randomUUID(),
-      citizenId,
-      citizenName,
-      citizenAvatar,
-      joinedAt: Date.now(),
-    };
+    const { data: entry, error: insertError } = await supabase
+      .from('queue_entries')
+      .insert({
+        member_id: memberId,
+        citizen_id: citizenId,
+        status: 'waiting',
+      })
+      .select()
+      .single();
 
-    await kv.rpush(queueKey, entry);
+    if (insertError) {
+      console.error('Error inserting queue entry:', insertError);
+      return NextResponse.json({ error: 'Failed to join queue' }, { status: 500 });
+    }
 
-    // Get updated queue for position
-    const queue = await kv.lrange<QueueEntry>(queueKey, 0, -1);
-    const position = queue.findIndex(e => e.citizenId === citizenId);
+    // Get position using the helper function
+    const { data: position } = await supabase
+      .rpc('get_queue_position', { p_member_id: memberId, p_citizen_id: citizenId });
 
-    // Broadcast queue update via Supabase
-    await supabase.channel(`council:${memberId}:queue`).send({
-      type: 'broadcast',
-      event: 'queue_update',
-      payload: { queue, memberId },
+    // Get queue length
+    const { data: queueLength } = await supabase
+      .rpc('get_queue_length', { p_member_id: memberId });
+
+    return NextResponse.json({
+      entry,
+      position: position ?? 0,
+      queueLength: queueLength ?? 1,
     });
-
-    return NextResponse.json({ entry, position, queueLength: queue.length });
   } catch (error) {
     console.error('Error joining queue:', error);
     return NextResponse.json({ error: 'Failed to join queue' }, { status: 500 });

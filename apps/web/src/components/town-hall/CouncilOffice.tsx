@@ -83,7 +83,7 @@ export function CouncilOffice({
       <div className="flex items-center gap-3 mb-3 pb-3 border-b border-gray-400">
         <button
           onClick={onBack}
-          className="font-retro text-xs text-blue-600 hover:underline"
+          className="font-retro text-xs text-blue-600 hover:underline cursor-pointer"
         >
           &larr; Lobby
         </button>

@@ -3,27 +3,18 @@
 import { useState } from 'react';
 import { ProjectCard, Project } from './ProjectCard';
 
-type FilterStatus = 'all' | 'voting' | 'approved' | 'in_progress' | 'completed';
+type FilterStatus = 'all' | 'voting' | 'in_progress' | 'completed';
 
 interface ProjectBoardProps {
   projects: Project[];
-  onVote?: (projectId: string, vote: 'support' | 'oppose') => void;
-  userVotes?: Record<string, 'support' | 'oppose'>;
-  treasuryBalance?: number;
 }
 
-export function ProjectBoard({
-  projects,
-  onVote,
-  userVotes = {},
-  treasuryBalance = 10000,
-}: ProjectBoardProps) {
+export function ProjectBoard({ projects }: ProjectBoardProps) {
   const [filter, setFilter] = useState<FilterStatus>('all');
 
   const filteredProjects = projects.filter((p) => {
     if (filter === 'all') return true;
     if (filter === 'voting') return p.status === 'voting';
-    if (filter === 'approved') return p.status === 'approved';
     if (filter === 'in_progress') return p.status === 'in_progress';
     if (filter === 'completed') return p.status === 'completed' || p.status === 'failed';
     return true;
@@ -44,9 +35,6 @@ export function ProjectBoard({
             🏗️ {activeCount} active
           </span>
         </div>
-        <span className="font-retro text-[10px] text-yellow-700">
-          💰 Treasury: {treasuryBalance.toLocaleString()}
-        </span>
       </div>
 
       {/* Filter tabs */}
@@ -55,7 +43,7 @@ export function ProjectBoard({
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-2 py-1 font-retro text-[10px] rounded whitespace-nowrap ${
+            className={`px-2 py-1 font-retro text-[10px] rounded whitespace-nowrap cursor-pointer ${
               filter === status
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
@@ -85,8 +73,6 @@ export function ProjectBoard({
             <ProjectCard
               key={project.id}
               project={project}
-              onVote={onVote}
-              userVote={userVotes[project.id]}
             />
           ))
         )}

@@ -6,18 +6,11 @@ interface Project {
   description: string;
   status: 'proposed' | 'voting' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'failed';
   proposedBy: string;
-  supportVotes: number;
-  opposeVotes: number;
-  supportBribes: number;
-  opposeBribes: number;
   votingEndsAt?: Date;
 }
 
 interface ProjectCardProps {
   project: Project;
-  onVote?: (projectId: string, vote: 'support' | 'oppose') => void;
-  onBribe?: (projectId: string, vote: 'support' | 'oppose', amount: number) => void;
-  userVote?: 'support' | 'oppose' | null;
 }
 
 const STATUS_COLORS: Record<Project['status'], string> = {
@@ -40,9 +33,7 @@ const STATUS_LABELS: Record<Project['status'], string> = {
   failed: 'Failed',
 };
 
-export function ProjectCard({ project, onVote, onBribe, userVote }: ProjectCardProps) {
-  const totalVotes = project.supportVotes + project.opposeVotes;
-  const supportPercent = totalVotes > 0 ? (project.supportVotes / totalVotes) * 100 : 50;
+export function ProjectCard({ project }: ProjectCardProps) {
   const isVoting = project.status === 'voting';
 
   const timeLeft = project.votingEndsAt
@@ -63,63 +54,19 @@ export function ProjectCard({ project, onVote, onBribe, userVote }: ProjectCardP
       </div>
 
       {/* Description */}
-      <p className="font-retro text-[10px] text-gray-600 mb-3 line-clamp-2">
+      <p className="font-retro text-[10px] text-gray-600 mb-2 line-clamp-2">
         {project.description}
       </p>
 
-      {/* Vote bar */}
-      {(isVoting || project.status === 'approved' || project.status === 'rejected') && (
-        <div className="mb-3">
-          <div className="flex justify-between text-[10px] font-retro mb-1">
-            <span className="text-green-700">👍 {project.supportVotes}</span>
-            <span className="text-red-700">👎 {project.opposeVotes}</span>
-          </div>
-          <div className="h-2 bg-red-200 rounded overflow-hidden">
-            <div
-              className="h-full bg-green-400 transition-all"
-              style={{ width: `${supportPercent}%` }}
-            />
-          </div>
-          {isVoting && project.votingEndsAt && (
-            <p className="font-retro text-[10px] text-gray-500 mt-1 text-center">
-              {daysLeft > 0 ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left` : 'Ending soon'}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Bribe totals */}
-      {(project.supportBribes > 0 || project.opposeBribes > 0) && (
-        <div className="flex justify-between text-[10px] font-retro mb-3 px-2 py-1 bg-yellow-50 rounded">
-          <span className="text-yellow-700">💰 Support: {project.supportBribes}</span>
-          <span className="text-yellow-700">💰 Oppose: {project.opposeBribes}</span>
-        </div>
-      )}
-
-      {/* Voting buttons */}
-      {isVoting && onVote && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => onVote(project.id, 'support')}
-            className={`flex-1 btn-retro text-[10px] py-1 ${
-              userVote === 'support' ? 'bg-green-200 border-green-400' : ''
-            }`}
-          >
-            👍 Support
-          </button>
-          <button
-            onClick={() => onVote(project.id, 'oppose')}
-            className={`flex-1 btn-retro text-[10px] py-1 ${
-              userVote === 'oppose' ? 'bg-red-200 border-red-400' : ''
-            }`}
-          >
-            👎 Oppose
-          </button>
-        </div>
+      {/* Voting deadline */}
+      {isVoting && project.votingEndsAt && (
+        <p className="font-retro text-[10px] text-yellow-700 mb-2">
+          {daysLeft > 0 ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left` : 'Ending soon'}
+        </p>
       )}
 
       {/* Proposed by */}
-      <p className="font-retro text-[10px] text-gray-400 mt-2">
+      <p className="font-retro text-[10px] text-gray-400">
         Proposed by {project.proposedBy}
       </p>
     </div>

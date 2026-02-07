@@ -35,7 +35,7 @@ export function CouncilMemberCard({
       {/* Avatar */}
       <div className="flex justify-center mb-2">
         <img
-          src={member.avatar}
+          src={isOnline ? member.avatar.replace('.png', '_spin.gif') : member.avatar}
           alt={member.name}
           className="w-16 h-16 object-contain"
           style={{ imageRendering: 'pixelated' }}

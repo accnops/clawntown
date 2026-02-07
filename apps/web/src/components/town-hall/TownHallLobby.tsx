@@ -7,7 +7,7 @@ import type { CouncilMember } from '@clawntown/shared';
 
 interface TownHallLobbyProps {
   onSelectMember: (member: CouncilMember) => void;
-  onOpenRegistry: () => void;
+  onOpenRegistry?: () => void; // Optional - registry not yet implemented
 }
 
 export function TownHallLobby({ onSelectMember, onOpenRegistry }: TownHallLobbyProps) {
@@ -32,13 +32,14 @@ export function TownHallLobby({ onSelectMember, onOpenRegistry }: TownHallLobbyP
         </p>
       </div>
 
-      {/* Citizen Registry button */}
+      {/* Citizen Registry button - hidden until auth is implemented
       <button
         onClick={onOpenRegistry}
         className="btn-retro w-full text-xs flex items-center justify-center gap-2"
       >
         Citizen Registry Office
       </button>
+      */}
 
       {/* Online members */}
       {onlineMembers.length > 0 && (

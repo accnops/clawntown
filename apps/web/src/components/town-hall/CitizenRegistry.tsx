@@ -160,7 +160,7 @@ export function CitizenRegistry({
       <div className="flex items-center gap-3 pb-3 border-b border-gray-400">
         <button
           onClick={onBack}
-          className="font-retro text-xs text-blue-600 hover:underline"
+          className="font-retro text-xs text-blue-600 hover:underline cursor-pointer"
         >
           &larr; Lobby
         </button>
@@ -285,7 +285,7 @@ export function CitizenRegistry({
                   onMouseEnter={() => setHoveredAvatar(avatar)}
                   onMouseLeave={() => setHoveredAvatar(null)}
                   className={`
-                    p-1 rounded border-2 transition-all
+                    p-1 rounded border-2 transition-all cursor-pointer
                     ${selectedAvatar?.id === avatar.id
                       ? 'border-lobster-red bg-red-50'
                       : 'border-gray-300 bg-white hover:border-gray-400'

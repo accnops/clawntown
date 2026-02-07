@@ -47,33 +47,37 @@ Character design:
     },
     "treasurer_sheldon": {
         "name": "Treasurer Sheldon",
-        "prompt": """Generate a portrait of Treasurer Sheldon, the penny-pinching financial guardian of a coastal lobster town.
+        "prompt": """Generate a portrait of Treasurer Sheldon, a single lobster character who is a penny-pinching treasurer.
 
 Character design:
-- A meticulous lobster wearing small round spectacles
-- Holding a ledger or with coins nearby
-- Slightly suspicious/scrutinizing expression
+- ONE lobster only, single character, portrait view
+- A meticulous lobster wearing small round spectacles perched on his face
+- Slightly suspicious/scrutinizing expression, very careful with money
 - Red/orange lobster with formal vest or accountant attire
+- NO props, NO coins, NO ledgers, NO objects - just the lobster character
 - Clean, stylized cartoon/game character art style
-- Portrait bust view (head and shoulders)
-- White or light background
+- Portrait bust view showing head and upper body only
+- Centered composition, plain white background
+- Simple clean silhouette suitable for 3D conversion
 - Suitable for a game avatar/icon
-- No text or words"""
+- No text, no words, no extra elements"""
     },
     "clerk_barnacle": {
         "name": "Clerk Barnacle",
-        "prompt": """Generate a portrait of Clerk Barnacle, the meticulous record keeper of a coastal lobster town.
+        "prompt": """Generate a portrait of Clerk Barnacle, a single lobster character who is a meticulous record keeper.
 
 Character design:
-- A proper, formal lobster with barnacles on shell (part of identity)
-- Wearing a clerk's visor or holding official papers/quill
+- ONE lobster only, single head, single character
+- A proper, formal lobster wearing a clerk's visor
+- Small barnacles decorating the shell as natural markings
+- Holding a quill pen or papers
 - Very proper, by-the-book expression
-- Red/orange lobster with formal bureaucratic attire
+- Red/orange lobster with formal vest
 - Clean, stylized cartoon/game character art style
-- Portrait bust view (head and shoulders)
-- White or light background
+- Portrait bust view showing ONE head and shoulders
+- Centered composition, white background
 - Suitable for a game avatar/icon
-- No text or words"""
+- No text, no words, no multiple characters"""
     },
     "harbormaster_pincers": {
         "name": "Harbormaster Pincers",
@@ -320,12 +324,12 @@ bpy.context.scene.camera = camera
 
 bpy.ops.object.light_add(type='SUN', location=(center.x, center.y - distance, center.z + size))
 sun = bpy.context.object
-sun.data.energy = 4.0
+sun.data.energy = 8.0
 sun.rotation_euler = (math.radians(45), 0, 0)
 
 bpy.ops.object.light_add(type='SUN', location=(center.x + size, center.y - distance/2, center.z))
 fill = bpy.context.object
-fill.data.energy = 2.0
+fill.data.energy = 4.0
 
 world = bpy.context.scene.world
 if world is None:
@@ -334,7 +338,7 @@ if world is None:
 world.use_nodes = True
 bg = world.node_tree.nodes.get('Background')
 if bg:
-    bg.inputs['Strength'].default_value = 0.5
+    bg.inputs['Strength'].default_value = 1.0
 
 scene = bpy.context.scene
 scene.render.resolution_x = 128
@@ -380,7 +384,7 @@ print("Done!")
 
 
 def step5_create_gif(frame_paths: list, output_path: Path, duration: int = 50) -> Path:
-    """Create animated GIF from frames."""
+    """Create animated GIF from frames with proper transparency handling."""
     print(f"\n{'='*60}")
     print("STEP 5: Create GIF")
     print("="*60)
@@ -391,14 +395,41 @@ def step5_create_gif(frame_paths: list, output_path: Path, duration: int = 50) -
         print("ERROR: Pillow not installed")
         sys.exit(1)
 
-    frames = [Image.open(f) for f in frame_paths]
-    frames[0].save(
+    processed_frames = []
+    for f in frame_paths:
+        img = Image.open(f).convert("RGBA")
+
+        # Create a new image with transparent background
+        # Convert alpha to 1-bit (fully transparent or fully opaque)
+        alpha = img.split()[3]
+        # Threshold: pixels with alpha > 128 are opaque, others transparent
+        mask = alpha.point(lambda x: 255 if x > 128 else 0)
+
+        # Create palette image with transparency
+        # Use a unique color for transparency that's unlikely to appear in the image
+        transparent_color = (0, 0, 0)
+
+        # Composite onto a solid background first to remove semi-transparency
+        background = Image.new("RGBA", img.size, transparent_color + (255,))
+        composite = Image.alpha_composite(background, img)
+
+        # Convert to palette mode
+        p_img = composite.convert("RGB").convert("P", palette=Image.ADAPTIVE, colors=255)
+
+        # Set transparency for pixels that were transparent in original
+        # Find the palette index closest to our transparent color
+        p_img.paste(0, mask=Image.eval(mask, lambda x: 255 - x))
+
+        processed_frames.append(p_img)
+
+    processed_frames[0].save(
         output_path,
         save_all=True,
-        append_images=frames[1:],
+        append_images=processed_frames[1:],
         duration=duration,
         loop=0,
         disposal=2,
+        transparency=0,
     )
     print(f"Saved GIF to: {output_path}")
     return output_path
@@ -425,7 +456,7 @@ def create_static_avatar(input_path: Path, output_path: Path, size: int = 128) -
     return output_path
 
 
-def generate_member(member_id: str, output_dir: Path, skip_generate: bool = False):
+def generate_member(member_id: str, output_dir: Path, skip_generate: bool = False, rerender_only: bool = False):
     """Generate all assets for a council member."""
     member_dir = output_dir / member_id
     member_dir.mkdir(parents=True, exist_ok=True)
@@ -435,6 +466,17 @@ def generate_member(member_id: str, output_dir: Path, skip_generate: bool = Fals
     model_path = member_dir / "model.glb"
     static_path = output_dir / f"{member_id}.png"
     gif_path = output_dir / f"{member_id}_spin.gif"
+
+    if rerender_only:
+        # Only re-render frames and create GIF from existing model
+        if not model_path.exists():
+            print(f"ERROR: No model found at {model_path}")
+            sys.exit(1)
+        print(f"Re-rendering {member_id} with brighter lighting...")
+        frames = step4_render_spinning(model_path, member_dir, 36)
+        step5_create_gif(frames, gif_path, 50)
+        print(f"COMPLETE: {member_id} -> {gif_path}")
+        return
 
     # Step 1: Generate portrait
     if skip_generate and concept_path.exists():
@@ -472,6 +514,8 @@ def main():
                         help="Generate only this member (e.g., mayor_clawrence)")
     parser.add_argument("--skip-generate", action="store_true",
                         help="Skip generation, use existing concept images")
+    parser.add_argument("--rerender-only", action="store_true",
+                        help="Only re-render GIFs from existing 3D models (faster)")
     parser.add_argument("--list", action="store_true",
                         help="List all council members")
 
@@ -491,11 +535,11 @@ def main():
             print(f"ERROR: Unknown member '{args.member}'")
             print("Available:", list(COUNCIL_MEMBERS.keys()))
             sys.exit(1)
-        generate_member(args.member, output_dir, args.skip_generate)
+        generate_member(args.member, output_dir, args.skip_generate, args.rerender_only)
     else:
         # Generate all members
         for member_id in COUNCIL_MEMBERS:
-            generate_member(member_id, output_dir, args.skip_generate)
+            generate_member(member_id, output_dir, args.skip_generate, args.rerender_only)
 
     print("\n" + "="*60)
     print("ALL COUNCIL AVATARS COMPLETE")

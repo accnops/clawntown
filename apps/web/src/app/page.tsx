@@ -177,7 +177,7 @@ export default function Home() {
         {townHallView === 'lobby' && (
           <TownHallLobby
             onSelectMember={handleSelectCouncilMember}
-            onOpenRegistry={() => setTownHallView('registry')}
+            // onOpenRegistry={() => setTownHallView('registry')} // Hidden until auth implemented
           />
         )}
 
@@ -189,6 +189,7 @@ export default function Home() {
           />
         )}
 
+        {/* Citizen Registry - hidden until auth is implemented
         {townHallView === 'registry' && (
           <CitizenRegistry
             onRegister={async () => {
@@ -201,6 +202,7 @@ export default function Home() {
             isAuthenticated={false}
           />
         )}
+        */}
       </Dialog>
 
       {/* Forum dialog */}

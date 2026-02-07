@@ -1,95 +1,111 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { kv, KV_KEYS } from '@/lib/kv';
-import { createClient } from '@supabase/supabase-js';
-import type { QueueEntry, CitizenTurn } from '@clawntown/shared';
+import { getSupabaseAdmin } from '@/lib/supabase-server';
 
 const CHAR_BUDGET = 500;
 const TIME_BUDGET_MS = 20000;
 const MESSAGE_LIMIT = 2;
 
-function getSupabaseClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseAdmin();
     const { memberId } = await request.json();
 
     if (!memberId) {
       return NextResponse.json({ error: 'Missing memberId' }, { status: 400 });
     }
 
-    const turnKey = KV_KEYS.turn(memberId);
-    const queueKey = KV_KEYS.queue(memberId);
-    const sessionKey = KV_KEYS.session(memberId);
-
     // Check if there's already an active turn
-    const existingTurn = await kv.get<CitizenTurn>(turnKey);
-    if (existingTurn && existingTurn.status === 'active') {
+    const { data: existingTurn } = await supabase
+      .from('turns')
+      .select('*')
+      .eq('member_id', memberId)
+      .is('ended_at', null)
+      .single();
+
+    if (existingTurn) {
       return NextResponse.json({ error: 'Turn already in progress' }, { status: 400 });
     }
 
-    // Get the queue to find the next citizen
-    const queue = await kv.lrange<QueueEntry>(queueKey, 0, -1);
-    if (queue.length === 0) {
+    // Get the first person in queue
+    const { data: nextInQueue, error: queueError } = await supabase
+      .from('queue_entries')
+      .select('*')
+      .eq('member_id', memberId)
+      .eq('status', 'waiting')
+      .order('joined_at', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (queueError || !nextInQueue) {
       return NextResponse.json({ error: 'Queue is empty' }, { status: 400 });
     }
 
-    // Get the first person in line
-    const nextCitizen = queue[0];
+    // Get or create active session for this member
+    let { data: session } = await supabase
+      .from('conversation_sessions')
+      .select('*')
+      .eq('member_id', memberId)
+      .eq('status', 'active')
+      .single();
 
-    // Get or create session ID
-    let sessionId = await kv.get<string>(sessionKey);
-    if (!sessionId) {
-      sessionId = crypto.randomUUID();
-      await kv.set(sessionKey, sessionId);
+    if (!session) {
+      // Create a new session
+      const { data: newSession, error: sessionError } = await supabase
+        .from('conversation_sessions')
+        .insert({
+          member_id: memberId,
+          status: 'active',
+        })
+        .select()
+        .single();
+
+      if (sessionError) {
+        console.error('Error creating session:', sessionError);
+        return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+      }
+      session = newSession;
     }
 
+    // Calculate expires_at (20 seconds from now)
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + TIME_BUDGET_MS);
+
     // Create the turn
-    const turn: CitizenTurn = {
-      id: crypto.randomUUID(),
-      sessionId,
-      memberId,
-      citizenId: nextCitizen.citizenId,
-      citizenName: nextCitizen.citizenName,
-      charsUsed: 0,
-      charBudget: CHAR_BUDGET,
-      timeUsedMs: 0,
-      timeBudgetMs: TIME_BUDGET_MS,
-      messagesUsed: 0,
-      messageLimit: MESSAGE_LIMIT,
-      startedAt: Date.now(),
-      status: 'active',
-    };
+    const { data: turn, error: turnError } = await supabase
+      .from('turns')
+      .insert({
+        member_id: memberId,
+        session_id: session.id,
+        citizen_id: nextInQueue.citizen_id,
+        chars_used: 0,
+        char_budget: CHAR_BUDGET,
+        messages_used: 0,
+        message_limit: MESSAGE_LIMIT,
+        expires_at: expiresAt.toISOString(),
+      })
+      .select()
+      .single();
 
-    // Save turn to KV
-    await kv.set(turnKey, turn);
+    if (turnError) {
+      console.error('Error creating turn:', turnError);
+      return NextResponse.json({ error: 'Failed to create turn' }, { status: 500 });
+    }
 
-    // Remove citizen from queue (lpop removes the first element)
-    await kv.lpop(queueKey);
+    // Update queue entry status to 'active'
+    await supabase
+      .from('queue_entries')
+      .update({ status: 'active' })
+      .eq('id', nextInQueue.id);
 
-    // Get updated queue
-    const updatedQueue = await kv.lrange<QueueEntry>(queueKey, 0, -1);
+    // Get updated queue length
+    const { data: queueLength } = await supabase
+      .rpc('get_queue_length', { p_member_id: memberId });
 
-    // Broadcast turn_start event
-    await supabase.channel(`council:${memberId}:turn`).send({
-      type: 'broadcast',
-      event: 'turn_start',
-      payload: { turn, memberId },
+    return NextResponse.json({
+      turn,
+      session,
+      queueLength: queueLength ?? 0,
     });
-
-    // Broadcast queue_update event
-    await supabase.channel(`council:${memberId}:queue`).send({
-      type: 'broadcast',
-      event: 'queue_update',
-      payload: { queue: updatedQueue, memberId },
-    });
-
-    return NextResponse.json({ turn, queueLength: updatedQueue.length });
   } catch (error) {
     console.error('Error starting turn:', error);
     return NextResponse.json({ error: 'Failed to start turn' }, { status: 500 });

@@ -38,7 +38,7 @@ body {
 
 /* Retro button styles */
 .btn-retro {
-  @apply px-4 py-2 bg-retro-gray text-retro-dark text-sm;
+  @apply px-4 py-2 bg-retro-gray text-retro-dark text-sm cursor-pointer;
   font-family: var(--font-retro);
   border-width: 2px;
   border-top-color: white;

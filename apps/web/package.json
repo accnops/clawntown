@@ -12,9 +12,10 @@
   },
   "dependencies": {
     "@clawntown/shared": "workspace:*",
-    "@supabase/supabase-js": "^2.47.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.95.1",
     "@tailwindcss/postcss": "^4.1.18",
-    "@vercel/kv": "^3.0.0",
     "autoprefixer": "^10.4.24",
     "next": "^15.1.0",
     "phaser": "^3.90.0",
