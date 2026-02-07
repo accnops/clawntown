@@ -37,13 +37,14 @@ export function useAuth() {
   }, []);
 
   // Sign up with email and password
-  const signUp = useCallback(async (email: string, password: string, citizenName: string) => {
+  const signUp = useCallback(async (email: string, password: string, citizenName: string, avatarId: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           citizen_name: citizenName,
+          citizen_avatar: avatarId,
         },
       },
     });
@@ -70,8 +71,9 @@ export function useAuth() {
     setProfile(null);
   }, []);
 
-  // Get citizen display name
+  // Get citizen display name and avatar
   const citizenName = profile?.name || user?.user_metadata?.citizen_name || 'Anonymous';
+  const citizenAvatar = profile?.avatar || user?.user_metadata?.citizen_avatar || 'citizen_01';
 
   return {
     user,
@@ -80,6 +82,7 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!user,
     citizenName,
+    citizenAvatar,
     signUp,
     signIn,
     signOut,
