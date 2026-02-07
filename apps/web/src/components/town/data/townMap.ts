@@ -52,7 +52,7 @@ const townHall = (): GridCell => ({
 });
 
 const dock = (): GridCell => ({
-  ground: TileType.DockPlanks,
+  ground: TileType.Water,
   building: BuildingType.LobsterDock,
   buildingOrientation: Direction.East,
   deco: null,
