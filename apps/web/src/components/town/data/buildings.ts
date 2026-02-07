@@ -60,7 +60,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
   [BuildingType.ProjectBoard]: {
     id: BuildingType.ProjectBoard,
     name: "project_board",
-    displayName: "The Molt Board",
+    displayName: "Molt Center",
     footprint: { width: 1, height: 1 },
     sprites: {
       [Direction.South]: "/assets/buildings/core/project_board_sprite_0.png",
@@ -225,7 +225,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
   [BuildingType.NoticeBoard]: {
     id: BuildingType.NoticeBoard,
     name: "notice_board",
-    displayName: "Town Crier",
+    displayName: "Shell-tin Board",
     footprint: { width: 1, height: 1 },
     sprites: {
       [Direction.South]: "/assets/buildings/core/notice_board_sprite_0.png",

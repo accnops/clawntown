@@ -134,7 +134,7 @@ export function ConversationView({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
-            className="input-retro flex-1 font-retro text-xs"
+            className="input-retro flex-1 font-retro text-base"
             disabled={isStreaming || !isOnline}
           />
           <button

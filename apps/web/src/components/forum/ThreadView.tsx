@@ -99,7 +99,7 @@ export function ThreadView({
             value={replyContent}
             onChange={(e) => setReplyContent(e.target.value)}
             placeholder="Write a reply..."
-            className="input-retro w-full h-20 font-retro text-xs resize-none mb-2"
+            className="input-retro w-full h-20 font-retro text-base resize-none mb-2"
           />
           <button
             type="submit"

@@ -76,7 +76,7 @@ export function AuthForm({ onSignIn, onSignUp, onClose }: AuthFormProps) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="input-retro w-full font-retro text-xs"
+              className="input-retro w-full font-retro text-base"
               placeholder="Your name in Clawntown"
               required={mode === 'signup'}
             />
@@ -91,7 +91,7 @@ export function AuthForm({ onSignIn, onSignUp, onClose }: AuthFormProps) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input-retro w-full font-retro text-xs"
+            className="input-retro w-full font-retro text-base"
             placeholder="your@email.com"
             required
           />
@@ -105,7 +105,7 @@ export function AuthForm({ onSignIn, onSignUp, onClose }: AuthFormProps) {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="input-retro w-full font-retro text-xs"
+            className="input-retro w-full font-retro text-base"
             placeholder="••••••••"
             required
             minLength={6}

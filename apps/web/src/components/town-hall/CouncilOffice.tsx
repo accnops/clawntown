@@ -178,7 +178,7 @@ export function CouncilOffice({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
-              className="input-retro flex-1 font-retro text-xs"
+              className="input-retro flex-1 font-retro text-base"
               disabled={isStreaming || charsRemaining < 0 || messagesRemaining <= 0}
               maxLength={currentTurn?.charBudget ?? CHAR_BUDGET}
             />

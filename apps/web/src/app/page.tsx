@@ -82,7 +82,7 @@ const MOCK_THREADS: ForumThread[] = [
   },
 ];
 
-type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | null;
+type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | null;
 
 export default function Home() {
   const [activeDialog, setActiveDialog] = useState<DialogType>('welcome');
@@ -214,21 +214,83 @@ export default function Home() {
         <ThreadList threads={MOCK_THREADS} />
       </Dialog>
 
-      {/* The Molt Board dialog */}
+      {/* Molt Center dialog */}
       <Dialog
-        title="The Molt Board"
+        title="Molt Center"
         isOpen={activeDialog === 'project_board'}
         onClose={closeDialog}
       >
-        <ProjectBoard
-          projects={MOCK_PROJECTS}
-        />
+        <div className="space-y-4">
+          {/* Intro section */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="font-retro text-xs text-gray-700 leading-relaxed">
+              Just as lobsters shed their shells to grow, Clawntown evolves through the ideas of its citizens.
+              Here you'll find proposals to improve our town — from new buildings to community events —
+              shaped by residents and approved by the elected council.
+            </p>
+            <p className="font-retro text-xs text-lobster-red mt-2 font-bold">
+              Every molt makes us stronger.
+            </p>
+          </div>
+
+          <ProjectBoard
+            projects={MOCK_PROJECTS}
+          />
+        </div>
+      </Dialog>
+
+      {/* Shell-tin Board / Notice Board dialog */}
+      <Dialog
+        title="Shell-tin Board"
+        isOpen={activeDialog === 'notice_board'}
+        onClose={closeDialog}
+      >
+        <div className="space-y-4">
+          <div className="text-center">
+            <p className="font-retro text-sm text-gray-700 mb-4">
+              Stay connected with Clawntown! Follow us for news, events, and community updates.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <a
+              href="#"
+              className="btn-retro w-full flex items-center justify-center gap-2 text-sm"
+              onClick={(e) => e.preventDefault()}
+            >
+              <span>𝕏</span>
+              Follow on X (Twitter)
+            </a>
+            <a
+              href="#"
+              className="btn-retro w-full flex items-center justify-center gap-2 text-sm"
+              onClick={(e) => e.preventDefault()}
+            >
+              <span>📸</span>
+              Follow on Instagram
+            </a>
+            <a
+              href="#"
+              className="btn-retro w-full flex items-center justify-center gap-2 text-sm"
+              onClick={(e) => e.preventDefault()}
+            >
+              <span>💬</span>
+              Join WhatsApp Community
+            </a>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded p-3 mt-4">
+            <p className="font-retro text-xs text-amber-800 text-center">
+              Social links coming soon! The town crier is still setting up the megaphone.
+            </p>
+          </div>
+        </div>
       </Dialog>
 
       {/* Generic building dialog for other buildings */}
       <Dialog
         title={selectedBuilding?.name || 'Building'}
-        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board'].includes(activeDialog)}
+        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board', 'notice_board'].includes(activeDialog)}
         onClose={closeDialog}
       >
         <div className="text-center">
