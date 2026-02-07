@@ -5,8 +5,7 @@ import { TownView, Building } from '@/components/town';
 import { Dialog } from '@/components/ui';
 import { ProjectBoard, Project } from '@/components/projects';
 import { ThreadList, ForumThread } from '@/components/forum';
-import { TownHallLobby, CouncilOffice, CitizenRegistry } from '@/components/town-hall';
-import { useCouncilOffice } from '@/hooks';
+import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
 import type { CouncilMember } from '@clawntown/shared';
 
 // Mock projects data
@@ -17,10 +16,6 @@ const MOCK_PROJECTS: Project[] = [
     description: 'Extend the dock to accommodate more fishing boats and create a scenic walkway for citizens.',
     status: 'voting',
     proposedBy: 'Mayor Clawrence',
-    supportVotes: 15,
-    opposeVotes: 3,
-    supportBribes: 500,
-    opposeBribes: 100,
     votingEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
   },
   {
@@ -29,10 +24,6 @@ const MOCK_PROJECTS: Project[] = [
     description: 'Install a beautiful lobster-themed fountain in the town square.',
     status: 'in_progress',
     proposedBy: 'Mayor Clawrence',
-    supportVotes: 22,
-    opposeVotes: 5,
-    supportBribes: 0,
-    opposeBribes: 0,
   },
   {
     id: '3',
@@ -40,10 +31,6 @@ const MOCK_PROJECTS: Project[] = [
     description: 'Restore the historic lighthouse to its former glory.',
     status: 'completed',
     proposedBy: 'Mayor Clawrence',
-    supportVotes: 30,
-    opposeVotes: 2,
-    supportBribes: 200,
-    opposeBribes: 0,
   },
 ];
 
@@ -102,12 +89,6 @@ export default function Home() {
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [townHallView, setTownHallView] = useState<'lobby' | 'office' | 'registry'>('lobby');
   const [selectedCouncilMember, setSelectedCouncilMember] = useState<CouncilMember | null>(null);
-
-  // Use the council office hook when a member is selected
-  const councilOffice = useCouncilOffice({
-    member: selectedCouncilMember || { id: '', name: '', role: 'mayor', personality: '', avatar: '', avatarSpinning: '', schedule: [] },
-    citizenId: undefined, // Will be set when auth is implemented
-  });
 
   const handleBuildingClick = (building: Building) => {
     setSelectedBuilding(building);
@@ -201,20 +182,9 @@ export default function Home() {
         )}
 
         {townHallView === 'office' && selectedCouncilMember && (
-          <CouncilOffice
+          <ChatView
             member={selectedCouncilMember}
-            messages={councilOffice.messages}
-            spectatorCount={councilOffice.spectatorCount}
-            queueLength={councilOffice.queueLength}
-            queuePosition={councilOffice.queuePosition}
-            currentTurn={councilOffice.currentTurn}
-            isMyTurn={councilOffice.isMyTurn}
-            isAuthenticated={false}
-            isStreaming={councilOffice.isStreaming}
-            streamingContent={councilOffice.streamingContent}
-            onSendMessage={councilOffice.sendMessage}
-            onRaiseHand={() => councilOffice.raiseHand('Guest', '')}
-            onLeaveQueue={councilOffice.leaveQueue}
+            citizenName="Guest"
             onBack={handleBackToLobby}
           />
         )}
@@ -242,15 +212,14 @@ export default function Home() {
         <ThreadList threads={MOCK_THREADS} />
       </Dialog>
 
-      {/* Project Board dialog */}
+      {/* The Molt Board dialog */}
       <Dialog
-        title="Project Board"
+        title="The Molt Board"
         isOpen={activeDialog === 'project_board'}
         onClose={closeDialog}
       >
         <ProjectBoard
           projects={MOCK_PROJECTS}
-          treasuryBalance={10000}
         />
       </Dialog>
 

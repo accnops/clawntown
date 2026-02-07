@@ -67,6 +67,14 @@ const lighthouse = (): GridCell => ({
   elevation: 2,
 });
 
+const fishermansCottage = (): GridCell => ({
+  ground: TileType.Grass,
+  building: BuildingType.FishermansCottage,
+  buildingOrientation: Direction.South,
+  deco: null,
+  elevation: 1,
+});
+
 // 32x32 town map with elevation (0=sea level, 1+=elevated)
 // Tree variety: palms near coast (on grass), oaks inland/forests, willows near water, pines sparingly
 // Features: Dense oak forest in southwest, scattered trees elsewhere
@@ -111,7 +119,7 @@ export const TOWN_MAP: GridCell[][] = [
   [s(),s(),s(),ok1(),g1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w(),w()],
   [s(),s(),s(),s(),g1(),ok1(),wl1(),wl1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),k1(),s(),s(),s(),w(),w(),w(),w(),w()],
   // Rows 26-27: South beach with rocks
-  [w(),s(),s(),pms(),s(),s(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w()],
+  [w(),s(),s(),pms(),s(),s(),g1(),g1(),fishermansCottage(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w()],
   [w(),s(),s(),k1(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w()],
   // Rows 28-29: Beach to water
   [w(),w(),s(),s(),s(),s(),s(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w()],
@@ -147,7 +155,7 @@ function getBuildingDisplayName(type: BuildingType): string {
   const names: Record<BuildingType, string> = {
     [BuildingType.TownHall]: "Town Hall",
     [BuildingType.Forum]: "Community Forum",
-    [BuildingType.ProjectBoard]: "Project Board",
+    [BuildingType.ProjectBoard]: "The Molt Board",
     [BuildingType.LobsterDock]: "Lobster Dock",
     [BuildingType.Lighthouse]: "Lighthouse",
     [BuildingType.LobsterRestaurant]: "The Claw & Tail Restaurant",

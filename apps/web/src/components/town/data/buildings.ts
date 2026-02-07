@@ -17,6 +17,8 @@ export interface BuildingDefinition {
   interactive: boolean;
   // Sprite scale (512x512 assets scaled down to fit tile grid)
   scale: number;
+  // Optional vertical offset for label positioning (positive = higher, negative = lower)
+  labelOffset?: number;
 }
 
 export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
@@ -35,6 +37,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     renderHeight: 5,
     interactive: true,
     scale: 0.28,
+    labelOffset: -15,
   },
 
   [BuildingType.Forum]: {
@@ -51,12 +54,13 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     renderHeight: 3,
     interactive: true,
     scale: 0.15,
+    labelOffset: -10,
   },
 
   [BuildingType.ProjectBoard]: {
     id: BuildingType.ProjectBoard,
     name: "project_board",
-    displayName: "Project Board",
+    displayName: "The Molt Board",
     footprint: { width: 1, height: 1 },
     sprites: {
       [Direction.South]: "/assets/buildings/core/project_board_sprite_0.png",
@@ -83,6 +87,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     renderHeight: 1,
     interactive: true,
     scale: 0.18,
+    labelOffset: -10,
   },
 
   [BuildingType.Lighthouse]: {
@@ -99,6 +104,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     renderHeight: 10,
     interactive: true,
     scale: 0.35,
+    labelOffset: 8,
   },
 
   [BuildingType.LobsterRestaurant]: {
@@ -146,7 +152,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
       [Direction.East]: "/assets/buildings/residential/fishermans_cottage_sprite_270.png",
     },
     renderHeight: 2,
-    interactive: false,
+    interactive: true,
     scale: 0.12,
   },
 
