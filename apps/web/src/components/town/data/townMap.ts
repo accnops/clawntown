@@ -76,7 +76,7 @@ const fishermansCottage = (): GridCell => ({
 });
 
 const noticeBoard = (): GridCell => ({
-  ground: TileType.Grass,
+  ground: TileType.Cobblestone,
   building: BuildingType.NoticeBoard,
   buildingOrientation: Direction.East,
   deco: null,
