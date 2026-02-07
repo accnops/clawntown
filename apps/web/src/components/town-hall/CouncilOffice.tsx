@@ -95,9 +95,6 @@ export function CouncilOffice({
         />
         <div className="flex-1 min-w-0">
           <p className="font-retro text-sm font-bold truncate">{member.name}</p>
-          <p className="font-retro text-[10px] text-gray-600 capitalize">
-            {member.role.replace('_', ' ')}
-          </p>
         </div>
         <div className="text-right">
           <p className="font-retro text-[10px] text-gray-500">{spectatorCount} watching</p>

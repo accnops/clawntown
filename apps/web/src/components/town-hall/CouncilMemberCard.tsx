@@ -42,11 +42,8 @@ export function CouncilMemberCard({
         />
       </div>
 
-      {/* Name and role */}
+      {/* Name */}
       <p className="font-retro text-xs font-bold text-center truncate">{member.name}</p>
-      <p className="font-retro text-[10px] text-gray-600 text-center capitalize">
-        {member.role.replace('_', ' ')}
-      </p>
 
       {/* Status */}
       {isOnline ? (
