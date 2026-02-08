@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { TownView, Building } from '@/components/town';
 import { Dialog } from '@/components/ui';
 import { ProjectBoard, Project } from '@/components/projects';
-import { ThreadList, ForumThread } from '@/components/forum';
+import { GitHubDiscussions } from '@/components/forum';
 import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
 import type { CouncilMember } from '@clawntown/shared';
 
@@ -34,55 +34,8 @@ const MOCK_PROJECTS: Project[] = [
   },
 ];
 
-// Mock forum data
-const MOCK_THREADS: ForumThread[] = [
-  {
-    id: '1',
-    title: 'Welcome to Clawntown Forums!',
-    category: 'announcement',
-    authorName: 'Mayor Clawrence',
-    authorType: 'council',
-    isPinned: true,
-    replyCount: 5,
-    lastActivityAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: '2',
-    title: 'Ideas for the new pier',
-    category: 'project',
-    authorName: 'ShellyShore',
-    authorType: 'citizen',
-    isPinned: false,
-    replyCount: 12,
-    lastActivityAt: new Date(Date.now() - 30 * 60 * 1000),
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: '3',
-    title: 'Best lobster recipes?',
-    category: 'general',
-    authorName: 'ClawdiaChef',
-    authorType: 'citizen',
-    isPinned: false,
-    replyCount: 8,
-    lastActivityAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: '4',
-    title: 'Lighthouse renovation progress',
-    category: 'project',
-    authorName: 'Mayor Clawrence',
-    authorType: 'council',
-    isPinned: false,
-    replyCount: 3,
-    lastActivityAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-  },
-];
 
-type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | null;
+type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | 'observatory' | null;
 
 export default function Home() {
   const [activeDialog, setActiveDialog] = useState<DialogType>('welcome');
@@ -205,13 +158,13 @@ export default function Home() {
         */}
       </Dialog>
 
-      {/* Forum dialog */}
+      {/* Forum dialog - GitHub Discussions */}
       <Dialog
         title="Community Forum"
         isOpen={activeDialog === 'forum'}
         onClose={closeDialog}
       >
-        <ThreadList threads={MOCK_THREADS} />
+        <GitHubDiscussions />
       </Dialog>
 
       {/* Molt Center dialog */}
@@ -287,10 +240,51 @@ export default function Home() {
         </div>
       </Dialog>
 
+      {/* Observatory dialog */}
+      <Dialog
+        title="The Observatory"
+        isOpen={activeDialog === 'observatory'}
+        onClose={closeDialog}
+      >
+        <div className="space-y-4">
+          <div className="bg-indigo-950 text-white rounded-lg p-4">
+            <p className="font-retro text-xs text-indigo-200 text-center mb-3">
+              🔭 Tracking the stars of Clawntown
+            </p>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-indigo-900/50 rounded p-3 text-center">
+                <p className="font-pixel text-2xl text-yellow-300">--</p>
+                <p className="font-retro text-xs text-indigo-300">Contributors</p>
+              </div>
+              <div className="bg-indigo-900/50 rounded p-3 text-center">
+                <p className="font-pixel text-2xl text-green-300">--</p>
+                <p className="font-retro text-xs text-indigo-300">Pull Requests</p>
+              </div>
+              <div className="bg-indigo-900/50 rounded p-3 text-center">
+                <p className="font-pixel text-2xl text-blue-300">--</p>
+                <p className="font-retro text-xs text-indigo-300">Commits</p>
+              </div>
+              <div className="bg-indigo-900/50 rounded p-3 text-center">
+                <p className="font-pixel text-2xl text-pink-300">--</p>
+                <p className="font-retro text-xs text-indigo-300">Visitors</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded p-3">
+            <p className="font-retro text-xs text-amber-800 text-center">
+              📡 Observatory instruments are being calibrated. Live stats coming soon!
+            </p>
+          </div>
+        </div>
+      </Dialog>
+
       {/* Generic building dialog for other buildings */}
       <Dialog
         title={selectedBuilding?.name || 'Building'}
-        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board', 'notice_board'].includes(activeDialog)}
+        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board', 'notice_board', 'observatory'].includes(activeDialog)}
         onClose={closeDialog}
       >
         <div className="text-center">

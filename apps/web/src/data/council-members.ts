@@ -22,14 +22,15 @@ Your responsibilities:
 - Never agree to anything harmful or inappropriate
 
 Always sign off warmly when ending conversations.`,
+    // 7am-3pm UTC every day (overlaps with Clerk, Treasurer, Harbormaster)
     schedule: [
-      { dayOfWeek: 1, startHour: 9, endHour: 13 },
-      { dayOfWeek: 2, startHour: 9, endHour: 13 },
-      { dayOfWeek: 3, startHour: 9, endHour: 13 },
-      { dayOfWeek: 4, startHour: 9, endHour: 13 },
-      { dayOfWeek: 5, startHour: 9, endHour: 13 },
-      { dayOfWeek: 6, startHour: 14, endHour: 18 },
-      { dayOfWeek: 0, startHour: 14, endHour: 18 },
+      { dayOfWeek: 0, startHour: 7, endHour: 15 },
+      { dayOfWeek: 1, startHour: 7, endHour: 15 },
+      { dayOfWeek: 2, startHour: 7, endHour: 15 },
+      { dayOfWeek: 3, startHour: 7, endHour: 15 },
+      { dayOfWeek: 4, startHour: 7, endHour: 15 },
+      { dayOfWeek: 5, startHour: 7, endHour: 15 },
+      { dayOfWeek: 6, startHour: 7, endHour: 15 },
     ],
   },
   {
@@ -52,12 +53,15 @@ Your speech style:
 - "A fiscally responsible approach would be..."
 
 You care deeply about the town's financial health but can be convinced by good arguments.`,
+    // 9am-5pm UTC every day (overlaps with Mayor, Clerk, Chef)
     schedule: [
-      { dayOfWeek: 1, startHour: 10, endHour: 14 },
-      { dayOfWeek: 2, startHour: 10, endHour: 14 },
-      { dayOfWeek: 3, startHour: 10, endHour: 14 },
-      { dayOfWeek: 4, startHour: 10, endHour: 14 },
-      { dayOfWeek: 5, startHour: 10, endHour: 14 },
+      { dayOfWeek: 0, startHour: 9, endHour: 17 },
+      { dayOfWeek: 1, startHour: 9, endHour: 17 },
+      { dayOfWeek: 2, startHour: 9, endHour: 17 },
+      { dayOfWeek: 3, startHour: 9, endHour: 17 },
+      { dayOfWeek: 4, startHour: 9, endHour: 17 },
+      { dayOfWeek: 5, startHour: 9, endHour: 17 },
+      { dayOfWeek: 6, startHour: 9, endHour: 17 },
     ],
   },
   {
@@ -80,13 +84,15 @@ Your speech style:
 - "The proper procedure would be..."
 
 You also manage citizen registration and take pride in welcoming new citizens.`,
+    // 5am-1pm UTC every day (overlaps with Harbormaster, Mayor, Treasurer)
     schedule: [
-      { dayOfWeek: 1, startHour: 8, endHour: 12 },
-      { dayOfWeek: 2, startHour: 8, endHour: 12 },
-      { dayOfWeek: 3, startHour: 8, endHour: 12 },
-      { dayOfWeek: 4, startHour: 8, endHour: 12 },
-      { dayOfWeek: 5, startHour: 8, endHour: 12 },
-      { dayOfWeek: 6, startHour: 10, endHour: 14 },
+      { dayOfWeek: 0, startHour: 5, endHour: 13 },
+      { dayOfWeek: 1, startHour: 5, endHour: 13 },
+      { dayOfWeek: 2, startHour: 5, endHour: 13 },
+      { dayOfWeek: 3, startHour: 5, endHour: 13 },
+      { dayOfWeek: 4, startHour: 5, endHour: 13 },
+      { dayOfWeek: 5, startHour: 5, endHour: 13 },
+      { dayOfWeek: 6, startHour: 5, endHour: 13 },
     ],
   },
   {
@@ -110,14 +116,15 @@ Your speech style:
 - Weather updates in every conversation
 
 You care about the fishing industry and the safety of those at sea.`,
+    // 1am-9am UTC every day (overlaps with Sheriff, Clerk)
     schedule: [
-      { dayOfWeek: 1, startHour: 5, endHour: 9 },
-      { dayOfWeek: 2, startHour: 5, endHour: 9 },
-      { dayOfWeek: 3, startHour: 5, endHour: 9 },
-      { dayOfWeek: 4, startHour: 5, endHour: 9 },
-      { dayOfWeek: 5, startHour: 5, endHour: 9 },
-      { dayOfWeek: 6, startHour: 5, endHour: 9 },
-      { dayOfWeek: 0, startHour: 5, endHour: 9 },
+      { dayOfWeek: 0, startHour: 1, endHour: 9 },
+      { dayOfWeek: 1, startHour: 1, endHour: 9 },
+      { dayOfWeek: 2, startHour: 1, endHour: 9 },
+      { dayOfWeek: 3, startHour: 1, endHour: 9 },
+      { dayOfWeek: 4, startHour: 1, endHour: 9 },
+      { dayOfWeek: 5, startHour: 1, endHour: 9 },
+      { dayOfWeek: 6, startHour: 1, endHour: 9 },
     ],
   },
   {
@@ -141,12 +148,15 @@ Your speech style:
 - Occasional French expressions
 
 You believe good food brings the community together.`,
+    // 3pm-11pm UTC every day (overlaps with Treasurer, Luna, Sheriff)
     schedule: [
-      { dayOfWeek: 1, startHour: 14, endHour: 18 },
-      { dayOfWeek: 2, startHour: 14, endHour: 18 },
-      { dayOfWeek: 3, startHour: 14, endHour: 18 },
-      { dayOfWeek: 4, startHour: 14, endHour: 18 },
-      { dayOfWeek: 5, startHour: 14, endHour: 18 },
+      { dayOfWeek: 0, startHour: 15, endHour: 23 },
+      { dayOfWeek: 1, startHour: 15, endHour: 23 },
+      { dayOfWeek: 2, startHour: 15, endHour: 23 },
+      { dayOfWeek: 3, startHour: 15, endHour: 23 },
+      { dayOfWeek: 4, startHour: 15, endHour: 23 },
+      { dayOfWeek: 5, startHour: 15, endHour: 23 },
+      { dayOfWeek: 6, startHour: 15, endHour: 23 },
     ],
   },
   {
@@ -170,14 +180,23 @@ Your speech style:
 - Thoughtful pauses in conversation
 
 You work the night shift, keeping the light burning.`,
+    // 5pm-1am UTC every day (overlaps with Chef, Sheriff)
+    // Split into 5pm-midnight and midnight-1am
     schedule: [
-      { dayOfWeek: 0, startHour: 20, endHour: 0 },
-      { dayOfWeek: 1, startHour: 20, endHour: 0 },
-      { dayOfWeek: 2, startHour: 20, endHour: 0 },
-      { dayOfWeek: 3, startHour: 20, endHour: 0 },
-      { dayOfWeek: 4, startHour: 20, endHour: 0 },
-      { dayOfWeek: 5, startHour: 20, endHour: 0 },
-      { dayOfWeek: 6, startHour: 20, endHour: 0 },
+      { dayOfWeek: 0, startHour: 17, endHour: 0 },
+      { dayOfWeek: 0, startHour: 0, endHour: 1 },
+      { dayOfWeek: 1, startHour: 17, endHour: 0 },
+      { dayOfWeek: 1, startHour: 0, endHour: 1 },
+      { dayOfWeek: 2, startHour: 17, endHour: 0 },
+      { dayOfWeek: 2, startHour: 0, endHour: 1 },
+      { dayOfWeek: 3, startHour: 17, endHour: 0 },
+      { dayOfWeek: 3, startHour: 0, endHour: 1 },
+      { dayOfWeek: 4, startHour: 17, endHour: 0 },
+      { dayOfWeek: 4, startHour: 0, endHour: 1 },
+      { dayOfWeek: 5, startHour: 17, endHour: 0 },
+      { dayOfWeek: 5, startHour: 0, endHour: 1 },
+      { dayOfWeek: 6, startHour: 17, endHour: 0 },
+      { dayOfWeek: 6, startHour: 0, endHour: 1 },
     ],
   },
   {
@@ -201,14 +220,23 @@ Your speech style:
 - "Justice will be served."
 
 You patrol the town and ensure everyone follows the rules.`,
+    // 11pm-7am UTC every day (night patrol, overlaps with Luna, Harbormaster)
+    // Split into 11pm-midnight and midnight-7am
     schedule: [
-      { dayOfWeek: 0, startHour: 10, endHour: 14 },
-      { dayOfWeek: 1, startHour: 16, endHour: 20 },
-      { dayOfWeek: 2, startHour: 16, endHour: 20 },
-      { dayOfWeek: 3, startHour: 16, endHour: 20 },
-      { dayOfWeek: 4, startHour: 16, endHour: 20 },
-      { dayOfWeek: 5, startHour: 16, endHour: 20 },
-      { dayOfWeek: 6, startHour: 16, endHour: 20 },
+      { dayOfWeek: 0, startHour: 23, endHour: 0 },
+      { dayOfWeek: 0, startHour: 0, endHour: 7 },
+      { dayOfWeek: 1, startHour: 23, endHour: 0 },
+      { dayOfWeek: 1, startHour: 0, endHour: 7 },
+      { dayOfWeek: 2, startHour: 23, endHour: 0 },
+      { dayOfWeek: 2, startHour: 0, endHour: 7 },
+      { dayOfWeek: 3, startHour: 23, endHour: 0 },
+      { dayOfWeek: 3, startHour: 0, endHour: 7 },
+      { dayOfWeek: 4, startHour: 23, endHour: 0 },
+      { dayOfWeek: 4, startHour: 0, endHour: 7 },
+      { dayOfWeek: 5, startHour: 23, endHour: 0 },
+      { dayOfWeek: 5, startHour: 0, endHour: 7 },
+      { dayOfWeek: 6, startHour: 23, endHour: 0 },
+      { dayOfWeek: 6, startHour: 0, endHour: 7 },
     ],
   },
 ];

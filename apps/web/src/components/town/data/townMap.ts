@@ -83,6 +83,17 @@ const noticeBoard = (): GridCell => ({
   elevation: 2,
 });
 
+// High elevation rock for observatory
+const k3 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 3 });
+
+const observatory = (): GridCell => ({
+  ground: TileType.Rock,
+  building: BuildingType.Observatory,
+  buildingOrientation: Direction.South,
+  deco: null,
+  elevation: 3,
+});
+
 // 32x32 town map with elevation (0=sea level, 1+=elevated)
 // Tree variety: palms near coast (on grass), oaks inland/forests, willows near water, pines sparingly
 // Features: Dense oak forest in southwest, scattered trees elsewhere
@@ -99,9 +110,9 @@ export const TOWN_MAP: GridCell[][] = [
   // Rows 6-7: Grass elevation rising - project board area
   [w(),s(),s(),g1(),g1(),g1(),projectBoard(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
   [s(),s(),g1(),g1(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),w()],
-  // Rows 8-9: Elevation 2-3 transition
-  [s(),s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),s(),w()],
-  [s(),g1(),g1(),g1(),wl1(),g1(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),r3(),r3(),r3(),r3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),w()],
+  // Rows 8-9: Elevation 2-3 transition - Observatory on rocky outcrop
+  [s(),s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),k3(),observatory(),k3(),g1(),s(),s(),s(),w()],
+  [s(),g1(),g1(),g1(),wl1(),g1(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),r3(),r3(),r3(),r3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),k3(),k3(),g1(),g1(),s(),s(),w()],
   // Rows 10-11: Upper town - elevation 3
   [s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),r3(),p3(),p3(),p3(),p3(),r3(),g3(),ok3(),forum(),g3(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),w()],
   [s(),g1(),g1(),g1(),g1(),g2(),g2(),ok2(),g2(),g2(),g3(),g3(),r3(),p3(),p3(),p3(),p3(),p3(),p3(),r3(),g3(),g3(),g3(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),w()],
@@ -174,6 +185,7 @@ function getBuildingDisplayName(type: BuildingType): string {
     [BuildingType.FishMarket]: "Fish Market",
     [BuildingType.GeneralStore]: "General Store",
     [BuildingType.NoticeBoard]: "Shell-tin Board",
+    [BuildingType.Observatory]: "The Observatory",
   };
   return names[type] || type;
 }

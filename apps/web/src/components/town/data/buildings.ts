@@ -237,6 +237,22 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     interactive: true,
     scale: 0.12,
   },
+
+  [BuildingType.Observatory]: {
+    id: BuildingType.Observatory,
+    name: "observatory",
+    displayName: "The Observatory",
+    footprint: { width: 1, height: 1 },
+    sprites: {
+      [Direction.South]: "/assets/buildings/core/observatory_sprite_0.png",
+      [Direction.West]: "/assets/buildings/core/observatory_sprite_90.png",
+      [Direction.North]: "/assets/buildings/core/observatory_sprite_180.png",
+      [Direction.East]: "/assets/buildings/core/observatory_sprite_270.png",
+    },
+    renderHeight: 4,
+    interactive: true,
+    scale: 0.18,
+  },
 };
 
 export function getBuilding(type: BuildingType): BuildingDefinition | undefined {
