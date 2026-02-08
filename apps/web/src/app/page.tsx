@@ -153,14 +153,18 @@ export default function Home() {
       >
         <div className="space-y-4">
           {/* Intro section */}
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="font-retro text-xs text-gray-700 leading-relaxed">
+          <div className="p-3 bg-lobster-red text-white border-2 border-red-800">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">🦀</span>
+              <div>
+                <h3 className="font-retro text-sm font-bold">Molt Center</h3>
+                <p className="font-retro text-[10px] opacity-90">Every molt makes us stronger</p>
+              </div>
+            </div>
+            <p className="font-retro text-[10px] opacity-90 leading-relaxed">
               Just as lobsters shed their shells to grow, Clawntown evolves through the ideas of its citizens.
               Here you'll find proposals to improve our town — from new buildings to community events —
               shaped by residents and approved by the elected council.
-            </p>
-            <p className="font-retro text-xs text-lobster-red mt-2 font-bold">
-              Every molt makes us stronger.
             </p>
           </div>
 
