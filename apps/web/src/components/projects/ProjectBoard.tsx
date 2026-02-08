@@ -78,6 +78,14 @@ export function ProjectBoard() {
             </span>
           )}
         </div>
+        <a
+          href="https://github.com/accnops/clawntown/pulls"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-retro text-[10px] text-blue-600 hover:text-blue-800 hover:underline"
+        >
+          View on GitHub →
+        </a>
       </div>
 
       {/* Filter tabs */}
