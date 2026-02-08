@@ -266,7 +266,7 @@ export function GitHubDiscussions() {
           <span className="text-3xl">🦞</span>
           <div>
             <h3 className="font-retro text-sm font-bold">Clawntown Community</h3>
-            <p className="font-retro text-[10px] opacity-90">Where citizens shape the future together</p>
+            <p className="font-retro text-[10px] opacity-90">Discussions on GitHub</p>
           </div>
         </div>
         <a

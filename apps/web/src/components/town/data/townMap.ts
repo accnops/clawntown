@@ -83,19 +83,6 @@ const noticeBoard = (): GridCell => ({
   elevation: 2,
 });
 
-// High elevation rock for mountain/observatory
-const k3 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 3 });
-const k4 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 4 });
-const k5 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 5 });
-const g4 = (): GridCell => ({ ground: TileType.Grass, building: null, deco: null, elevation: 4 });
-
-const observatory = (): GridCell => ({
-  ground: TileType.Rock,
-  building: BuildingType.Observatory,
-  buildingOrientation: Direction.South,
-  deco: null,
-  elevation: 5,
-});
 
 // 32x32 town map with elevation (0=sea level, 1+=elevated)
 // Tree variety: palms near coast (on grass), oaks inland/forests, willows near water, pines sparingly
@@ -125,17 +112,17 @@ export const TOWN_MAP: GridCell[][] = [
   // Rows 14-15: Town hall lower + main road start
   [s(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),r3(),p3(),p3(),p3(),p3(),p3(),p3(),p3(),p3(),r3(),g3(),g3(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),w()],
   [s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g3(),g3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),g3(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),w()],
-  // Rows 16-17: Main road descending - CHAOTIC OAK FOREST + Mountain base begins
-  [s(),g1(),g2(),k3(),k3(),ok1(),ok1(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
-  [s(),g1(),k3(),k4(),k4(),k3(),g1(),ok1(),g2(),g2(),noticeBoard(),g2(),g2(),g2(),ok2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
-  // Rows 18-19: Mountain rises - Observatory peak
-  [s(),g1(),k3(),k4(),k5(),k4(),k3(),ok1(),g1(),g2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
-  [s(),g1(),k3(),k4(),observatory(),k4(),k3(),ok1(),ok1(),g2(),r1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
-  // Rows 20-21: Mountain base - dock area, forest with clearings
-  [s(),g1(),g2(),k3(),k4(),k3(),g2(),ok1(),g1(),g1(),r1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
-  [s(),g1(),g1(),g2(),k3(),g2(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),w(),dock()],
+  // Rows 16-17: Main road descending - CHAOTIC OAK FOREST begins
+  [s(),g1(),ok1(),ok1(),g1(),ok1(),ok1(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
+  [s(),g1(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),g2(),g2(),noticeBoard(),g2(),g2(),g2(),ok2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
+  // Rows 18-19: Road to dock - IRREGULAR FOREST SHAPE
+  [s(),g1(),g1(),g1(),ok1(),ok1(),ok1(),ok1(),g1(),g2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
+  [s(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),ok1(),ok1(),g2(),r1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
+  // Rows 20-21: South inland - dock area, forest with clearings
+  [s(),g1(),g1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),r1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
+  [s(),g1(),g1(),ok1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),w(),dock()],
   // Rows 22-23: South area - lighthouse, forest thins out irregularly
-  [s(),s(),g1(),g1(),g2(),g1(),ok1(),ok1(),g1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w()],
+  [s(),s(),g1(),ok1(),ok1(),g1(),ok1(),ok1(),g1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w()],
   [s(),s(),g1(),g1(),ok1(),ok1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),wl1(),g1(),g1(),s(),s(),k1(),k1(),k1(),s(),s(),s(),w(),w(),w(),w()],
   // Rows 24-25: Grass to beach - scattered trees at forest edge
   [s(),s(),s(),ok1(),g1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),k1(),k1(),s(),s(),w(),w(),w(),w()],
@@ -188,7 +175,6 @@ function getBuildingDisplayName(type: BuildingType): string {
     [BuildingType.FishMarket]: "Fish Market",
     [BuildingType.GeneralStore]: "General Store",
     [BuildingType.NoticeBoard]: "Shell-tin Board",
-    [BuildingType.Observatory]: "The Observatory",
   };
   return names[type] || type;
 }

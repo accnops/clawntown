@@ -35,7 +35,7 @@ const MOCK_PROJECTS: Project[] = [
 ];
 
 
-type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | 'observatory' | null;
+type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | 'lighthouse' | null;
 
 export default function Home() {
   const [activeDialog, setActiveDialog] = useState<DialogType>('welcome');
@@ -240,10 +240,10 @@ export default function Home() {
         </div>
       </Dialog>
 
-      {/* Observatory dialog */}
+      {/* Lighthouse dialog */}
       <Dialog
-        title="The Observatory"
-        isOpen={activeDialog === 'observatory'}
+        title="The Lighthouse"
+        isOpen={activeDialog === 'lighthouse'}
         onClose={closeDialog}
       >
         <div className="space-y-4">
@@ -275,7 +275,7 @@ export default function Home() {
 
           <div className="bg-amber-50 border border-amber-200 rounded p-3">
             <p className="font-retro text-xs text-amber-800 text-center">
-              📡 Observatory instruments are being calibrated. Live stats coming soon!
+              📡 Lighthouse instruments are being calibrated. Live stats coming soon!
             </p>
           </div>
         </div>
@@ -284,7 +284,7 @@ export default function Home() {
       {/* Generic building dialog for other buildings */}
       <Dialog
         title={selectedBuilding?.name || 'Building'}
-        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board', 'notice_board', 'observatory'].includes(activeDialog)}
+        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board', 'notice_board', 'lighthouse'].includes(activeDialog)}
         onClose={closeDialog}
       >
         <div className="text-center">
