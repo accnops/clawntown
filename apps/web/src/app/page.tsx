@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { TownView, Building } from '@/components/town';
-import { Dialog } from '@/components/ui';
+import { Dialog, Sparkline } from '@/components/ui';
 import { ProjectBoard, Project } from '@/components/projects';
 import { GitHubDiscussions } from '@/components/forum';
 import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
@@ -259,27 +259,59 @@ export default function Home() {
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <p className={`font-pixel text-2xl text-yellow-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-              {stats.github?.contributors ?? '--'}
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <p className={`font-pixel text-2xl text-yellow-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                {stats.github?.contributors ?? '--'}
+              </p>
+              {stats.history.length > 1 && (
+                <Sparkline
+                  data={stats.history.map(h => h.contributors)}
+                  color="#fde047"
+                />
+              )}
+            </div>
             <p className="font-retro text-xs text-indigo-300">Contributors</p>
           </div>
           <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <p className={`font-pixel text-2xl text-green-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-              {stats.github?.pullRequests ?? '--'}
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <p className={`font-pixel text-2xl text-green-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                {stats.github?.pullRequests ?? '--'}
+              </p>
+              {stats.history.length > 1 && (
+                <Sparkline
+                  data={stats.history.map(h => h.pullRequests)}
+                  color="#86efac"
+                />
+              )}
+            </div>
             <p className="font-retro text-xs text-indigo-300">Pull Requests</p>
           </div>
           <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <p className={`font-pixel text-2xl text-blue-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-              {stats.github?.commits ?? '--'}
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <p className={`font-pixel text-2xl text-blue-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                {stats.github?.commits ?? '--'}
+              </p>
+              {stats.history.length > 1 && (
+                <Sparkline
+                  data={stats.history.map(h => h.commits)}
+                  color="#93c5fd"
+                />
+              )}
+            </div>
             <p className="font-retro text-xs text-indigo-300">Commits</p>
           </div>
           <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <p className={`font-pixel text-2xl text-pink-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-              {stats.visitors ?? '--'}
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <p className={`font-pixel text-2xl text-pink-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                {stats.visitors ?? '--'}
+              </p>
+              {stats.history.length > 1 && (
+                <Sparkline
+                  data={stats.history.map(h => h.visitors)}
+                  color="#f9a8d4"
+                />
+              )}
+            </div>
             <p className="font-retro text-xs text-indigo-300">Visitors</p>
           </div>
         </div>

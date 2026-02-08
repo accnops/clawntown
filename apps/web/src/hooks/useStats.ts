@@ -9,9 +9,19 @@ interface GitHubStats {
   stars: number;
 }
 
+interface HistoryPoint {
+  date: string;
+  contributors: number;
+  pullRequests: number;
+  commits: number;
+  stars: number;
+  visitors: number;
+}
+
 interface Stats {
   github: GitHubStats | null;
   visitors: number | null;
+  history: HistoryPoint[];
   loading: boolean;
   error: string | null;
 }
@@ -20,6 +30,7 @@ export function useStats() {
   const [stats, setStats] = useState<Stats>({
     github: null,
     visitors: null,
+    history: [],
     loading: true,
     error: null,
   });
@@ -27,18 +38,21 @@ export function useStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Fetch GitHub stats and visitor count in parallel
-        const [githubRes, visitorsRes] = await Promise.all([
+        // Fetch GitHub stats, visitor count, and history in parallel
+        const [githubRes, visitorsRes, historyRes] = await Promise.all([
           fetch('/api/github/stats'),
           fetch('/api/stats/visitors'),
+          fetch('/api/stats/history?days=14'),
         ]);
 
         const githubData = await githubRes.json();
         const visitorsData = await visitorsRes.json();
+        const historyData = await historyRes.json();
 
         setStats({
           github: githubRes.ok ? githubData : null,
           visitors: visitorsData.count ?? null,
+          history: historyData.history || [],
           loading: false,
           error: null,
         });
