@@ -6,6 +6,7 @@ import { Dialog } from '@/components/ui';
 import { ProjectBoard, Project } from '@/components/projects';
 import { GitHubDiscussions } from '@/components/forum';
 import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
+import { useStats, useTrackVisit } from '@/hooks';
 import type { CouncilMember } from '@clawntown/shared';
 
 // Mock projects data
@@ -42,6 +43,10 @@ export default function Home() {
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [townHallView, setTownHallView] = useState<'lobby' | 'office' | 'registry'>('lobby');
   const [selectedCouncilMember, setSelectedCouncilMember] = useState<CouncilMember | null>(null);
+
+  // Track visitor and fetch stats
+  useTrackVisit();
+  const stats = useStats();
 
   const handleBuildingClick = (building: Building) => {
     setSelectedBuilding(building);
@@ -255,29 +260,44 @@ export default function Home() {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className="font-pixel text-2xl text-yellow-300">--</p>
+                <p className={`font-pixel text-2xl text-yellow-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                  {stats.github?.contributors ?? '--'}
+                </p>
                 <p className="font-retro text-xs text-indigo-300">Contributors</p>
               </div>
               <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className="font-pixel text-2xl text-green-300">--</p>
+                <p className={`font-pixel text-2xl text-green-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                  {stats.github?.pullRequests ?? '--'}
+                </p>
                 <p className="font-retro text-xs text-indigo-300">Pull Requests</p>
               </div>
               <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className="font-pixel text-2xl text-blue-300">--</p>
+                <p className={`font-pixel text-2xl text-blue-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                  {stats.github?.commits ?? '--'}
+                </p>
                 <p className="font-retro text-xs text-indigo-300">Commits</p>
               </div>
               <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className="font-pixel text-2xl text-pink-300">--</p>
+                <p className={`font-pixel text-2xl text-pink-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                  {stats.visitors ?? '--'}
+                </p>
                 <p className="font-retro text-xs text-indigo-300">Visitors</p>
               </div>
             </div>
+
+            {/* GitHub Stars */}
+            {stats.github?.stars !== undefined && stats.github.stars > 0 && (
+              <div className="mt-3 text-center">
+                <span className="font-retro text-xs text-yellow-400">
+                  ⭐ {stats.github.stars} GitHub Stars
+                </span>
+              </div>
+            )}
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded p-3">
-            <p className="font-retro text-xs text-amber-800 text-center">
-              📡 Lighthouse instruments are being calibrated. Live stats coming soon!
-            </p>
-          </div>
+          <p className="font-retro text-xs text-gray-600 text-center">
+            From the lighthouse, we watch over all of Clawntown's activity.
+          </p>
         </div>
       </Dialog>
 
