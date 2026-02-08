@@ -83,15 +83,18 @@ const noticeBoard = (): GridCell => ({
   elevation: 2,
 });
 
-// High elevation rock for observatory
+// High elevation rock for mountain/observatory
 const k3 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 3 });
+const k4 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 4 });
+const k5 = (): GridCell => ({ ground: TileType.Rock, building: null, deco: null, elevation: 5 });
+const g4 = (): GridCell => ({ ground: TileType.Grass, building: null, deco: null, elevation: 4 });
 
 const observatory = (): GridCell => ({
   ground: TileType.Rock,
   building: BuildingType.Observatory,
   buildingOrientation: Direction.South,
   deco: null,
-  elevation: 3,
+  elevation: 5,
 });
 
 // 32x32 town map with elevation (0=sea level, 1+=elevated)
@@ -110,9 +113,9 @@ export const TOWN_MAP: GridCell[][] = [
   // Rows 6-7: Grass elevation rising - project board area
   [w(),s(),s(),g1(),g1(),g1(),projectBoard(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
   [s(),s(),g1(),g1(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),w()],
-  // Rows 8-9: Elevation 2-3 transition - Observatory on rocky outcrop
-  [s(),s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),k3(),observatory(),k3(),g1(),s(),s(),s(),w()],
-  [s(),g1(),g1(),g1(),wl1(),g1(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),r3(),r3(),r3(),r3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),k3(),k3(),g1(),g1(),s(),s(),w()],
+  // Rows 8-9: Elevation 2-3 transition
+  [s(),s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),s(),w()],
+  [s(),g1(),g1(),g1(),wl1(),g1(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),r3(),r3(),r3(),r3(),g3(),g3(),g3(),g2(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),w()],
   // Rows 10-11: Upper town - elevation 3
   [s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g2(),g2(),g3(),g3(),r3(),p3(),p3(),p3(),p3(),r3(),g3(),ok3(),forum(),g3(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),w()],
   [s(),g1(),g1(),g1(),g1(),g2(),g2(),ok2(),g2(),g2(),g3(),g3(),r3(),p3(),p3(),p3(),p3(),p3(),p3(),r3(),g3(),g3(),g3(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),w()],
@@ -122,17 +125,17 @@ export const TOWN_MAP: GridCell[][] = [
   // Rows 14-15: Town hall lower + main road start
   [s(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g3(),g3(),g3(),r3(),p3(),p3(),p3(),p3(),p3(),p3(),p3(),p3(),r3(),g3(),g3(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),w()],
   [s(),g1(),g1(),g1(),g1(),g2(),g2(),g2(),g2(),g3(),g3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),r3(),g3(),g2(),g2(),g2(),g1(),g1(),g1(),g1(),s(),s(),w()],
-  // Rows 16-17: Main road descending - CHAOTIC OAK FOREST begins
-  [s(),g1(),ok1(),ok1(),g1(),ok1(),ok1(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
-  [s(),g1(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),g2(),g2(),noticeBoard(),g2(),g2(),g2(),ok2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
-  // Rows 18-19: Road to dock - IRREGULAR FOREST SHAPE
-  [s(),g1(),g1(),g1(),ok1(),ok1(),ok1(),ok1(),g1(),g2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
-  [s(),g1(),ok1(),ok1(),ok1(),g1(),ok1(),ok1(),ok1(),g2(),r1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
-  // Rows 20-21: South inland - dock area, forest with clearings
-  [s(),g1(),g1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),r1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
-  [s(),g1(),g1(),ok1(),g1(),ok1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),w(),dock()],
+  // Rows 16-17: Main road descending - CHAOTIC OAK FOREST + Mountain base begins
+  [s(),g1(),g2(),k3(),k3(),ok1(),ok1(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
+  [s(),g1(),k3(),k4(),k4(),k3(),g1(),ok1(),g2(),g2(),noticeBoard(),g2(),g2(),g2(),ok2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g2(),g2(),g1(),g1(),g1(),s(),s(),s(),w()],
+  // Rows 18-19: Mountain rises - Observatory peak
+  [s(),g1(),k3(),k4(),k5(),k4(),k3(),ok1(),g1(),g2(),r2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),g2(),r2(),r2(),g1(),g1(),g1(),s(),s(),s(),s(),w()],
+  [s(),g1(),k3(),k4(),observatory(),k4(),k3(),ok1(),ok1(),g2(),r1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
+  // Rows 20-21: Mountain base - dock area, forest with clearings
+  [s(),g1(),g2(),k3(),k4(),k3(),g2(),ok1(),g1(),g1(),r1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),r1(),r1(),s(),s(),s(),s(),s(),w()],
+  [s(),g1(),g1(),g2(),k3(),g2(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),w(),dock()],
   // Rows 22-23: South area - lighthouse, forest thins out irregularly
-  [s(),s(),g1(),ok1(),ok1(),g1(),ok1(),ok1(),g1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w()],
+  [s(),s(),g1(),g1(),g2(),g1(),ok1(),ok1(),g1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),s(),s(),s(),s(),w(),w(),w()],
   [s(),s(),g1(),g1(),ok1(),ok1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),wl1(),g1(),g1(),s(),s(),k1(),k1(),k1(),s(),s(),s(),w(),w(),w(),w()],
   // Rows 24-25: Grass to beach - scattered trees at forest edge
   [s(),s(),s(),ok1(),g1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),k1(),k1(),s(),s(),w(),w(),w(),w()],
