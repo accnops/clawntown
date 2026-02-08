@@ -3,38 +3,11 @@
 import { useState } from 'react';
 import { TownView, Building } from '@/components/town';
 import { Dialog, Sparkline } from '@/components/ui';
-import { ProjectBoard, Project } from '@/components/projects';
+import { ProjectBoard } from '@/components/projects';
 import { GitHubDiscussions } from '@/components/forum';
 import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
 import { useStats, useTrackVisit } from '@/hooks';
 import type { CouncilMember } from '@clawntown/shared';
-
-// Mock projects data
-const MOCK_PROJECTS: Project[] = [
-  {
-    id: '1',
-    title: 'Build a New Pier',
-    description: 'Extend the dock to accommodate more fishing boats and create a scenic walkway for citizens.',
-    status: 'voting',
-    proposedBy: 'Mayor Clawrence',
-    votingEndsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-  },
-  {
-    id: '2',
-    title: 'Town Square Fountain',
-    description: 'Install a beautiful lobster-themed fountain in the town square.',
-    status: 'in_progress',
-    proposedBy: 'Mayor Clawrence',
-  },
-  {
-    id: '3',
-    title: 'Lighthouse Renovation',
-    description: 'Restore the historic lighthouse to its former glory.',
-    status: 'completed',
-    proposedBy: 'Mayor Clawrence',
-  },
-];
-
 
 type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | 'lighthouse' | null;
 
@@ -191,9 +164,7 @@ export default function Home() {
             </p>
           </div>
 
-          <ProjectBoard
-            projects={MOCK_PROJECTS}
-          />
+          <ProjectBoard />
         </div>
       </Dialog>
 

@@ -1,27 +1,65 @@
 'use client';
 
-import { useState } from 'react';
-import { ProjectCard, Project } from './ProjectCard';
+import { useState, useEffect } from 'react';
+import { ProjectCard, PullRequest, PRStatus } from './ProjectCard';
 
-type FilterStatus = 'all' | 'voting' | 'in_progress' | 'completed';
+type FilterStatus = 'all' | 'open' | 'merged' | 'closed';
 
-interface ProjectBoardProps {
-  projects: Project[];
+function getPRStatus(pr: PullRequest): PRStatus {
+  if (pr.state === 'open') return 'open';
+  if (pr.merged) return 'merged';
+  return 'closed';
 }
 
-export function ProjectBoard({ projects }: ProjectBoardProps) {
+export function ProjectBoard() {
   const [filter, setFilter] = useState<FilterStatus>('all');
+  const [pulls, setPulls] = useState<PullRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredProjects = projects.filter((p) => {
+  useEffect(() => {
+    async function fetchPRs() {
+      try {
+        const res = await fetch('/api/github/pulls');
+        const data = await res.json();
+        if (data.pulls) {
+          setPulls(data.pulls);
+        } else {
+          setError('Failed to load pull requests');
+        }
+      } catch (err) {
+        setError('Failed to load pull requests');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPRs();
+  }, []);
+
+  const filteredPulls = pulls.filter((pr) => {
     if (filter === 'all') return true;
-    if (filter === 'voting') return p.status === 'voting';
-    if (filter === 'in_progress') return p.status === 'in_progress';
-    if (filter === 'completed') return p.status === 'completed' || p.status === 'failed';
-    return true;
+    return getPRStatus(pr) === filter;
   });
 
-  const votingCount = projects.filter((p) => p.status === 'voting').length;
-  const activeCount = projects.filter((p) => p.status === 'in_progress').length;
+  const openCount = pulls.filter((pr) => getPRStatus(pr) === 'open').length;
+  const mergedCount = pulls.filter((pr) => getPRStatus(pr) === 'merged').length;
+  const closedCount = pulls.filter((pr) => getPRStatus(pr) === 'closed').length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="font-retro text-xs text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -29,17 +67,22 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-400">
         <div className="flex gap-3">
           <span className="font-retro text-[10px] text-gray-600">
-            🗳️ {votingCount} voting
+            🔄 {openCount} open
           </span>
           <span className="font-retro text-[10px] text-gray-600">
-            🏗️ {activeCount} active
+            ✅ {mergedCount} merged
           </span>
+          {closedCount > 0 && (
+            <span className="font-retro text-[10px] text-gray-600">
+              ❌ {closedCount} closed
+            </span>
+          )}
         </div>
       </div>
 
       {/* Filter tabs */}
       <div className="flex gap-1 mb-3 overflow-x-auto">
-        {(['all', 'voting', 'in_progress', 'completed'] as FilterStatus[]).map((status) => (
+        {(['all', 'open', 'merged', 'closed'] as FilterStatus[]).map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
@@ -50,30 +93,29 @@ export function ProjectBoard({ projects }: ProjectBoardProps) {
             }`}
           >
             {status === 'all' && 'All'}
-            {status === 'voting' && '🗳️ Voting'}
-            {status === 'in_progress' && '🏗️ Active'}
-            {status === 'completed' && '✅ Done'}
+            {status === 'open' && '🔄 Open'}
+            {status === 'merged' && '✅ Merged'}
+            {status === 'closed' && '❌ Closed'}
           </button>
         ))}
       </div>
 
-      {/* Project list */}
+      {/* Pull request list */}
       <div className="flex-1 overflow-y-auto space-y-3">
-        {filteredProjects.length === 0 ? (
+        {filteredPulls.length === 0 ? (
           <div className="text-center py-8">
             <p className="font-retro text-xs text-gray-500">
-              No projects found
+              No pull requests found
             </p>
             <p className="font-retro text-[10px] text-gray-400 mt-1">
-              Visit Town Hall to propose new ideas!
+              {filter === 'all'
+                ? 'Be the first to contribute!'
+                : `No ${filter} pull requests`}
             </p>
           </div>
         ) : (
-          filteredProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-            />
+          filteredPulls.map((pr) => (
+            <ProjectCard key={pr.id} pr={pr} />
           ))
         )}
       </div>
