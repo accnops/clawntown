@@ -1,0 +1,37 @@
+MIT License
+
+Copyright (c) 2026 Clawntown Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+ASSET EXCLUSION NOTICE
+
+The visual assets in this repository (including but not limited to images,
+sprites, icons, and animations located in `apps/web/public/assets/`) are
+NOT covered by the MIT License above.
+
+These assets are provided for reference and inspiration only. If you fork or
+use this project, you must create your own original assets. This isn't about
+cost or difficulty — it's about ensuring each project develops its own unique
+visual identity.
+
+We encourage you to use the asset pipeline scripts as a starting point for
+generating your own artwork. Make your town truly yours!

@@ -1,6 +1,7 @@
 {
   "name": "clawntown",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
