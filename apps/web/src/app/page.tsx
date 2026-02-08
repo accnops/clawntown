@@ -250,55 +250,52 @@ export default function Home() {
         title="The Lighthouse"
         isOpen={activeDialog === 'lighthouse'}
         onClose={closeDialog}
+        bodyClassName="bg-indigo-950 p-4 overflow-y-auto flex-1"
       >
-        <div className="space-y-4">
-          <div className="bg-indigo-950 text-white rounded-lg p-4">
-            <p className="font-retro text-xs text-indigo-200 text-center mb-3">
-              🔭 Tracking the stars of Clawntown
+        <p className="font-retro text-xs text-indigo-200 text-center mb-4">
+          🔭 Tracking the stars of Clawntown
+        </p>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-indigo-900/50 rounded p-3 text-center">
+            <p className={`font-pixel text-2xl text-yellow-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+              {stats.github?.contributors ?? '--'}
             </p>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className={`font-pixel text-2xl text-yellow-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-                  {stats.github?.contributors ?? '--'}
-                </p>
-                <p className="font-retro text-xs text-indigo-300">Contributors</p>
-              </div>
-              <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className={`font-pixel text-2xl text-green-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-                  {stats.github?.pullRequests ?? '--'}
-                </p>
-                <p className="font-retro text-xs text-indigo-300">Pull Requests</p>
-              </div>
-              <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className={`font-pixel text-2xl text-blue-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-                  {stats.github?.commits ?? '--'}
-                </p>
-                <p className="font-retro text-xs text-indigo-300">Commits</p>
-              </div>
-              <div className="bg-indigo-900/50 rounded p-3 text-center">
-                <p className={`font-pixel text-2xl text-pink-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-                  {stats.visitors ?? '--'}
-                </p>
-                <p className="font-retro text-xs text-indigo-300">Visitors</p>
-              </div>
-            </div>
-
-            {/* GitHub Stars */}
-            {stats.github?.stars !== undefined && stats.github.stars > 0 && (
-              <div className="mt-3 text-center">
-                <span className="font-retro text-xs text-yellow-400">
-                  ⭐ {stats.github.stars} GitHub Stars
-                </span>
-              </div>
-            )}
+            <p className="font-retro text-xs text-indigo-300">Contributors</p>
           </div>
-
-          <p className="font-retro text-xs text-gray-600 text-center">
-            From the lighthouse, we watch over all of Clawntown's activity.
-          </p>
+          <div className="bg-indigo-900/50 rounded p-3 text-center">
+            <p className={`font-pixel text-2xl text-green-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+              {stats.github?.pullRequests ?? '--'}
+            </p>
+            <p className="font-retro text-xs text-indigo-300">Pull Requests</p>
+          </div>
+          <div className="bg-indigo-900/50 rounded p-3 text-center">
+            <p className={`font-pixel text-2xl text-blue-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+              {stats.github?.commits ?? '--'}
+            </p>
+            <p className="font-retro text-xs text-indigo-300">Commits</p>
+          </div>
+          <div className="bg-indigo-900/50 rounded p-3 text-center">
+            <p className={`font-pixel text-2xl text-pink-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+              {stats.visitors ?? '--'}
+            </p>
+            <p className="font-retro text-xs text-indigo-300">Visitors</p>
+          </div>
         </div>
+
+        {/* GitHub Stars */}
+        {stats.github?.stars !== undefined && stats.github.stars > 0 && (
+          <div className="mt-4 text-center">
+            <span className="font-retro text-xs text-yellow-400">
+              ⭐ {stats.github.stars} GitHub Stars
+            </span>
+          </div>
+        )}
+
+        <p className="font-retro text-xs text-indigo-300 text-center mt-4">
+          From the lighthouse, we watch over all of Clawntown's activity.
+        </p>
       </Dialog>
 
       {/* Generic building dialog for other buildings */}

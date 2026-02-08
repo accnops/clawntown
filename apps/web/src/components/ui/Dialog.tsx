@@ -8,9 +8,10 @@ interface DialogProps {
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
+  bodyClassName?: string;
 }
 
-export function Dialog({ title, isOpen, onClose, children, className = '' }: DialogProps) {
+export function Dialog({ title, isOpen, onClose, children, className = '', bodyClassName }: DialogProps) {
   // Close on escape key
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -59,7 +60,7 @@ export function Dialog({ title, isOpen, onClose, children, className = '' }: Dia
         </div>
 
         {/* Content */}
-        <div className="p-4 bg-retro-gray overflow-y-auto flex-1">
+        <div className={bodyClassName ?? "p-4 bg-retro-gray overflow-y-auto flex-1"}>
           {children}
         </div>
       </div>
