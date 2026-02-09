@@ -13,4 +13,13 @@ dist/
 playwright-report/
 test-results/
 e2e/screenshots/
+
+# Development screenshots (root level)
+*.png
+!apps/web/public/**/*.png
+
+# Reference projects
 pogicity-reference/
+
+# Asset pipeline output (regenerated)
+scripts/asset-pipeline/output/
