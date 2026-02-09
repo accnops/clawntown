@@ -39,6 +39,7 @@ All assets generated from scratch using AI pipeline (not using pogicity assets d
 | bait_tackle_shop | "A rustic bait and tackle shop, weathered wooden building, fishing rods displayed outside, bait buckets, hand-painted signs, fishing nets on walls" | 0° |
 | fish_market | "A small open-air fish market stall, wooden structure with canvas awning, fresh fish on ice display, hanging scales, crates of seafood" | 0° |
 | general_store | "A quaint general store, clapboard siding, large front window display, striped awning, barrels outside, old-fashioned country store style" | 0° |
+| arcade | "A retro arcade building for a lobster beach town, purple neon lights, claw machine visible through window, pixel art style, coastal themed" | 0° |
 
 ---
 
@@ -69,16 +70,30 @@ Generated as flat square textures, then transformed to isometric (rotate 45°, s
 
 ## File Structure
 
+Assets are stored directly in the web app public folder:
+
 ```
-output/
+apps/web/public/assets/
 ├── buildings/
 │   ├── core/           # 7 buildings (town_hall, lighthouse, etc.)
+│   │   ├── *_concept.png    # Concept art from Gemini
+│   │   ├── *.glb            # 3D models from Tripo3D
+│   │   └── *_sprite_*.png   # Rendered sprites (0, 90, 180, 270)
 │   ├── residential/    # 2 buildings (fishermans_cottage, beach_house)
-│   └── commercial/     # 3 buildings (bait_tackle_shop, fish_market, general_store)
+│   └── commercial/     # 4 buildings (bait_tackle_shop, fish_market, general_store, arcade)
 ├── props/              # 4 props (coastal_pine, lobster_traps, wooden_bench, fishing_buoy)
-└── tiles/              # 5 tiles (sand, water, grass, dock_planks, cobblestone)
-    ├── *_tile.png      # Flat square textures
-    └── *_tile_iso.png  # Isometric diamond transforms
+├── tiles/              # 5 tiles (sand, water, grass, dock_planks, cobblestone)
+│   ├── *_tile.png      # Flat square textures
+│   ├── *_tile_iso.png  # Isometric diamond transforms
+│   └── *_tile_cube.png # 3D cube renders
+├── council/            # Council member avatars
+│   ├── *.png           # Static portraits
+│   ├── *_spin.gif      # Animated versions
+│   └── */              # Source frames for animations
+└── ui/                 # UI elements
+    ├── sigil_*.png     # Town sigil at various sizes
+    ├── sigil_spin.gif  # Animated sigil
+    └── sigil.glb       # 3D sigil model
 ```
 
 ---
@@ -86,7 +101,7 @@ output/
 ## Assets Still Needed
 
 ### Props
-- anchor, barrel, crate, fishing_net, seagull, dinghy, palm_tree
+- anchor, barrel, crate, fishing_net, seagull, dinghy
 
 ### Landmarks
 - bell_tower, harbor_master, old_pier, shipwreck
@@ -96,12 +111,15 @@ output/
 ## Generation Commands
 
 ```bash
-# Building (full pipeline)
-python3 pipeline.py --prompt "description" --name asset_name --output-dir ./output/buildings/category
+# Building (full pipeline) - outputs directly to apps/web/public/assets
+python3 pipeline.py --prompt "description" --name asset_name --output-dir ../../apps/web/public/assets/buildings/category
 
 # Tile (Gemini + isometric transform)
-python3 pipeline.py --tile --prompt "description" --name tile_name --output-dir ./output/tiles
+python3 pipeline.py --tile --prompt "description" --name tile_name --output-dir ../../apps/web/public/assets/tiles
 
 # Re-render existing model
-python3 pipeline.py --model ./path/to/model.glb --name asset_name --output-dir ./output
+python3 pipeline.py --model ../../apps/web/public/assets/buildings/category/model.glb --name asset_name --output-dir ../../apps/web/public/assets/buildings/category
+
+# Re-render all assets
+./rerender_all.sh
 ```

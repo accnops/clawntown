@@ -23,6 +23,7 @@ export enum BuildingType {
   FishMarket = "fish_market",
   GeneralStore = "general_store",
   NoticeBoard = "notice_board",
+  Arcade = "arcade",
 }
 
 // Direction for sprite orientation (matches generated asset naming)

@@ -67,20 +67,20 @@ const lighthouse = (): GridCell => ({
   elevation: 1,
 });
 
-const fishermansCottage = (): GridCell => ({
-  ground: TileType.Grass,
-  building: BuildingType.FishermansCottage,
-  buildingOrientation: Direction.South,
-  deco: null,
-  elevation: 1,
-});
-
 const noticeBoard = (): GridCell => ({
   ground: TileType.Cobblestone,
   building: BuildingType.NoticeBoard,
   buildingOrientation: Direction.East,
   deco: null,
   elevation: 2,
+});
+
+const arcade = (): GridCell => ({
+  ground: TileType.Grass,
+  building: BuildingType.Arcade,
+  buildingOrientation: Direction.East,
+  deco: null,
+  elevation: 1,
 });
 
 
@@ -128,7 +128,7 @@ export const TOWN_MAP: GridCell[][] = [
   [s(),s(),s(),ok1(),g1(),ok1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),k1(),k1(),k1(),k1(),s(),s(),w(),w(),w(),w()],
   [s(),s(),s(),s(),g1(),ok1(),wl1(),g1(),g1(),ok1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),k1(),k1(),lighthouse(),k1(),s(),w(),w(),w(),w(),w()],
   // Rows 26-27: South beach with rocks
-  [w(),s(),s(),pms(),s(),s(),g1(),g1(),fishermansCottage(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w()],
+  [w(),s(),s(),pms(),s(),s(),g1(),g1(),g1(),g1(),g1(),g1(),g1(),arcade(),g1(),g1(),g1(),g1(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w()],
   [w(),s(),s(),k1(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w()],
   // Rows 28-29: Beach to water
   [w(),w(),s(),s(),s(),s(),s(),s(),s(),s(),pms(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),s(),w(),w(),w(),w(),w(),w(),w(),w()],
@@ -175,6 +175,7 @@ function getBuildingDisplayName(type: BuildingType): string {
     [BuildingType.FishMarket]: "Fish Market",
     [BuildingType.GeneralStore]: "General Store",
     [BuildingType.NoticeBoard]: "Shell-tin Board",
+    [BuildingType.Arcade]: "Claw'd Nine",
   };
   return names[type] || type;
 }

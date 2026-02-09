@@ -6,10 +6,11 @@ import { Dialog, Sparkline } from '@/components/ui';
 import { ProjectBoard } from '@/components/projects';
 import { GitHubDiscussions } from '@/components/forum';
 import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
+import { ClawMachine } from '@/components/arcade';
 import { useStats, useTrackVisit } from '@/hooks';
 import type { CouncilMember } from '@clawntown/shared';
 
-type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | 'lighthouse' | null;
+type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | 'lighthouse' | 'arcade' | null;
 
 export default function Home() {
   const [activeDialog, setActiveDialog] = useState<DialogType>('welcome');
@@ -305,10 +306,20 @@ export default function Home() {
         </p>
       </Dialog>
 
+      {/* Arcade dialog */}
+      <Dialog
+        title="Claw'd Nine"
+        isOpen={activeDialog === 'arcade'}
+        onClose={closeDialog}
+        bodyClassName="bg-purple-950 p-4 overflow-hidden"
+      >
+        <ClawMachine />
+      </Dialog>
+
       {/* Generic building dialog for other buildings */}
       <Dialog
         title={selectedBuilding?.name || 'Building'}
-        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board', 'notice_board', 'lighthouse'].includes(activeDialog)}
+        isOpen={activeDialog !== null && !['welcome', 'town_hall', 'forum', 'project_board', 'notice_board', 'lighthouse', 'arcade'].includes(activeDialog)}
         onClose={closeDialog}
       >
         <div className="text-center">

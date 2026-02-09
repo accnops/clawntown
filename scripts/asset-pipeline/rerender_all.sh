@@ -1,38 +1,37 @@
 #!/bin/bash
 set -e
 
+# Assets are now stored directly in apps/web/public/assets
+ASSETS_DIR="../../apps/web/public/assets"
+
 echo "Re-rendering all assets with fixed lighting..."
 
 # Core buildings
-for model in output/buildings/core/*.glb; do
+for model in "$ASSETS_DIR"/buildings/core/*.glb; do
     name=$(basename "$model" .glb)
     echo "=== Rendering $name ==="
-    python3 pipeline.py --model "$model" --name "${name}" --output-dir output/buildings/core
+    python3 pipeline.py --model "$model" --name "${name}_sprite" --output-dir "$ASSETS_DIR/buildings/core"
 done
 
 # Commercial buildings
-for model in output/buildings/commercial/*.glb; do
+for model in "$ASSETS_DIR"/buildings/commercial/*.glb; do
     name=$(basename "$model" .glb)
     echo "=== Rendering $name ==="
-    python3 pipeline.py --model "$model" --name "${name}" --output-dir output/buildings/commercial
+    python3 pipeline.py --model "$model" --name "${name}_sprite" --output-dir "$ASSETS_DIR/buildings/commercial"
 done
 
 # Residential buildings
-for model in output/buildings/residential/*.glb; do
+for model in "$ASSETS_DIR"/buildings/residential/*.glb; do
     name=$(basename "$model" .glb)
     echo "=== Rendering $name ==="
-    python3 pipeline.py --model "$model" --name "${name}" --output-dir output/buildings/residential
+    python3 pipeline.py --model "$model" --name "${name}_sprite" --output-dir "$ASSETS_DIR/buildings/residential"
 done
 
 # Props (with soft lighting)
-for model in output/props/*.glb; do
+for model in "$ASSETS_DIR"/props/*.glb; do
     name=$(basename "$model" .glb)
     echo "=== Rendering $name (soft lighting) ==="
-    python3 pipeline.py --model "$model" --name "${name}" --output-dir output/props --soft-lighting
+    python3 pipeline.py --model "$model" --name "${name}_sprite" --output-dir "$ASSETS_DIR/props" --soft-lighting
 done
 
-echo "Done! Now copy to public:"
-echo "  cp output/buildings/core/*_sprite_*.png ../../apps/web/public/assets/buildings/core/"
-echo "  cp output/buildings/commercial/*_sprite_*.png ../../apps/web/public/assets/buildings/commercial/"
-echo "  cp output/buildings/residential/*_sprite_*.png ../../apps/web/public/assets/buildings/residential/"
-echo "  cp output/props/*_sprite_*.png ../../apps/web/public/assets/props/"
+echo "Done! Assets rendered directly to apps/web/public/assets/"

@@ -237,6 +237,22 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     interactive: true,
     scale: 0.12,
   },
+
+  [BuildingType.Arcade]: {
+    id: BuildingType.Arcade,
+    name: "arcade",
+    displayName: "Claw'd Nine",
+    footprint: { width: 2, height: 1 },
+    sprites: {
+      [Direction.South]: "/assets/buildings/commercial/arcade_sprite_0.png",
+      [Direction.West]: "/assets/buildings/commercial/arcade_sprite_90.png",
+      [Direction.North]: "/assets/buildings/commercial/arcade_sprite_180.png",
+      [Direction.East]: "/assets/buildings/commercial/arcade_sprite_270.png",
+    },
+    renderHeight: 3,
+    interactive: true,
+    scale: 0.19,
+  },
 };
 
 export function getBuilding(type: BuildingType): BuildingDefinition | undefined {
