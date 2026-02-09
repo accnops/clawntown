@@ -25,8 +25,7 @@ SOFTWARE.
 ASSET EXCLUSION NOTICE
 
 The visual assets in this repository (including but not limited to images,
-sprites, icons, and animations located in `apps/web/public/assets/`) are
-NOT covered by the MIT License above.
+sprites, icons, GIFs, and animations) are NOT covered by the MIT License above.
 
 These assets are provided for reference and inspiration only. If you fork or
 use this project, you must create your own original assets. This isn't about
