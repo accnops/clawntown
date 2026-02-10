@@ -15,7 +15,6 @@ const FRAME_TIME = 1000 / TARGET_FPS;
 // Physics constants
 const GRAVITY = 0.5;
 const BOUNCE_DAMPING = 0.6;
-const FRICTION = 0.96;
 
 // Machine dimensions (scaled for smaller canvas)
 const MACHINE_LEFT = 25;
@@ -333,7 +332,7 @@ export function ClawMachine() {
           grabbed.x = clawX;
           grabbed.y = clawY + 30;
           grabbed.vy = 3;
-          grabbed.vx = (Math.random() - 0.5) * 4;
+          grabbed.vx = 0;
           grabbedPrizeRef.current = null;
         }
 
@@ -358,7 +357,7 @@ export function ClawMachine() {
               prizesRef.current.push({
                 x: MACHINE_LEFT + 40 + Math.random() * (MACHINE_RIGHT - MACHINE_LEFT - 80),
                 y: PIT_TOP + 10,
-                vx: (Math.random() - 0.5) * 2,
+                vx: 0,
                 vy: 0,
                 type: PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)],
                 grabbed: false,
@@ -380,35 +379,20 @@ export function ClawMachine() {
         }
       }
 
-      // === PHYSICS (skip settled prizes) ===
+      // === PHYSICS (vertical only, skip settled prizes) ===
       for (const prize of prizesRef.current) {
         if (prize.grabbed || prize.settled) continue;
 
         prize.vy += GRAVITY;
-        prize.x += prize.vx;
         prize.y += prize.vy;
-        prize.vx *= FRICTION;
 
         if (prize.y > PIT_BOTTOM) {
           prize.y = PIT_BOTTOM;
           prize.vy = -prize.vy * BOUNCE_DAMPING;
-          prize.vx += (Math.random() - 0.5) * 2;
         }
 
-        if (prize.x < MACHINE_LEFT + 20) {
-          prize.x = MACHINE_LEFT + 20;
-          prize.vx = -prize.vx * BOUNCE_DAMPING;
-        }
-        if (prize.x > MACHINE_RIGHT - 20) {
-          prize.x = MACHINE_RIGHT - 20;
-          prize.vx = -prize.vx * BOUNCE_DAMPING;
-        }
-
-        if (Math.abs(prize.vy) < 0.5 && prize.y >= PIT_BOTTOM - 1) prize.vy = 0;
-        if (Math.abs(prize.vx) < 0.2) prize.vx = 0;
-
-        // Mark as settled when resting on floor with no velocity
-        if (prize.vy === 0 && prize.vx === 0 && prize.y >= PIT_BOTTOM - 1) {
+        if (Math.abs(prize.vy) < 0.5 && prize.y >= PIT_BOTTOM - 1) {
+          prize.vy = 0;
           prize.settled = true;
         }
       }
