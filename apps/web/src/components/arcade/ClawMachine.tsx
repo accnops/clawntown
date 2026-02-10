@@ -13,7 +13,7 @@ const TARGET_FPS = 30; // Lower FPS for mobile performance
 const FRAME_TIME = 1000 / TARGET_FPS;
 
 // Physics constants
-const GRAVITY = 0.5; // Adjusted for lower FPS
+const GRAVITY = 0.5;
 const BOUNCE_DAMPING = 0.6;
 const FRICTION = 0.96;
 
@@ -46,9 +46,45 @@ interface Prize {
   vy: number;
   type: typeof PRIZE_TYPES[number];
   grabbed: boolean;
+  settled: boolean;
 }
 
-// Draw a crab claw shape - more recognizable open/closed states
+// --- Sprite caching utilities ---
+// Pre-render emojis and claw states to offscreen canvases so the game loop
+// uses fast drawImage() calls instead of expensive fillText()/path operations.
+
+const EMOJI_SPRITE_SIZE = 28; // px, enough for 20px font with padding
+
+function createEmojiSprites(): Map<string, HTMLCanvasElement> {
+  const sprites = new Map<string, HTMLCanvasElement>();
+  for (const prizeType of PRIZE_TYPES) {
+    const offscreen = document.createElement('canvas');
+    offscreen.width = EMOJI_SPRITE_SIZE;
+    offscreen.height = EMOJI_SPRITE_SIZE;
+    const octx = offscreen.getContext('2d')!;
+    octx.font = '20px serif';
+    octx.textAlign = 'center';
+    octx.textBaseline = 'middle';
+    octx.fillText(prizeType.emoji, EMOJI_SPRITE_SIZE / 2, EMOJI_SPRITE_SIZE / 2);
+    sprites.set(prizeType.emoji, offscreen);
+  }
+  return sprites;
+}
+
+const CLAW_SPRITE_W = 50;
+const CLAW_SPRITE_H = 70;
+
+function createClawSprite(isOpen: boolean): HTMLCanvasElement {
+  const offscreen = document.createElement('canvas');
+  offscreen.width = CLAW_SPRITE_W;
+  offscreen.height = CLAW_SPRITE_H;
+  const ctx = offscreen.getContext('2d')!;
+  // Draw claw centered in the sprite at scale used by the game
+  drawLobsterClaw(ctx, CLAW_SPRITE_W / 2, 15, isOpen, 0.65);
+  return offscreen;
+}
+
+// Draw a crab claw shape - used only for sprite pre-rendering
 function drawLobsterClaw(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -60,14 +96,13 @@ function drawLobsterClaw(
   ctx.translate(x, y);
   ctx.scale(scale, scale);
 
-  // Colors
-  const clawColor = '#dc2626'; // Red
-  const clawDark = '#991b1b'; // Darker red
-  const clawHighlight = '#f87171'; // Light red
-  const clawOutline = '#7f1d1d'; // Dark outline
+  const clawColor = '#dc2626';
+  const clawDark = '#991b1b';
+  const clawHighlight = '#f87171';
+  const clawOutline = '#7f1d1d';
 
-  // Connector piece at top (attaches to cable)
-  ctx.fillStyle = '#a855f7'; // Purple to match cable
+  // Connector piece at top
+  ctx.fillStyle = '#a855f7';
   ctx.beginPath();
   ctx.roundRect(-6, -15, 12, 18, 3);
   ctx.fill();
@@ -88,34 +123,28 @@ function drawLobsterClaw(
   ctx.fill();
 
   if (isOpen) {
-    // OPEN STATE - claws spread outward (tips pointing away from each other)
-    // Left pincer - rotated to point left/down
     ctx.save();
     ctx.translate(-6, 16);
-    ctx.rotate(0.5); // Rotate outward
+    ctx.rotate(0.5);
     drawClawPincer(ctx, clawColor, clawDark, clawHighlight, clawOutline);
     ctx.restore();
 
-    // Right pincer - rotated to point right/down
     ctx.save();
     ctx.translate(6, 16);
-    ctx.scale(-1, 1); // Mirror
-    ctx.rotate(0.5); // Rotate outward
+    ctx.scale(-1, 1);
+    ctx.rotate(0.5);
     drawClawPincer(ctx, clawColor, clawDark, clawHighlight, clawOutline);
     ctx.restore();
   } else {
-    // CLOSED STATE - claws together, tips meeting
-    // Left pincer
     ctx.save();
     ctx.translate(-3, 16);
     ctx.rotate(-0.05);
     drawClawPincer(ctx, clawColor, clawDark, clawHighlight, clawOutline);
     ctx.restore();
 
-    // Right pincer
     ctx.save();
     ctx.translate(3, 16);
-    ctx.scale(-1, 1); // Mirror
+    ctx.scale(-1, 1);
     ctx.rotate(-0.05);
     drawClawPincer(ctx, clawColor, clawDark, clawHighlight, clawOutline);
     ctx.restore();
@@ -131,7 +160,6 @@ function drawClawPincer(
   highlightColor: string,
   outlineColor: string
 ) {
-  // Main claw body - curved pincer shape pointing down
   ctx.fillStyle = mainColor;
   ctx.strokeStyle = outlineColor;
   ctx.lineWidth = 2;
@@ -147,7 +175,6 @@ function drawClawPincer(
   ctx.fill();
   ctx.stroke();
 
-  // Inner shadow/depth
   ctx.fillStyle = darkColor;
   ctx.beginPath();
   ctx.moveTo(1, 8);
@@ -158,13 +185,11 @@ function drawClawPincer(
   ctx.closePath();
   ctx.fill();
 
-  // Highlight
   ctx.fillStyle = highlightColor;
   ctx.beginPath();
   ctx.ellipse(3, 14, 2, 5, 0.2, 0, Math.PI * 2);
   ctx.fill();
 
-  // Pointed tip
   ctx.fillStyle = mainColor;
   ctx.strokeStyle = outlineColor;
   ctx.lineWidth = 1.5;
@@ -183,6 +208,11 @@ export function ClawMachine() {
   const lastFrameTimeRef = useRef<number>(0);
   const prizesRef = useRef<Prize[]>([]);
 
+  // Pre-rendered sprite caches
+  const emojiSpritesRef = useRef<Map<string, HTMLCanvasElement> | null>(null);
+  const clawOpenSpriteRef = useRef<HTMLCanvasElement | null>(null);
+  const clawClosedSpriteRef = useRef<HTMLCanvasElement | null>(null);
+
   // Use refs for frequently changing values to avoid re-renders
   const clawXRef = useRef((CLAW_MIN_X + CLAW_MAX_X) / 2);
   const clawYRef = useRef(CLAW_START_Y);
@@ -198,10 +228,15 @@ export function ClawMachine() {
   const [winNotification, setWinNotification] = useState<{ emoji: string; name: string } | null>(null);
   const [showOutOfTokens, setShowOutOfTokens] = useState(false);
 
-  // Initialize prizes once
+  // Initialize prizes and pre-render sprites once
   useEffect(() => {
+    // Build sprite caches (runs once, never in the game loop)
+    emojiSpritesRef.current = createEmojiSprites();
+    clawOpenSpriteRef.current = createClawSprite(true);
+    clawClosedSpriteRef.current = createClawSprite(false);
+
     prizesRef.current = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 8; i++) {
       prizesRef.current.push({
         x: MACHINE_LEFT + 40 + Math.random() * (MACHINE_RIGHT - MACHINE_LEFT - 80),
         y: PIT_TOP + 20 + Math.random() * (PIT_BOTTOM - PIT_TOP - 40),
@@ -209,6 +244,7 @@ export function ClawMachine() {
         vy: 0,
         type: PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)],
         grabbed: false,
+        settled: false,
       });
     }
   }, []);
@@ -267,6 +303,14 @@ export function ClawMachine() {
           if (nearbyPrize && Math.random() < GRIP_SUCCESS_CHANCE) {
             grabbedPrizeRef.current = nearbyPrize;
             nearbyPrize.grabbed = true;
+            nearbyPrize.settled = false;
+          }
+
+          // Wake up nearby prizes (claw disturbs the pit)
+          for (const p of prizesRef.current) {
+            if (!p.grabbed && Math.abs(p.x - clawX) < 40) {
+              p.settled = false;
+            }
           }
 
           // Start rising after brief pause
@@ -285,6 +329,7 @@ export function ClawMachine() {
         const grabbed = grabbedPrizeRef.current;
         if (grabbed && Math.random() < 0.015) {
           grabbed.grabbed = false;
+          grabbed.settled = false;
           grabbed.x = clawX;
           grabbed.y = clawY + 30;
           grabbed.vy = 3;
@@ -308,8 +353,8 @@ export function ClawMachine() {
           grabbedPrizeRef.current = null;
 
           // Replenish prizes
-          if (prizesRef.current.length < 6) {
-            for (let i = 0; i < 4; i++) {
+          if (prizesRef.current.length < 4) {
+            for (let i = 0; i < 3; i++) {
               prizesRef.current.push({
                 x: MACHINE_LEFT + 40 + Math.random() * (MACHINE_RIGHT - MACHINE_LEFT - 80),
                 y: PIT_TOP + 10,
@@ -317,6 +362,7 @@ export function ClawMachine() {
                 vy: 0,
                 type: PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)],
                 grabbed: false,
+                settled: false,
               });
             }
           }
@@ -334,9 +380,9 @@ export function ClawMachine() {
         }
       }
 
-      // === PHYSICS ===
-      prizesRef.current.forEach(prize => {
-        if (prize.grabbed) return;
+      // === PHYSICS (skip settled prizes) ===
+      for (const prize of prizesRef.current) {
+        if (prize.grabbed || prize.settled) continue;
 
         prize.vy += GRAVITY;
         prize.x += prize.vx;
@@ -360,7 +406,12 @@ export function ClawMachine() {
 
         if (Math.abs(prize.vy) < 0.5 && prize.y >= PIT_BOTTOM - 1) prize.vy = 0;
         if (Math.abs(prize.vx) < 0.2) prize.vx = 0;
-      });
+
+        // Mark as settled when resting on floor with no velocity
+        if (prize.vy === 0 && prize.vx === 0 && prize.y >= PIT_BOTTOM - 1) {
+          prize.settled = true;
+        }
+      }
 
       // === RENDERING ===
       ctx.fillStyle = bgGradient;
@@ -388,12 +439,16 @@ export function ClawMachine() {
       ctx.fillStyle = '#a855f7';
       ctx.fillText('Grab Your Prize!', CANVAS_WIDTH / 2, 42);
 
-      // Prizes
-      ctx.font = '20px serif';
-      ctx.textBaseline = 'middle';
-      for (const prize of prizesRef.current) {
-        if (!prize.grabbed) {
-          ctx.fillText(prize.type.emoji, prize.x, prize.y);
+      // Prizes — use pre-rendered emoji sprites instead of fillText
+      const sprites = emojiSpritesRef.current;
+      if (sprites) {
+        const halfSprite = EMOJI_SPRITE_SIZE / 2;
+        for (const prize of prizesRef.current) {
+          if (prize.grabbed) continue;
+          const sprite = sprites.get(prize.type.emoji);
+          if (sprite) {
+            ctx.drawImage(sprite, prize.x - halfSprite, prize.y - halfSprite);
+          }
         }
       }
 
@@ -407,20 +462,29 @@ export function ClawMachine() {
       ctx.lineTo(currentClawX, currentClawY);
       ctx.stroke();
 
-      // Claw
-      drawLobsterClaw(ctx, currentClawX, currentClawY, clawOpenRef.current, 0.65);
-
-      // Grabbed prize
-      if (grabbedPrizeRef.current) {
-        ctx.font = '20px serif';
-        ctx.fillText(grabbedPrizeRef.current.type.emoji, currentClawX, currentClawY + 50);
+      // Claw — use pre-rendered sprite instead of drawing paths
+      const clawSprite = clawOpenRef.current
+        ? clawOpenSpriteRef.current
+        : clawClosedSpriteRef.current;
+      if (clawSprite) {
+        ctx.drawImage(
+          clawSprite,
+          currentClawX - CLAW_SPRITE_W / 2,
+          currentClawY - 15
+        );
       }
 
-      // Tokens - read from closure to avoid stale values
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = 'bold 14px monospace';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'alphabetic';
+      // Grabbed prize — use sprite
+      if (grabbedPrizeRef.current && sprites) {
+        const sprite = sprites.get(grabbedPrizeRef.current.type.emoji);
+        if (sprite) {
+          ctx.drawImage(
+            sprite,
+            currentClawX - EMOJI_SPRITE_SIZE / 2,
+            currentClawY + 50 - EMOJI_SPRITE_SIZE / 2
+          );
+        }
+      }
 
       animationRef.current = requestAnimationFrame(gameLoop);
     };
@@ -432,16 +496,6 @@ export function ClawMachine() {
       if (grabTimerRef.current) clearTimeout(grabTimerRef.current);
     };
   }, []);
-
-  // Separate effect just for token display (lightweight)
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Token display will be drawn by main loop, this just ensures re-render on token change
-  }, [tokens]);
 
   // Handle keyboard input
   useEffect(() => {
