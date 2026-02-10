@@ -31,18 +31,74 @@ export async function GET() {
   }
 
   try {
-    // Get total unique visitors (count distinct visitor hashes)
-    const { count, error } = await supabase
+    // Get unique visitors by fetching distinct visitor hashes
+    // Note: Supabase JS doesn't support COUNT(DISTINCT), so we fetch and count
+    const { data, error } = await supabase
       .from('visitors')
-      .select('*', { count: 'exact', head: true });
+      .select('visitor_hash');
 
     if (error) throw error;
 
-    return NextResponse.json({ count: count || 0 });
+    // Count unique visitor hashes
+    const uniqueVisitors = new Set(data?.map(row => row.visitor_hash) || []);
+
+    return NextResponse.json({ count: uniqueVisitors.size });
   } catch (error) {
     console.error('Error fetching visitor count:', error);
     return NextResponse.json({ count: 0 });
   }
+}
+
+// Common bot user agent patterns
+const BOT_PATTERNS = [
+  /bot/i,
+  /crawler/i,
+  /spider/i,
+  /crawling/i,
+  /googlebot/i,
+  /bingbot/i,
+  /yandex/i,
+  /baidu/i,
+  /duckduckbot/i,
+  /slurp/i,
+  /facebookexternalhit/i,
+  /linkedinbot/i,
+  /twitterbot/i,
+  /whatsapp/i,
+  /telegrambot/i,
+  /discordbot/i,
+  /slackbot/i,
+  /applebot/i,
+  /semrush/i,
+  /ahrefsbot/i,
+  /mj12bot/i,
+  /dotbot/i,
+  /petalbot/i,
+  /bytespider/i,
+  /gptbot/i,
+  /claudebot/i,
+  /anthropic/i,
+  /headless/i,
+  /phantom/i,
+  /selenium/i,
+  /puppeteer/i,
+  /playwright/i,
+  /wget/i,
+  /curl/i,
+  /httpie/i,
+  /python-requests/i,
+  /go-http-client/i,
+  /java\//i,
+  /libwww/i,
+  /uptimerobot/i,
+  /pingdom/i,
+  /statuscake/i,
+  /vercel/i,
+];
+
+function isBot(userAgent: string | null): boolean {
+  if (!userAgent) return true; // No user agent = probably a bot
+  return BOT_PATTERNS.some(pattern => pattern.test(userAgent));
 }
 
 export async function POST(request: NextRequest) {
@@ -53,6 +109,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Skip bots
+    const userAgent = request.headers.get('user-agent');
+    if (isBot(userAgent)) {
+      return NextResponse.json({ success: true, skipped: 'bot' });
+    }
+
     // Get IP from headers (works on Vercel)
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                request.headers.get('x-real-ip') ||

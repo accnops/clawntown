@@ -3,28 +3,30 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 
 // Game constants
-const CANVAS_WIDTH = 360;
-const CANVAS_HEIGHT = 400;
+const CANVAS_WIDTH = 300;
+const CANVAS_HEIGHT = 320;
 const CLAW_SPEED = 3;
 const DROP_SPEED = 4;
 const GRIP_SUCCESS_CHANCE = 0.4;
 const STARTING_TOKENS = 3;
+const TARGET_FPS = 30; // Lower FPS for mobile performance
+const FRAME_TIME = 1000 / TARGET_FPS;
 
 // Physics constants
-const GRAVITY = 0.3;
+const GRAVITY = 0.5; // Adjusted for lower FPS
 const BOUNCE_DAMPING = 0.6;
-const FRICTION = 0.98;
+const FRICTION = 0.96;
 
-// Machine dimensions
-const MACHINE_LEFT = 30;
-const MACHINE_RIGHT = CANVAS_WIDTH - 30;
-const MACHINE_TOP = 60;
-const PIT_TOP = 280;
-const PIT_BOTTOM = CANVAS_HEIGHT - 50;
-const CLAW_WIDTH = 40;
-const CLAW_MIN_X = MACHINE_LEFT + CLAW_WIDTH / 2 + 10;
-const CLAW_MAX_X = MACHINE_RIGHT - CLAW_WIDTH / 2 - 10;
-const CLAW_START_Y = MACHINE_TOP + 30;
+// Machine dimensions (scaled for smaller canvas)
+const MACHINE_LEFT = 25;
+const MACHINE_RIGHT = CANVAS_WIDTH - 25;
+const MACHINE_TOP = 50;
+const PIT_TOP = 220;
+const PIT_BOTTOM = CANVAS_HEIGHT - 40;
+const CLAW_WIDTH = 35;
+const CLAW_MIN_X = MACHINE_LEFT + CLAW_WIDTH / 2 + 8;
+const CLAW_MAX_X = MACHINE_RIGHT - CLAW_WIDTH / 2 - 8;
+const CLAW_START_Y = MACHINE_TOP + 25;
 
 // Prize types with emojis
 const PRIZE_TYPES = [
@@ -40,8 +42,8 @@ type GameState = 'ready' | 'dropping' | 'grabbing' | 'rising' | 'result';
 interface Prize {
   x: number;
   y: number;
-  vx: number; // velocity x
-  vy: number; // velocity y
+  vx: number;
+  vy: number;
   type: typeof PRIZE_TYPES[number];
   grabbed: boolean;
 }
@@ -178,70 +180,175 @@ function drawClawPincer(
 export function ClawMachine() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef<number>(0);
   const prizesRef = useRef<Prize[]>([]);
 
-  // Game state
-  const [gameState, setGameState] = useState<GameState>('ready');
+  // Use refs for frequently changing values to avoid re-renders
+  const clawXRef = useRef((CLAW_MIN_X + CLAW_MAX_X) / 2);
+  const clawYRef = useRef(CLAW_START_Y);
+  const clawOpenRef = useRef(true);
+  const grabbedPrizeRef = useRef<Prize | null>(null);
+  const gameStateRef = useRef<GameState>('ready');
+  const movingLeftRef = useRef(false);
+  const movingRightRef = useRef(false);
+  const grabTimerRef = useRef<number | null>(null);
+
+  // Only use React state for values that need to trigger UI updates
   const [tokens, setTokens] = useState(STARTING_TOKENS);
-  const [clawX, setClawX] = useState((CLAW_MIN_X + CLAW_MAX_X) / 2);
-  const [clawY, setClawY] = useState(CLAW_START_Y);
-  const [clawOpen, setClawOpen] = useState(true);
-  const [grabbedPrize, setGrabbedPrize] = useState<Prize | null>(null);
-  const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const [winNotification, setWinNotification] = useState<{ emoji: string; name: string } | null>(null);
-  const [movingLeft, setMovingLeft] = useState(false);
-  const [movingRight, setMovingRight] = useState(false);
-  const [, forceRender] = useState(0);
+  const [showOutOfTokens, setShowOutOfTokens] = useState(false);
 
-  // Initialize prizes
+  // Initialize prizes once
   useEffect(() => {
-    const createPrizes = (count: number): Prize[] => {
-      const prizes: Prize[] = [];
-      for (let i = 0; i < count; i++) {
-        prizes.push({
-          x: MACHINE_LEFT + 40 + Math.random() * (MACHINE_RIGHT - MACHINE_LEFT - 80),
-          y: PIT_TOP + 20 + Math.random() * (PIT_BOTTOM - PIT_TOP - 40),
-          vx: 0,
-          vy: 0,
-          type: PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)],
-          grabbed: false,
-        });
-      }
-      return prizes;
-    };
-    prizesRef.current = createPrizes(12);
-
-    // Store create function for replenishing
-    (window as unknown as { createPrizes: typeof createPrizes }).createPrizes = createPrizes;
+    prizesRef.current = [];
+    for (let i = 0; i < 12; i++) {
+      prizesRef.current.push({
+        x: MACHINE_LEFT + 40 + Math.random() * (MACHINE_RIGHT - MACHINE_LEFT - 80),
+        y: PIT_TOP + 20 + Math.random() * (PIT_BOTTOM - PIT_TOP - 40),
+        vx: 0,
+        vy: 0,
+        type: PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)],
+        grabbed: false,
+      });
+    }
   }, []);
 
-  // Physics update for prizes
+  // Single unified game loop - handles physics, game logic, and rendering
   useEffect(() => {
-    const physicsLoop = () => {
-      let needsUpdate = false;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Pre-create gradient for performance
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    bgGradient.addColorStop(0, '#1a0a2e');
+    bgGradient.addColorStop(1, '#2d1b4e');
+
+    const gameLoop = (currentTime: number) => {
+      // Frame rate limiting
+      const elapsed = currentTime - lastFrameTimeRef.current;
+      if (elapsed < FRAME_TIME) {
+        animationRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
+      lastFrameTimeRef.current = currentTime;
+
+      const state = gameStateRef.current;
+      const clawX = clawXRef.current;
+      const clawY = clawYRef.current;
+
+      // === GAME LOGIC ===
+
+      // Handle claw movement in ready state
+      if (state === 'ready') {
+        if (movingLeftRef.current) {
+          clawXRef.current = Math.max(CLAW_MIN_X, clawX - CLAW_SPEED);
+        }
+        if (movingRightRef.current) {
+          clawXRef.current = Math.min(CLAW_MAX_X, clawX + CLAW_SPEED);
+        }
+      }
+
+      // Handle dropping
+      if (state === 'dropping') {
+        const newY = clawY + DROP_SPEED;
+        clawYRef.current = newY;
+        if (newY >= PIT_TOP + 30) {
+          gameStateRef.current = 'grabbing';
+          clawOpenRef.current = false;
+
+          // Check for prize grab
+          const nearbyPrize = prizesRef.current.find(
+            p => !p.grabbed && Math.abs(p.x - clawX) < 25 && Math.abs(p.y - (PIT_TOP + 30)) < 35
+          );
+
+          if (nearbyPrize && Math.random() < GRIP_SUCCESS_CHANCE) {
+            grabbedPrizeRef.current = nearbyPrize;
+            nearbyPrize.grabbed = true;
+          }
+
+          // Start rising after brief pause
+          grabTimerRef.current = window.setTimeout(() => {
+            gameStateRef.current = 'rising';
+          }, 300);
+        }
+      }
+
+      // Handle rising
+      if (state === 'rising') {
+        const newY = clawY - DROP_SPEED;
+        clawYRef.current = newY;
+
+        // Chance to drop prize
+        const grabbed = grabbedPrizeRef.current;
+        if (grabbed && Math.random() < 0.015) {
+          grabbed.grabbed = false;
+          grabbed.x = clawX;
+          grabbed.y = clawY + 30;
+          grabbed.vy = 3;
+          grabbed.vx = (Math.random() - 0.5) * 4;
+          grabbedPrizeRef.current = null;
+        }
+
+        if (newY <= CLAW_START_Y) {
+          clawYRef.current = CLAW_START_Y;
+          clawOpenRef.current = true;
+
+          const wonPrize = grabbedPrizeRef.current;
+          if (wonPrize) {
+            setWinNotification({ emoji: wonPrize.type.emoji, name: wonPrize.type.name });
+            setTimeout(() => setWinNotification(null), 2000);
+            prizesRef.current = prizesRef.current.filter(p => p !== wonPrize);
+          }
+
+          // Cleanup
+          prizesRef.current.forEach(p => { p.grabbed = false; });
+          grabbedPrizeRef.current = null;
+
+          // Replenish prizes
+          if (prizesRef.current.length < 6) {
+            for (let i = 0; i < 4; i++) {
+              prizesRef.current.push({
+                x: MACHINE_LEFT + 40 + Math.random() * (MACHINE_RIGHT - MACHINE_LEFT - 80),
+                y: PIT_TOP + 10,
+                vx: (Math.random() - 0.5) * 2,
+                vy: 0,
+                type: PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)],
+                grabbed: false,
+              });
+            }
+          }
+
+          // Check tokens and update state
+          setTokens(currentTokens => {
+            if (currentTokens > 0) {
+              gameStateRef.current = 'ready';
+            } else {
+              gameStateRef.current = 'result';
+              setShowOutOfTokens(true);
+            }
+            return currentTokens;
+          });
+        }
+      }
+
+      // === PHYSICS ===
       prizesRef.current.forEach(prize => {
         if (prize.grabbed) return;
 
-        // Apply gravity
         prize.vy += GRAVITY;
-
-        // Apply velocity
         prize.x += prize.vx;
         prize.y += prize.vy;
-
-        // Apply friction
         prize.vx *= FRICTION;
 
-        // Bounce off bottom
         if (prize.y > PIT_BOTTOM) {
           prize.y = PIT_BOTTOM;
           prize.vy = -prize.vy * BOUNCE_DAMPING;
-          prize.vx += (Math.random() - 0.5) * 2; // Add some randomness
-          needsUpdate = true;
+          prize.vx += (Math.random() - 0.5) * 2;
         }
 
-        // Bounce off walls
         if (prize.x < MACHINE_LEFT + 20) {
           prize.x = MACHINE_LEFT + 20;
           prize.vx = -prize.vx * BOUNCE_DAMPING;
@@ -251,197 +358,12 @@ export function ClawMachine() {
           prize.vx = -prize.vx * BOUNCE_DAMPING;
         }
 
-        // Stop if moving very slowly
-        if (Math.abs(prize.vy) < 0.1 && prize.y >= PIT_BOTTOM - 1) {
-          prize.vy = 0;
-        }
-        if (Math.abs(prize.vx) < 0.1) {
-          prize.vx = 0;
-        }
-
-        if (Math.abs(prize.vx) > 0.1 || Math.abs(prize.vy) > 0.1) {
-          needsUpdate = true;
-        }
+        if (Math.abs(prize.vy) < 0.5 && prize.y >= PIT_BOTTOM - 1) prize.vy = 0;
+        if (Math.abs(prize.vx) < 0.2) prize.vx = 0;
       });
 
-      if (needsUpdate) {
-        forceRender(n => n + 1);
-      }
-    };
-
-    const interval = setInterval(physicsLoop, 16);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Handle keyboard input
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (gameState !== 'ready') return;
-
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        setMovingLeft(true);
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        setMovingRight(true);
-      } else if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
-        e.preventDefault();
-        handleDrop();
-      }
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-        setMovingLeft(false);
-      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-        setMovingRight(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [gameState]);
-
-  // Move claw based on input
-  useEffect(() => {
-    if (gameState !== 'ready') return;
-
-    const moveInterval = setInterval(() => {
-      if (movingLeft) {
-        setClawX(x => Math.max(CLAW_MIN_X, x - CLAW_SPEED));
-      }
-      if (movingRight) {
-        setClawX(x => Math.min(CLAW_MAX_X, x + CLAW_SPEED));
-      }
-    }, 16);
-
-    return () => clearInterval(moveInterval);
-  }, [gameState, movingLeft, movingRight]);
-
-  const handleDrop = useCallback(() => {
-    if (gameState !== 'ready' || tokens <= 0) return;
-
-    setTokens(t => t - 1);
-    setGameState('dropping');
-    setWonPrize(null);
-  }, [gameState, tokens]);
-
-  // Game loop for dropping/grabbing/rising
-  useEffect(() => {
-    if (gameState === 'ready' || gameState === 'result') return;
-
-    const gameLoop = () => {
-      if (gameState === 'dropping') {
-        setClawY(y => {
-          const newY = y + DROP_SPEED;
-          if (newY >= PIT_TOP + 40) {
-            setGameState('grabbing');
-            return newY;
-          }
-          return newY;
-        });
-      } else if (gameState === 'grabbing') {
-        setClawOpen(false);
-
-        // Check for prize grab
-        const clawXCurrent = clawX;
-        const nearbyPrize = prizesRef.current.find(
-          p => !p.grabbed && Math.abs(p.x - clawXCurrent) < 30 && Math.abs(p.y - (PIT_TOP + 40)) < 40
-        );
-
-        if (nearbyPrize && Math.random() < GRIP_SUCCESS_CHANCE) {
-          setGrabbedPrize(nearbyPrize);
-          nearbyPrize.grabbed = true;
-        }
-
-        setTimeout(() => setGameState('rising'), 300);
-      } else if (gameState === 'rising') {
-        setClawY(y => {
-          const newY = y - DROP_SPEED;
-
-          // Chance to drop the prize while rising
-          if (grabbedPrize && Math.random() < 0.015) {
-            // Drop the prize with physics!
-            grabbedPrize.grabbed = false;
-            grabbedPrize.x = clawX;
-            grabbedPrize.y = y + 30;
-            grabbedPrize.vy = 2; // Initial downward velocity
-            grabbedPrize.vx = (Math.random() - 0.5) * 4; // Random horizontal
-            setGrabbedPrize(null);
-            forceRender(n => n + 1);
-          }
-
-          if (newY <= CLAW_START_Y) {
-            // Game complete
-            if (grabbedPrize) {
-              setWonPrize(grabbedPrize);
-              // Show win notification briefly
-              setWinNotification({ emoji: grabbedPrize.type.emoji, name: grabbedPrize.type.name });
-              setTimeout(() => setWinNotification(null), 2000);
-              // Remove won prize from the pit
-              prizesRef.current = prizesRef.current.filter(p => p !== grabbedPrize);
-            }
-
-            // Reset all grabbed flags (safety cleanup)
-            prizesRef.current.forEach(p => { p.grabbed = false; });
-
-            // Replenish prizes if running low
-            if (prizesRef.current.length < 6) {
-              for (let i = 0; i < 4; i++) {
-                prizesRef.current.push({
-                  x: MACHINE_LEFT + 40 + Math.random() * (MACHINE_RIGHT - MACHINE_LEFT - 80),
-                  y: PIT_TOP + 10, // Drop from top
-                  vx: (Math.random() - 0.5) * 2,
-                  vy: 0,
-                  type: PRIZE_TYPES[Math.floor(Math.random() * PRIZE_TYPES.length)],
-                  grabbed: false,
-                });
-              }
-            }
-
-            setClawOpen(true);
-            setGrabbedPrize(null);
-            // If we have tokens, go straight back to ready state
-            // Only show result screen if out of tokens
-            if (tokens > 0) {
-              setGameState('ready');
-            } else {
-              setGameState('result');
-            }
-            return CLAW_START_Y;
-          }
-          return newY;
-        });
-      }
-
-      animationRef.current = requestAnimationFrame(gameLoop);
-    };
-
-    animationRef.current = requestAnimationFrame(gameLoop);
-    return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-    };
-  }, [gameState, clawX, grabbedPrize]);
-
-  // Draw game
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const draw = () => {
-      // Clear
-      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      // Background gradient
-      const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-      gradient.addColorStop(0, '#1a0a2e');
-      gradient.addColorStop(1, '#2d1b4e');
-      ctx.fillStyle = gradient;
+      // === RENDERING ===
+      ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       // Machine frame
@@ -457,65 +379,132 @@ export function ClawMachine() {
       ctx.fillStyle = 'rgba(88, 28, 135, 0.5)';
       ctx.fillRect(MACHINE_LEFT + 4, PIT_TOP, MACHINE_RIGHT - MACHINE_LEFT - 8, PIT_BOTTOM - PIT_TOP + 10);
 
-      // Machine title
+      // Title
       ctx.fillStyle = '#fbbf24';
-      ctx.font = 'bold 18px monospace';
+      ctx.font = 'bold 16px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText("CLAW'D NINE", CANVAS_WIDTH / 2, 35);
-      ctx.font = '10px monospace';
+      ctx.fillText("CLAW'D NINE", CANVAS_WIDTH / 2, 28);
+      ctx.font = '9px monospace';
       ctx.fillStyle = '#a855f7';
-      ctx.fillText('Grab Your Prize!', CANVAS_WIDTH / 2, 50);
+      ctx.fillText('Grab Your Prize!', CANVAS_WIDTH / 2, 42);
 
-      // Draw prizes
-      ctx.font = '24px serif';
-      ctx.textAlign = 'center';
+      // Prizes
+      ctx.font = '20px serif';
       ctx.textBaseline = 'middle';
-      prizesRef.current.forEach(prize => {
+      for (const prize of prizesRef.current) {
         if (!prize.grabbed) {
           ctx.fillText(prize.type.emoji, prize.x, prize.y);
         }
-      });
+      }
 
-      // Draw cable
+      // Cable
+      const currentClawX = clawXRef.current;
+      const currentClawY = clawYRef.current;
       ctx.strokeStyle = '#a855f7';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(clawX, MACHINE_TOP);
-      ctx.lineTo(clawX, clawY);
+      ctx.moveTo(currentClawX, MACHINE_TOP);
+      ctx.lineTo(currentClawX, currentClawY);
       ctx.stroke();
 
-      // Draw lobster claw (positioned so connector meets cable)
-      drawLobsterClaw(ctx, clawX, clawY, clawOpen, 0.65);
+      // Claw
+      drawLobsterClaw(ctx, currentClawX, currentClawY, clawOpenRef.current, 0.65);
 
-      // Draw grabbed prize (held in claw)
-      if (grabbedPrize) {
-        ctx.font = '24px serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(grabbedPrize.type.emoji, clawX, clawY + 50);
+      // Grabbed prize
+      if (grabbedPrizeRef.current) {
+        ctx.font = '20px serif';
+        ctx.fillText(grabbedPrizeRef.current.type.emoji, currentClawX, currentClawY + 50);
       }
 
-      // Token display
+      // Tokens - read from closure to avoid stale values
       ctx.fillStyle = '#fbbf24';
       ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(`TOKENS: ${tokens}`, 10, 20);
 
-      requestAnimationFrame(draw);
+      animationRef.current = requestAnimationFrame(gameLoop);
     };
 
-    const frameId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frameId);
-  }, [clawX, clawY, clawOpen, grabbedPrize, tokens]);
+    animationRef.current = requestAnimationFrame(gameLoop);
 
-  const handlePlayAgain = () => {
-    if (tokens <= 0) {
-      setTokens(STARTING_TOKENS);
-    }
-    setWonPrize(null);
-    setGameState('ready');
-  };
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (grabTimerRef.current) clearTimeout(grabTimerRef.current);
+    };
+  }, []);
+
+  // Separate effect just for token display (lightweight)
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Token display will be drawn by main loop, this just ensures re-render on token change
+  }, [tokens]);
+
+  // Handle keyboard input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (gameStateRef.current !== 'ready') return;
+
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        movingLeftRef.current = true;
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        movingRightRef.current = true;
+      } else if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        handleDrop();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        movingLeftRef.current = false;
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        movingRightRef.current = false;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
+  const handleDrop = useCallback(() => {
+    if (gameStateRef.current !== 'ready') return;
+
+    setTokens(t => {
+      if (t <= 0) return t;
+      gameStateRef.current = 'dropping';
+      return t - 1;
+    });
+  }, []);
+
+  const handlePlayAgain = useCallback(() => {
+    setTokens(STARTING_TOKENS);
+    setShowOutOfTokens(false);
+    gameStateRef.current = 'ready';
+  }, []);
+
+  const handleLeftDown = useCallback(() => {
+    if (gameStateRef.current === 'ready') movingLeftRef.current = true;
+  }, []);
+
+  const handleLeftUp = useCallback(() => {
+    movingLeftRef.current = false;
+  }, []);
+
+  const handleRightDown = useCallback(() => {
+    if (gameStateRef.current === 'ready') movingRightRef.current = true;
+  }, []);
+
+  const handleRightUp = useCallback(() => {
+    movingRightRef.current = false;
+  }, []);
 
   return (
     <div className="flex flex-col items-center">
@@ -528,6 +517,11 @@ export function ClawMachine() {
           className="border-4 border-purple-600 rounded-lg"
         />
 
+        {/* Token display overlay */}
+        <div className="absolute top-1 left-2 font-mono text-sm font-bold text-yellow-400">
+          TOKENS: {tokens}
+        </div>
+
         {/* Win notification - brief, non-blocking */}
         {winNotification && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-yellow-500/90 rounded-lg text-center shadow-lg animate-bounce">
@@ -537,7 +531,7 @@ export function ClawMachine() {
         )}
 
         {/* Out of tokens overlay */}
-        {tokens <= 0 && gameState === 'result' && (
+        {showOutOfTokens && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
             <div className="p-6 bg-purple-900/95 rounded-lg text-center shadow-xl">
               <p className="font-pixel text-lg text-purple-300 mb-2">Out of tokens!</p>
@@ -556,30 +550,28 @@ export function ClawMachine() {
       <div className="flex gap-2 mt-4 mb-2">
         <button
           className="btn-retro px-6 py-3 text-xl"
-          onMouseDown={() => gameState === 'ready' && setMovingLeft(true)}
-          onMouseUp={() => setMovingLeft(false)}
-          onMouseLeave={() => setMovingLeft(false)}
-          onTouchStart={() => gameState === 'ready' && setMovingLeft(true)}
-          onTouchEnd={() => setMovingLeft(false)}
-          disabled={gameState !== 'ready'}
+          onMouseDown={handleLeftDown}
+          onMouseUp={handleLeftUp}
+          onMouseLeave={handleLeftUp}
+          onTouchStart={handleLeftDown}
+          onTouchEnd={handleLeftUp}
         >
           ◀
         </button>
         <button
           className="btn-retro px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold"
           onClick={handleDrop}
-          disabled={gameState !== 'ready' || tokens <= 0}
+          disabled={tokens <= 0}
         >
           DROP!
         </button>
         <button
           className="btn-retro px-6 py-3 text-xl"
-          onMouseDown={() => gameState === 'ready' && setMovingRight(true)}
-          onMouseUp={() => setMovingRight(false)}
-          onMouseLeave={() => setMovingRight(false)}
-          onTouchStart={() => gameState === 'ready' && setMovingRight(true)}
-          onTouchEnd={() => setMovingRight(false)}
-          disabled={gameState !== 'ready'}
+          onMouseDown={handleRightDown}
+          onMouseUp={handleRightUp}
+          onMouseLeave={handleRightUp}
+          onTouchStart={handleRightDown}
+          onTouchEnd={handleRightUp}
         >
           ▶
         </button>
