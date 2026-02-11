@@ -24,3 +24,12 @@ export interface ConversationTranscript {
   createdAt: Date;
   endedAt: Date | null;
 }
+
+export interface ChatSession {
+  id: string;
+  memberId: string;
+  startedAt: Date;
+  endedAt: Date | null;
+  status: 'active' | 'closing' | 'closed';
+  farewellSent: boolean;
+}
