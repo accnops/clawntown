@@ -212,6 +212,9 @@ export function CitizenRegistry({
               <p className="font-retro text-[10px] text-gray-500 mt-1">
                 {name.length}/30 characters
               </p>
+              <p className="font-retro text-[10px] text-gray-400 mt-1">
+                Choose a fun alias! This should be fictive, not your real name.
+              </p>
             </div>
             <div className="flex gap-2">
               <button
