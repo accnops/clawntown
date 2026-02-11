@@ -19,9 +19,10 @@ const PhaserGame = dynamic(() => import("./phaser/PhaserGame"), {
 
 interface TownViewProps {
   onBuildingClick?: (building: Building) => void;
+  population?: number | null;
 }
 
-export function TownView({ onBuildingClick }: TownViewProps) {
+export function TownView({ onBuildingClick, population }: TownViewProps) {
   const [hoveredBuilding, setHoveredBuilding] = useState<Building | null>(null);
   const phaserRef = useRef<PhaserGameHandle>(null);
 
@@ -54,7 +55,7 @@ export function TownView({ onBuildingClick }: TownViewProps) {
           <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦞</span>
         </div>
         <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
-          Population: 42
+          Population: {population ?? '--'}
         </p>
       </div>
 

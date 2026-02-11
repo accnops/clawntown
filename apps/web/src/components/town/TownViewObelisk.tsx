@@ -358,9 +358,10 @@ const COLORS = {
 
 interface TownViewProps {
   onBuildingClick?: (building: Building) => void;
+  population?: number | null;
 }
 
-export function TownViewObelisk({ onBuildingClick }: TownViewProps) {
+export function TownViewObelisk({ onBuildingClick, population }: TownViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
@@ -1061,7 +1062,7 @@ export function TownViewObelisk({ onBuildingClick }: TownViewProps) {
           CLAWNTAWN
         </h1>
         <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
-          Population: 42
+          Population: {population ?? '--'}
         </p>
       </div>
 
