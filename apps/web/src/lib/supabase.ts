@@ -112,3 +112,24 @@ export async function insertTownData<T>(
   if (error) throw error;
   return record as TownDataRecord<T>;
 }
+
+export async function updateTownData<T>(
+  id: string,
+  data: Partial<T>,
+  indexes?: { index_1?: string; index_2?: string; index_3?: string }
+): Promise<TownDataRecord<T>> {
+  const updatePayload: Record<string, unknown> = { data };
+  if (indexes) {
+    Object.assign(updatePayload, indexes);
+  }
+
+  const { data: record, error } = await supabase
+    .from('town_data')
+    .update(updatePayload)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return record as TownDataRecord<T>;
+}
