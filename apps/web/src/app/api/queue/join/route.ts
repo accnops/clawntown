@@ -10,6 +10,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Check if citizen is banned
+    const { data: userData } = await supabase.auth.admin.getUserById(citizenId);
+    if (userData?.user?.user_metadata?.banned_until) {
+      const bannedUntil = new Date(userData.user.user_metadata.banned_until);
+      if (bannedUntil > new Date()) {
+        return NextResponse.json(
+          {
+            error: 'You are temporarily banned',
+            bannedUntil: bannedUntil.toISOString(),
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Check if captcha is needed (1 hour since last verification)
+    const lastCaptchaAt = userData?.user?.user_metadata?.last_captcha_at;
+    if (lastCaptchaAt) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (new Date(lastCaptchaAt) < oneHourAgo) {
+        return NextResponse.json(
+          { error: 'Captcha verification required', requiresCaptcha: true },
+          { status: 403 }
+        );
+      }
+    } else {
+      // No captcha ever done, require one
+      return NextResponse.json(
+        { error: 'Captcha verification required', requiresCaptcha: true },
+        { status: 403 }
+      );
+    }
+
     // Check if already in queue (unique index will also prevent this)
     const { data: existing } = await supabase
       .from('queue_entries')
