@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Prevent any caching of this route
+export const dynamic = 'force-dynamic';
+
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY;
 const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
@@ -29,13 +32,28 @@ export async function POST(request: NextRequest) {
   console.log('[Captcha] Secret prefix:', secretPreview);
 
   try {
+    // Get visitor IP for additional validation
+    const ip = request.headers.get('cf-connecting-ip')
+      || request.headers.get('x-forwarded-for')?.split(',')[0]
+      || request.headers.get('x-real-ip')
+      || '';
+
+    console.log('[Captcha] Visitor IP:', ip || 'unknown');
+
+    const params: Record<string, string> = {
+      secret: TURNSTILE_SECRET,
+      response: token,
+    };
+
+    // Include IP if available (helps Cloudflare validate)
+    if (ip) {
+      params.remoteip = ip;
+    }
+
     const response = await fetch(TURNSTILE_VERIFY_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        secret: TURNSTILE_SECRET,
-        response: token,
-      }),
+      body: new URLSearchParams(params),
     });
 
     const result = await response.json();
