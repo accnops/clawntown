@@ -68,9 +68,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No result from queue progression' }, { status: 500 });
     }
 
-    // If a turn was started, broadcast it
+    // Fetch current turn info (for UI state sync)
+    const { data: currentTurn } = await supabase
+      .from('turns')
+      .select('*, citizens:citizen_id(name, avatar)')
+      .eq('member_id', memberId)
+      .is('ended_at', null)
+      .maybeSingle();
+
+    // If a turn was started by this heartbeat, broadcast it
     if (result.turn_started && result.turn_id) {
-      // Fetch the full turn data
       const { data: turn } = await supabase
         .from('turns')
         .select('*')
@@ -93,6 +100,16 @@ export async function POST(request: NextRequest) {
       position: result.queue_position,
       queueLength: result.queue_length,
       nextHeartbeatMs: result.next_heartbeat_ms,
+      // Include current turn for UI sync
+      currentTurn: currentTurn ? {
+        id: currentTurn.id,
+        citizenId: currentTurn.citizen_id,
+        citizenName: currentTurn.citizens?.name || null,
+        citizenAvatar: currentTurn.citizens?.avatar || null,
+        expiresAt: currentTurn.expires_at,
+        messagesUsed: currentTurn.messages_used,
+        messageLimit: currentTurn.message_limit,
+      } : null,
     });
   } catch (error) {
     console.error('Error processing heartbeat:', error);

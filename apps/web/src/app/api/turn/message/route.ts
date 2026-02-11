@@ -214,6 +214,55 @@ export async function POST(request: NextRequest) {
     const newMessagesUsed = turn.messages_used + 1;
     const shouldEnd = newMessagesUsed >= turn.message_limit;
 
+    // Broadcast messages to all spectators via httpSend (REST-based, no subscription needed)
+    const channel = supabase.channel(`council:${memberId}`);
+    await channel.httpSend('message', { message: citizenMessage });
+
+    if (councilMessage) {
+      await channel.httpSend('message', { message: councilMessage });
+    }
+
+    // If message limit reached, end the turn and leave queue
+    if (shouldEnd) {
+      // End the turn
+      await supabase
+        .from('turns')
+        .update({
+          chars_used: newCharsUsed,
+          messages_used: newMessagesUsed,
+          ended_at: new Date().toISOString(),
+        })
+        .eq('id', turn.id);
+
+      // Mark queue entry as completed
+      await supabase
+        .from('queue_entries')
+        .update({ status: 'completed' })
+        .eq('citizen_id', citizenId)
+        .eq('member_id', memberId)
+        .eq('status', 'active');
+
+      // Get updated queue length
+      const { data: queueLength } = await supabase
+        .rpc('get_queue_length', { p_member_id: memberId });
+
+      // Broadcast turn ended
+      await channel.httpSend('turn_ended', {
+        endedTurn: { ...turn, ended_at: new Date().toISOString() },
+        nextTurn: null, // Next turn will be started by heartbeat
+        queueLength: queueLength ?? 0,
+      });
+
+      return NextResponse.json({
+        citizenMessage,
+        councilMessage,
+        turn: { ...turn, chars_used: newCharsUsed, messages_used: newMessagesUsed, ended_at: new Date().toISOString() },
+        shouldEnd: true,
+        leftQueue: true,
+      });
+    }
+
+    // Just update the turn (not ending)
     const { data: updatedTurn } = await supabase
       .from('turns')
       .update({
@@ -224,19 +273,11 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    // Broadcast messages to all spectators via httpSend (REST-based, no subscription needed)
-    const channel = supabase.channel(`council:${memberId}`);
-    await channel.httpSend('message', { message: citizenMessage });
-
-    if (councilMessage) {
-      await channel.httpSend('message', { message: councilMessage });
-    }
-
     return NextResponse.json({
       citizenMessage,
       councilMessage,
       turn: updatedTurn,
-      shouldEnd,
+      shouldEnd: false,
     });
   } catch (error) {
     console.error('Error sending message:', error);
