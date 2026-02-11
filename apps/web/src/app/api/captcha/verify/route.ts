@@ -40,20 +40,23 @@ export async function POST(request: NextRequest) {
 
     console.log('[Captcha] Visitor IP:', ip || 'unknown');
 
-    const params: Record<string, string> = {
+    // Try JSON format (Cloudflare accepts both JSON and form-urlencoded)
+    const payload: Record<string, string> = {
       secret: TURNSTILE_SECRET,
       response: token,
     };
 
     // Include IP if available (helps Cloudflare validate)
     if (ip) {
-      params.remoteip = ip;
+      payload.remoteip = ip;
     }
+
+    console.log('[Captcha] Sending to Cloudflare with JSON format');
 
     const response = await fetch(TURNSTILE_VERIFY_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(params),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
     const result = await response.json();
