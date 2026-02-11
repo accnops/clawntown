@@ -54,6 +54,8 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
 
   // Track if we're in queue to know when to decrement position
   const inQueueRef = useRef(false);
+  const heartbeatIntervalRef = useRef<number>(15000); // Start with 15s
+  const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Subscribe to broadcast events
   useEffect(() => {
@@ -142,6 +144,74 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
     };
   }, [member.id]);
 
+  // Heartbeat while in queue - dynamic interval based on position
+  useEffect(() => {
+    if (!citizenId || !inQueueRef.current) {
+      // Not in queue, clear any pending heartbeat
+      if (heartbeatTimeoutRef.current) {
+        clearTimeout(heartbeatTimeoutRef.current);
+        heartbeatTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    const sendHeartbeat = async () => {
+      try {
+        const res = await fetch('/api/queue/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId: member.id, citizenId }),
+        });
+
+        const data = await res.json();
+
+        if (data.offline) {
+          // Council member went offline
+          setQueuePosition(null);
+          inQueueRef.current = false;
+          return;
+        }
+
+        if (data.turnStarted) {
+          // Our turn started via heartbeat!
+          const { data: turn } = await fetch(`/api/queue/status?memberId=${member.id}&citizenId=${citizenId}`)
+            .then(r => r.json());
+          if (turn?.currentTurn) {
+            setCurrentTurn(normalizeTurn(turn.currentTurn));
+          }
+          setQueuePosition(null);
+        } else if (data.position !== undefined && data.position !== null) {
+          setQueuePosition(data.position);
+        }
+
+        if (data.queueLength !== undefined) {
+          setQueueLength(data.queueLength);
+        }
+
+        // Use server-recommended interval, or default
+        if (data.nextHeartbeatMs) {
+          heartbeatIntervalRef.current = data.nextHeartbeatMs;
+        }
+      } catch (error) {
+        console.warn('Heartbeat failed:', error);
+      }
+
+      // Schedule next heartbeat if still in queue
+      if (inQueueRef.current) {
+        heartbeatTimeoutRef.current = setTimeout(sendHeartbeat, heartbeatIntervalRef.current);
+      }
+    };
+
+    // Start heartbeat loop
+    heartbeatTimeoutRef.current = setTimeout(sendHeartbeat, heartbeatIntervalRef.current);
+
+    return () => {
+      if (heartbeatTimeoutRef.current) {
+        clearTimeout(heartbeatTimeoutRef.current);
+        heartbeatTimeoutRef.current = null;
+      }
+    };
+  }, [member.id, citizenId, queuePosition]); // Re-run when queue position changes
 
   const isMyTurn = currentTurn?.citizenId === citizenId;
 

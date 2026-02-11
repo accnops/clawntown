@@ -26,7 +26,8 @@ export async function recordViolation(
   }
 
   // Call the database function that tracks by email
-  const { data, error } = await supabase.rpc('record_violation', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('record_violation', {
     p_email: email,
     p_citizen_id: citizenId,
     p_turn_id: turnId,
@@ -39,7 +40,8 @@ export async function recordViolation(
     return { recorded: false, isBanned: false, violationCount: 0 };
   }
 
-  const result = data?.[0];
+  const results = data as { violation_count: number; is_banned: boolean; banned_until: string | null }[] | null;
+  const result = results?.[0];
   if (!result) {
     return { recorded: true, isBanned: false, violationCount: 1 };
   }
@@ -55,16 +57,18 @@ export async function recordViolation(
 export async function isEmailBanned(email: string): Promise<{ isBanned: boolean; bannedUntil?: Date }> {
   const supabase = getSupabaseAdmin();
 
-  const { data, error } = await supabase.rpc('is_email_banned', {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)('is_email_banned', {
     p_email: email,
   });
 
-  if (error || !data?.[0]) {
+  const results = data as { is_banned: boolean; banned_until: string | null }[] | null;
+  if (error || !results?.[0]) {
     return { isBanned: false };
   }
 
   return {
-    isBanned: data[0].is_banned,
-    bannedUntil: data[0].banned_until ? new Date(data[0].banned_until) : undefined,
+    isBanned: results[0].is_banned,
+    bannedUntil: results[0].banned_until ? new Date(results[0].banned_until) : undefined,
   };
 }

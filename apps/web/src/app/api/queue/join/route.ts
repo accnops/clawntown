@@ -77,13 +77,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already in queue' }, { status: 400 });
     }
 
-    // Add to queue
+    // Add to queue with initial heartbeat
     const { data: entry, error: insertError } = await supabase
       .from('queue_entries')
       .insert({
         member_id: memberId,
         citizen_id: citizenId,
         status: 'waiting',
+        last_heartbeat_at: new Date().toISOString(),
       })
       .select()
       .single();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
+import { getCouncilMember, isCouncilMemberOnline } from '@/data/council-members';
 
 const CHAR_BUDGET = 500;
 const TIME_BUDGET_MS = 20000;
@@ -14,6 +15,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing memberId' }, { status: 400 });
     }
 
+    // Zero-trust: verify council member is online right now
+    const member = getCouncilMember(memberId);
+    if (!member || !isCouncilMemberOnline(member)) {
+      return NextResponse.json({ error: 'Council member is offline' }, { status: 400 });
+    }
+
     // Check if there's already an active turn
     const { data: existingTurn } = await supabase
       .from('turns')
@@ -26,12 +33,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Turn already in progress' }, { status: 400 });
     }
 
-    // Get the first person in queue
+    // Skip stale queue entries (no heartbeat in last 3 minutes)
+    const staleThreshold = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    await supabase
+      .from('queue_entries')
+      .update({ status: 'skipped' })
+      .eq('member_id', memberId)
+      .eq('status', 'waiting')
+      .or(`last_heartbeat_at.is.null,last_heartbeat_at.lt.${staleThreshold}`);
+
+    // Get the first person in queue with valid heartbeat
     const { data: nextInQueue, error: queueError } = await supabase
       .from('queue_entries')
       .select('*')
       .eq('member_id', memberId)
       .eq('status', 'waiting')
+      .gte('last_heartbeat_at', staleThreshold)
       .order('joined_at', { ascending: true })
       .limit(1)
       .single();
