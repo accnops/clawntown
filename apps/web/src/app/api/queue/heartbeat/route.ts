@@ -100,15 +100,12 @@ export async function POST(request: NextRequest) {
       position: result.queue_position,
       queueLength: result.queue_length,
       nextHeartbeatMs: result.next_heartbeat_ms,
-      // Include current turn for UI sync
+      // Include current turn for UI sync (full data for normalizeTurn)
       currentTurn: currentTurn ? {
-        id: currentTurn.id,
-        citizenId: currentTurn.citizen_id,
-        citizenName: currentTurn.citizens?.name || null,
-        citizenAvatar: currentTurn.citizens?.avatar || null,
-        expiresAt: currentTurn.expires_at,
-        messagesUsed: currentTurn.messages_used,
-        messageLimit: currentTurn.message_limit,
+        ...currentTurn,
+        // Add citizen info from join
+        citizen_name: currentTurn.citizens?.name || null,
+        citizen_avatar: currentTurn.citizens?.avatar || null,
       } : null,
     });
   } catch (error) {
