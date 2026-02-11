@@ -356,14 +356,10 @@ export function CouncilOffice({
       {/* Input area - always visible for authenticated users */}
       {isAuthenticated ? (
         <div className="space-y-2">
-          {/* Turn limits display (only when it's my turn) */}
+          {/* Turn timer (only when it's my turn) */}
           {isMyTurn && (
-            <div className="flex justify-between text-[10px] font-retro text-gray-500">
+            <div className="text-center text-[10px] font-retro text-gray-500">
               <span>Time: {Math.ceil(timeRemaining / 1000)}s</span>
-              <span>{messagesRemaining} msg left</span>
-              <span className={charsRemaining < 50 ? 'text-red-500' : ''}>
-                {charsRemaining} chars
-              </span>
             </div>
           )}
 
