@@ -118,11 +118,42 @@ export default function Home() {
         )}
 
         {townHallView === 'office' && selectedCouncilMember && (
-          <ChatView
-            member={selectedCouncilMember}
-            citizenName="Guest"
-            onBack={handleBackToLobby}
-          />
+          isAuthenticated ? (
+            <ChatView
+              member={selectedCouncilMember}
+              citizenName={profile?.name || 'Citizen'}
+              onBack={handleBackToLobby}
+            />
+          ) : (
+            <div className="space-y-4">
+              <button
+                onClick={handleBackToLobby}
+                className="font-retro text-xs text-blue-600 hover:underline"
+              >
+                &larr; Back to Lobby
+              </button>
+              <div className="text-center py-8">
+                <img
+                  src={selectedCouncilMember.avatar}
+                  alt={selectedCouncilMember.name}
+                  className="w-16 h-16 mx-auto mb-3"
+                  style={{ imageRendering: 'pixelated' }}
+                />
+                <h3 className="font-retro text-sm font-bold mb-2">
+                  {selectedCouncilMember.name}
+                </h3>
+                <p className="font-retro text-xs text-gray-600 mb-4">
+                  Become a citizen to chat with the council!
+                </p>
+                <button
+                  onClick={() => setTownHallView('registry')}
+                  className="btn-retro"
+                >
+                  🦞 Become a Citizen
+                </button>
+              </div>
+            </div>
+          )
         )}
 
         {townHallView === 'registry' && (
