@@ -75,11 +75,11 @@ export function sanitizeMessage(raw: string): SanitizeResult {
 
   let text = raw;
 
-  // 2. Strip URLs (markdown links → keep link text)
-  text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
-  text = text.replace(/<a\b[^>]*>(.*?)<\/a>/gi, '$1');
+  // 2. Replace URLs with [link] (markdown links → keep link text)
+  text = text.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1'); // [text](url) → text
+  text = text.replace(/<a\b[^>]*>(.*?)<\/a>/gi, '$1'); // <a>text</a> → text
   for (const pattern of URL_PATTERNS.slice(0, 4)) {
-    text = text.replace(pattern, '');
+    text = text.replace(pattern, '[link]');
   }
 
   // 3. Strip code

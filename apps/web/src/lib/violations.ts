@@ -1,9 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabase-server';
-import { insertTownData, queryTownData } from '@/lib/supabase';
 import type { ViolationLog } from '@clawntown/shared';
-
-const BAN_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const VIOLATION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export interface ViolationResult {
   recorded: boolean;
@@ -19,68 +15,56 @@ export async function recordViolation(
   turnId: string
 ): Promise<ViolationResult> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) {
+
+  // Get user's email from auth
+  const { data: userData } = await supabase.auth.admin.getUserById(citizenId);
+  const email = userData?.user?.email;
+
+  if (!email) {
+    console.error('Could not find email for citizen:', citizenId);
     return { recorded: false, isBanned: false, violationCount: 0 };
   }
 
-  const now = new Date();
-
-  // Record the violation
-  const violation: Omit<ViolationLog, 'id'> = {
-    citizenId,
-    occurredAt: now,
-    violationType,
-    messageContent: messageContent.substring(0, 500), // Truncate for storage
-    turnId,
-  };
-
-  await insertTownData('violation_log', violation, {
-    index_1: citizenId,
-    index_2: violationType,
+  // Call the database function that tracks by email
+  const { data, error } = await supabase.rpc('record_violation', {
+    p_email: email,
+    p_citizen_id: citizenId,
+    p_turn_id: turnId,
+    p_violation_type: violationType,
+    p_message_content: messageContent,
   });
 
-  // Count recent violations (last 30 days)
-  const violations = await queryTownData<ViolationLog>('violation_log', {
-    index_1: citizenId,
-  });
-
-  const thirtyDaysAgo = new Date(now.getTime() - VIOLATION_WINDOW_MS);
-  const recentViolations = violations.filter(
-    (v) => new Date(v.data.occurredAt) > thirtyDaysAgo
-  );
-
-  const violationCount = recentViolations.length;
-
-  // Second violation = 7-day ban
-  if (violationCount >= 2) {
-    const bannedUntil = new Date(now.getTime() + BAN_DURATION_MS);
-
-    // Update user metadata with ban
-    await supabase.auth.admin.updateUserById(citizenId, {
-      user_metadata: {
-        banned_until: bannedUntil.toISOString(),
-        violation_count: violationCount,
-      },
-    });
-
-    return {
-      recorded: true,
-      isBanned: true,
-      bannedUntil,
-      violationCount,
-    };
+  if (error) {
+    console.error('Error recording violation:', error);
+    return { recorded: false, isBanned: false, violationCount: 0 };
   }
 
-  // First violation - just record it
-  await supabase.auth.admin.updateUserById(citizenId, {
-    user_metadata: {
-      violation_count: violationCount,
-    },
-  });
+  const result = data?.[0];
+  if (!result) {
+    return { recorded: true, isBanned: false, violationCount: 1 };
+  }
 
   return {
     recorded: true,
-    isBanned: false,
-    violationCount,
+    isBanned: result.is_banned,
+    bannedUntil: result.banned_until ? new Date(result.banned_until) : undefined,
+    violationCount: result.violation_count,
+  };
+}
+
+export async function isEmailBanned(email: string): Promise<{ isBanned: boolean; bannedUntil?: Date }> {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase.rpc('is_email_banned', {
+    p_email: email,
+  });
+
+  if (error || !data?.[0]) {
+    return { isBanned: false };
+  }
+
+  return {
+    isBanned: data[0].is_banned,
+    bannedUntil: data[0].banned_until ? new Date(data[0].banned_until) : undefined,
   };
 }

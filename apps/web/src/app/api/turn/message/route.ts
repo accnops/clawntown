@@ -123,11 +123,12 @@ export async function POST(request: NextRequest) {
     // Get citizen info for the message
     const { data: citizen } = await supabase
       .from('citizens')
-      .select('name')
+      .select('name, avatar')
       .eq('id', citizenId)
       .single();
 
     const citizenName = citizen?.name || 'Citizen';
+    const citizenAvatar = citizen?.avatar || null;
 
     // Get council member personality
     const councilMember = getCouncilMember(memberId);
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest) {
         role: 'citizen',
         citizen_id: citizenId,
         citizen_name: citizenName,
+        citizen_avatar: citizenAvatar,
         content: sanitizedContent,
       })
       .select()
@@ -158,15 +160,24 @@ export async function POST(request: NextRequest) {
 
     if (isGeminiConfigured()) {
       try {
-        // Fetch recent conversation history
+        // Fetch recent conversation history (last 100 messages, capped at 100k chars)
         const { data: historyData } = await supabase
           .from('conversation_messages')
           .select('role, content')
           .eq('session_id', turn.session_id)
-          .order('created_at', { ascending: true })
-          .limit(10);
+          .order('created_at', { ascending: false })
+          .limit(100);
 
-        const conversationHistory = (historyData || []).map(msg => ({
+        // Cap at 100k chars (taking most recent messages first)
+        const MAX_CHARS = 100_000;
+        let totalChars = 0;
+        const cappedHistory = (historyData || []).filter(msg => {
+          if (totalChars >= MAX_CHARS) return false;
+          totalChars += msg.content.length;
+          return true;
+        }).reverse(); // Reverse back to chronological order
+
+        const conversationHistory = cappedHistory.map(msg => ({
           role: msg.role as 'citizen' | 'council',
           content: msg.content,
         }));
@@ -212,6 +223,14 @@ export async function POST(request: NextRequest) {
       .eq('id', turn.id)
       .select()
       .single();
+
+    // Broadcast messages to all spectators via httpSend (REST-based, no subscription needed)
+    const channel = supabase.channel(`council:${memberId}`);
+    await channel.httpSend('message', { message: citizenMessage });
+
+    if (councilMessage) {
+      await channel.httpSend('message', { message: councilMessage });
+    }
 
     return NextResponse.json({
       citizenMessage,

@@ -1,8 +1,41 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { CouncilMember, ConversationMessage, CitizenTurn, QueueEntry } from '@clawntown/shared';
+import type { CouncilMember, ConversationMessage, CitizenTurn } from '@clawntown/shared';
+
+// Transform snake_case DB data to camelCase for TypeScript
+function normalizeTurn(dbTurn: Record<string, unknown> | null): CitizenTurn | null {
+  if (!dbTurn) return null;
+  return {
+    id: dbTurn.id as string,
+    sessionId: (dbTurn.session_id || dbTurn.sessionId) as string,
+    memberId: (dbTurn.member_id || dbTurn.memberId) as string,
+    citizenId: (dbTurn.citizen_id || dbTurn.citizenId) as string,
+    citizenName: (dbTurn.citizen_name || dbTurn.citizenName || '') as string,
+    charsUsed: (dbTurn.chars_used ?? dbTurn.charsUsed ?? 0) as number,
+    charBudget: (dbTurn.char_budget ?? dbTurn.charBudget ?? 500) as number,
+    timeUsedMs: (dbTurn.time_used_ms ?? dbTurn.timeUsedMs ?? 0) as number,
+    timeBudgetMs: (dbTurn.time_budget_ms ?? dbTurn.timeBudgetMs ?? 20000) as number,
+    messagesUsed: (dbTurn.messages_used ?? dbTurn.messagesUsed ?? 0) as number,
+    messageLimit: (dbTurn.message_limit ?? dbTurn.messageLimit ?? 2) as number,
+    startedAt: new Date(dbTurn.started_at as string || dbTurn.startedAt as string).getTime(),
+    status: (dbTurn.status || 'active') as 'active' | 'completed' | 'expired',
+  };
+}
+
+function normalizeMessage(dbMsg: Record<string, unknown>): ConversationMessage {
+  return {
+    id: dbMsg.id as string,
+    sessionId: (dbMsg.session_id || dbMsg.sessionId) as string,
+    role: dbMsg.role as 'citizen' | 'council',
+    citizenId: (dbMsg.citizen_id || dbMsg.citizenId || null) as string | null,
+    citizenName: (dbMsg.citizen_name || dbMsg.citizenName || null) as string | null,
+    citizenAvatar: (dbMsg.citizen_avatar || dbMsg.citizenAvatar || null) as string | null,
+    content: dbMsg.content as string,
+    createdAt: new Date((dbMsg.created_at || dbMsg.createdAt) as string),
+  };
+}
 
 interface UseCouncilOfficeOptions {
   member: CouncilMember;
@@ -11,34 +44,69 @@ interface UseCouncilOfficeOptions {
 
 export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const [queue, setQueue] = useState<QueueEntry[]>([]);
+  const [queueLength, setQueueLength] = useState(0);
+  const [queuePosition, setQueuePosition] = useState<number | null>(null);
   const [currentTurn, setCurrentTurn] = useState<CitizenTurn | null>(null);
   const [spectatorCount, setSpectatorCount] = useState(0);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Subscribe to realtime updates
+  // Track if we're in queue to know when to decrement position
+  const inQueueRef = useRef(false);
+
+  // Subscribe to broadcast events
   useEffect(() => {
     const channel = supabase.channel(`council:${member.id}`);
-    const queueChannel = supabase.channel(`council:${member.id}:queue`);
 
     channel
+      // Chat messages - dedupe by id (for optimistic updates)
       .on('broadcast', { event: 'message' }, ({ payload }) => {
-        setMessages(prev => [...prev, payload.message]);
+        const msg = normalizeMessage(payload.message);
+        setMessages(prev => {
+          // Check if we already have this message by id
+          if (prev.some(m => m.id === msg.id)) {
+            return prev;
+          }
+          // Check for temp message to replace (content may differ due to sanitization)
+          const tempIndex = prev.findIndex(m =>
+            m.id.startsWith('temp-') &&
+            m.role === msg.role &&
+            m.citizenId === msg.citizenId
+          );
+          if (tempIndex !== -1) {
+            // Replace temp message with real one (sanitized version from server)
+            const updated = [...prev];
+            updated[tempIndex] = msg;
+            return updated;
+          }
+          return [...prev, msg];
+        });
+        // Clear streaming content when final message arrives (for spectators)
+        if (msg.role === 'council') {
+          setIsStreaming(false);
+          setStreamingContent('');
+        }
       })
-      .on('broadcast', { event: 'turn_start' }, ({ payload }) => {
-        setCurrentTurn(payload.turn);
+      // Turn started - someone's turn began
+      .on('broadcast', { event: 'turn_started' }, ({ payload }) => {
+        setCurrentTurn(normalizeTurn(payload.turn));
+        setQueueLength(payload.queueLength ?? 0);
+        // If we're in queue, decrement position (someone ahead got their turn)
+        if (inQueueRef.current) {
+          setQueuePosition(prev => prev !== null && prev > 0 ? prev - 1 : prev);
+        }
       })
-      .on('broadcast', { event: 'turn_end' }, () => {
-        setCurrentTurn(null);
+      // Turn ended
+      .on('broadcast', { event: 'turn_ended' }, ({ payload }) => {
+        if (payload.nextTurn) {
+          setCurrentTurn(normalizeTurn(payload.nextTurn));
+        } else {
+          setCurrentTurn(null);
+        }
+        setQueueLength(payload.queueLength ?? 0);
       })
-      .on('broadcast', { event: 'stream_token' }, ({ payload }) => {
-        setStreamingContent(prev => prev + payload.token);
-      })
-      .on('broadcast', { event: 'stream_end' }, () => {
-        setIsStreaming(false);
-        setStreamingContent('');
-      })
+      // Presence for spectator count
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         setSpectatorCount(Object.keys(state).length);
@@ -49,29 +117,31 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
         }
       });
 
-    queueChannel
-      .on('broadcast', { event: 'queue_update' }, ({ payload }) => {
-        setQueue(payload.queue);
-      })
-      .subscribe();
-
-    // Fetch initial state
+    // Fetch initial state once on mount
+    setIsLoading(true);
     fetch(`/api/queue/status?memberId=${member.id}${citizenId ? `&citizenId=${citizenId}` : ''}`)
       .then(res => res.json())
       .then(data => {
-        setQueue(data.queue || []);
-        setCurrentTurn(data.currentTurn || null);
+        setQueueLength(data.queueLength ?? 0);
+        setCurrentTurn(normalizeTurn(data.currentTurn));
+        if (data.position !== undefined && data.position !== null) {
+          setQueuePosition(data.position);
+          inQueueRef.current = true;
+        }
+        // Load message history
+        if (data.messages?.length > 0) {
+          setMessages(data.messages.map((m: Record<string, unknown>) => normalizeMessage(m)));
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
 
     return () => {
       channel.unsubscribe();
-      queueChannel.unsubscribe();
     };
-  }, [member.id, citizenId]);
+  }, [member.id]);
 
-  const queuePosition = citizenId
-    ? queue.findIndex(e => e.citizenId === citizenId)
-    : -1;
 
   const isMyTurn = currentTurn?.citizenId === citizenId;
 
@@ -89,7 +159,21 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
       }),
     });
 
-    return res.json();
+    const result = await res.json();
+
+    if (res.ok) {
+      // Set initial queue position from API response
+      setQueuePosition(result.position ?? 0);
+      setQueueLength(result.queueLength ?? 1);
+      inQueueRef.current = true;
+
+      // If turn was auto-started (first in line), update state
+      if (result.turn) {
+        setCurrentTurn(normalizeTurn(result.turn));
+      }
+    }
+
+    return result;
   }, [member.id, citizenId]);
 
   const leaveQueue = useCallback(async () => {
@@ -101,11 +185,31 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
       body: JSON.stringify({ memberId: member.id, citizenId }),
     });
 
+    if (res.ok) {
+      setQueuePosition(null);
+      inQueueRef.current = false;
+    }
+
     return res.json();
   }, [member.id, citizenId]);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, citizenName?: string, citizenAvatar?: string) => {
     if (!citizenId) return;
+
+    // Optimistic UI: show message immediately
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: ConversationMessage = {
+      id: tempId,
+      sessionId: '',
+      role: 'citizen',
+      citizenId,
+      citizenName: citizenName || 'You',
+      citizenAvatar: citizenAvatar || null,
+      content,
+      createdAt: new Date(),
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+    setIsStreaming(true);  // Show loading state for council response
 
     const res = await fetch('/api/turn/message', {
       method: 'POST',
@@ -116,28 +220,54 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
     const data = await res.json();
 
     if (res.status === 422 && data.error === 'message_rejected') {
+      // Remove optimistic message on rejection
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setIsStreaming(false);
       return { rejected: true, reason: data.reason };
     }
 
     if (!res.ok) {
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setIsStreaming(false);
       return { rejected: false, error: data.error };
     }
 
+    // Success - streaming will end when broadcast arrives or we can end it here
+    setIsStreaming(false);
     return data;
   }, [member.id, citizenId]);
 
+  const endTurn = useCallback(async () => {
+    const res = await fetch('/api/turn/end', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberId: member.id, reason: 'timeout' }),
+    });
+
+    const result = await res.json();
+
+    if (res.ok) {
+      setQueuePosition(null);
+      inQueueRef.current = false;
+    }
+
+    return result;
+  }, [member.id]);
+
   return {
     messages,
-    queue,
-    queueLength: queue.length,
-    queuePosition: queuePosition >= 0 ? queuePosition : null,
+    queueLength,
+    queuePosition,
     currentTurn,
     isMyTurn,
+    isLoading,
     spectatorCount,
     isStreaming,
     streamingContent,
     raiseHand,
     leaveQueue,
     sendMessage,
+    endTurn,
   };
 }

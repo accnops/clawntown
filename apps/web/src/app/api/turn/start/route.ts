@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
       .eq('status', 'active')
       .single();
 
+    // Safety check: close stale sessions (older than 24 hours)
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    if (session && new Date(session.started_at) < twentyFourHoursAgo) {
+      await supabase
+        .from('conversation_sessions')
+        .update({ status: 'ended', ended_at: new Date().toISOString() })
+        .eq('id', session.id);
+      session = null;
+    }
+
     if (!session) {
       // Create a new session
       const { data: newSession, error: sessionError } = await supabase
@@ -100,6 +110,13 @@ export async function POST(request: NextRequest) {
     // Get updated queue length
     const { data: queueLength } = await supabase
       .rpc('get_queue_length', { p_member_id: memberId });
+
+    // Broadcast turn_started to all spectators
+    const channel = supabase.channel(`council:${memberId}`);
+    await channel.httpSend('turn_started', {
+      turn,
+      queueLength: queueLength ?? 0,
+    });
 
     return NextResponse.json({
       turn,

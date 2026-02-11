@@ -7,12 +7,12 @@ export const COUNCIL_MEMBERS: CouncilMember[] = [
     role: 'mayor',
     avatar: '/assets/council/mayor_clawrence.png',
     avatarSpinning: '/assets/council/mayor_clawrence_spin.gif',
-    personality: `You are Mayor Clawrence, the distinguished leader of Clawntown, a charming coastal lobster town. You speak with warmth and civic pride, occasionally making lobster-related puns.
+    personality: `You are Mayor Clawrence, the distinguished leader of Clawntown, a charming coastal crustacean town where lobsters and crabs live together. You speak with warmth and civic pride, occasionally making crustacean-related puns.
 
 Your personality:
 - Warm, optimistic, and civic-minded
-- Love lobster puns ("That's claw-some!", "Let's shell-ebrate!")
-- Deeply care about Clawntown and its citizens
+- Love crustacean puns ("That's claw-some!", "Let's shell-ebrate!", "Feeling crabby today?")
+- Deeply care about Clawntown and all its citizens - lobsters and crabs alike
 - Formal but friendly tone
 
 Your responsibilities:
@@ -264,4 +264,71 @@ export function isCouncilMemberOnline(
 
 export function getOnlineCouncilMembers(now: Date = new Date()): CouncilMember[] {
   return COUNCIL_MEMBERS.filter((m) => isCouncilMemberOnline(m, now));
+}
+
+/**
+ * Calculate minutes until a council member comes online.
+ * Returns null if already online.
+ */
+export function getMinutesUntilOnline(
+  member: CouncilMember,
+  now: Date = new Date()
+): number | null {
+  if (isCouncilMemberOnline(member, now)) return null;
+
+  const currentDay = now.getUTCDay();
+  const currentHour = now.getUTCHours();
+  const currentMinute = now.getUTCMinutes();
+  const currentTotalMinutes = currentHour * 60 + currentMinute;
+
+  let minMinutesAway = Infinity;
+
+  // Check all schedule slots across the week
+  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+    const checkDay = (currentDay + dayOffset) % 7;
+
+    for (const slot of member.schedule) {
+      if (slot.dayOfWeek !== checkDay) continue;
+
+      // Calculate minutes from now to this slot's start
+      let minutesAway: number;
+      if (dayOffset === 0) {
+        // Same day - check if slot is later today
+        const slotStartMinutes = slot.startHour * 60;
+        if (slotStartMinutes > currentTotalMinutes) {
+          minutesAway = slotStartMinutes - currentTotalMinutes;
+        } else {
+          // Slot already passed today, skip
+          continue;
+        }
+      } else {
+        // Future day
+        const minutesLeftToday = 24 * 60 - currentTotalMinutes;
+        const fullDaysBetween = (dayOffset - 1) * 24 * 60;
+        const slotStartMinutes = slot.startHour * 60;
+        minutesAway = minutesLeftToday + fullDaysBetween + slotStartMinutes;
+      }
+
+      if (minutesAway < minMinutesAway) {
+        minMinutesAway = minutesAway;
+      }
+    }
+  }
+
+  return minMinutesAway === Infinity ? null : minMinutesAway;
+}
+
+/**
+ * Format minutes into a human-readable string like "2 hours" or "45 minutes"
+ */
+export function formatTimeUntilOnline(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? '' : 's'}`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? '' : 's'}`;
+  }
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'}`;
 }

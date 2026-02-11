@@ -7,6 +7,7 @@ interface CouncilMemberCardProps {
   isOnline: boolean;
   spectatorCount?: number;
   queueLength?: number;
+  timeUntilOnline?: string;
   onClick: () => void;
 }
 
@@ -15,6 +16,7 @@ export function CouncilMemberCard({
   isOnline,
   spectatorCount = 0,
   queueLength = 0,
+  timeUntilOnline,
   onClick,
 }: CouncilMemberCardProps) {
   return (
@@ -61,7 +63,7 @@ export function CouncilMemberCard({
         </div>
       ) : (
         <p className="font-retro text-[10px] text-gray-500 text-center mt-2">
-          Offline
+          {timeUntilOnline ? `Online in ${timeUntilOnline}` : 'Offline'}
         </p>
       )}
     </button>

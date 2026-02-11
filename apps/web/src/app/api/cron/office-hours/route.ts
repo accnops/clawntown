@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { COUNCIL_MEMBERS } from '@/data/council-members';
-import { queryTownData, updateTownData } from '@/lib/supabase';
-import { generateCouncilResponse } from '@/lib/gemini';
-import type { ChatSession, QueueEntry } from '@clawntown/shared';
+import { getSupabaseAdmin } from '@/lib/supabase-server';
+import { COUNCIL_MEMBERS, getCouncilMember } from '@/data/council-members';
+import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 
 // Vercel Cron - runs every hour at minute 0
 export const dynamic = 'force-dynamic';
@@ -11,12 +10,12 @@ export async function GET(request: NextRequest) {
   // Verify cron secret
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    // Also allow in development without secret
     if (process.env.NODE_ENV === 'production') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
 
+  const supabase = getSupabaseAdmin();
   const now = new Date();
   const currentHour = now.getUTCHours();
   const currentDay = now.getUTCDay();
@@ -25,57 +24,81 @@ export async function GET(request: NextRequest) {
 
   for (const member of COUNCIL_MEMBERS) {
     // Check if member's office hours are ending
-    const currentSchedule = member.schedule.find(
+    const isEnding = member.schedule.some(
       (s) => s.dayOfWeek === currentDay && s.endHour === currentHour
     );
 
-    if (!currentSchedule) continue;
+    if (!isEnding) continue;
 
     // Find active session for this member
-    const sessions = await queryTownData<ChatSession>('chat_session', {
-      index_1: member.id,
-      index_2: 'active',
-    });
+    const { data: session } = await supabase
+      .from('conversation_sessions')
+      .select('id')
+      .eq('member_id', member.id)
+      .eq('status', 'active')
+      .single();
 
-    const activeSession = sessions[0];
-    if (!activeSession || activeSession.data.farewellSent) continue;
+    if (!session) continue;
 
-    // Generate farewell message
-    const farewellMessage = await generateCouncilResponse(
-      member.personality,
-      'System',
-      'Office hours are ending. Please say a brief, warm farewell to the citizens.',
-      []
-    );
+    // Generate farewell message if Gemini is configured
+    if (isGeminiConfigured()) {
+      const councilMember = getCouncilMember(member.id);
+      if (councilMember) {
+        try {
+          const farewellMessage = await generateCouncilResponse(
+            councilMember.personality,
+            'System',
+            'Office hours are ending. Please say a brief, warm farewell to the citizens watching.',
+            []
+          );
 
-    // Mark session as closing and set farewell sent
-    await updateTownData(activeSession.id, {
-      ...activeSession.data,
-      farewellSent: true,
-      status: 'closing',
-    });
+          // Save farewell message
+          await supabase
+            .from('conversation_messages')
+            .insert({
+              session_id: session.id,
+              role: 'council',
+              citizen_id: null,
+              citizen_name: null,
+              content: farewellMessage,
+            });
 
-    // Clear the queue
-    const queueEntries = await queryTownData<QueueEntry>('queue_entry', {
-      index_1: member.id,
-    });
-
-    for (const entry of queueEntries) {
-      if (entry.data.status !== 'completed' && entry.data.status !== 'skipped') {
-        await updateTownData(entry.id, {
-          ...entry.data,
-          status: 'skipped',
-        });
+          // Broadcast farewell to watchers
+          const channel = supabase.channel(`council:${member.id}`);
+          await channel.httpSend('message', {
+            message: {
+              id: `farewell-${Date.now()}`,
+              session_id: session.id,
+              role: 'council',
+              content: farewellMessage,
+              created_at: new Date().toISOString(),
+            },
+          });
+        } catch (error) {
+          console.error(`Failed to generate farewell for ${member.name}:`, error);
+        }
       }
     }
 
-    // Mark session as closed
-    await updateTownData(activeSession.id, {
-      ...activeSession.data,
-      status: 'closed',
-      endedAt: new Date(),
-      farewellSent: true,
-    });
+    // End any active turn
+    await supabase
+      .from('turns')
+      .update({ ended_at: now.toISOString() })
+      .eq('member_id', member.id)
+      .is('ended_at', null);
+
+    // Skip all waiting queue entries
+    await supabase
+      .from('queue_entries')
+      .update({ status: 'skipped' })
+      .eq('member_id', member.id)
+      .in('status', ['waiting', 'ready_check', 'confirmed']);
+
+    // Close the session
+    await supabase
+      .from('conversation_sessions')
+      .update({ status: 'ended', ended_at: now.toISOString() })
+      .eq('id', session.id);
 
     results.push(`Closed ${member.name}'s office`);
   }

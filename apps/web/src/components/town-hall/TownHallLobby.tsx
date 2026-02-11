@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { COUNCIL_MEMBERS, isCouncilMemberOnline } from '@/data/council-members';
+import { COUNCIL_MEMBERS, isCouncilMemberOnline, getMinutesUntilOnline, formatTimeUntilOnline } from '@/data/council-members';
 import { CouncilMemberCard } from './CouncilMemberCard';
 import type { CouncilMember } from '@clawntown/shared';
 
@@ -35,7 +35,7 @@ export function TownHallLobby({
     <div className="space-y-4">
       {/* Header */}
       <div className="text-center">
-        <h2 className="font-pixel text-sm text-lobster-red mb-1">Town Hall</h2>
+        <h2 className="font-pixel text-sm text-shell-red mb-1">Town Hall</h2>
         <p className="font-retro text-xs text-gray-600">
           {onlineMembers.length} council member{onlineMembers.length !== 1 ? 's' : ''} available
         </p>
@@ -85,14 +85,19 @@ export function TownHallLobby({
         <div>
           <p className="font-retro text-xs font-bold text-gray-500 mb-2">Currently Offline</p>
           <div className="grid grid-cols-2 gap-2">
-            {offlineMembers.map(member => (
-              <CouncilMemberCard
-                key={member.id}
-                member={member}
-                isOnline={false}
-                onClick={() => {}}
-              />
-            ))}
+            {offlineMembers.map(member => {
+              const minutes = getMinutesUntilOnline(member, now);
+              const timeUntil = minutes !== null ? formatTimeUntilOnline(minutes) : undefined;
+              return (
+                <CouncilMemberCard
+                  key={member.id}
+                  member={member}
+                  isOnline={false}
+                  timeUntilOnline={timeUntil}
+                  onClick={() => {}}
+                />
+              );
+            })}
           </div>
         </div>
       )}

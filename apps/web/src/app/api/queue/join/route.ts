@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
+import { isEmailBanned } from '@/lib/violations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,15 +11,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check if citizen is banned
+    // Get user data
     const { data: userData } = await supabase.auth.admin.getUserById(citizenId);
-    if (userData?.user?.user_metadata?.banned_until) {
-      const bannedUntil = new Date(userData.user.user_metadata.banned_until);
-      if (bannedUntil > new Date()) {
+    const email = userData?.user?.email;
+
+    // Check if email is banned (tracks by email to prevent account recreation evasion)
+    if (email) {
+      const banStatus = await isEmailBanned(email);
+      if (banStatus.isBanned) {
         return NextResponse.json(
           {
-            error: 'You are temporarily banned',
-            bannedUntil: bannedUntil.toISOString(),
+            error: 'You are temporarily banned due to conduct violations',
+            bannedUntil: banStatus.bannedUntil?.toISOString(),
           },
           { status: 403 }
         );
@@ -41,6 +45,23 @@ export async function POST(request: NextRequest) {
         { error: 'Captcha verification required', requiresCaptcha: true },
         { status: 403 }
       );
+    }
+
+    // Ensure citizen exists in citizens table (upsert from auth user)
+    const citizenName = userData?.user?.user_metadata?.citizen_name || 'Anonymous Crab';
+    const citizenAvatar = userData?.user?.user_metadata?.citizen_avatar || 'citizen_01';
+
+    const { error: upsertError } = await supabase
+      .from('citizens')
+      .upsert({
+        id: citizenId,
+        name: citizenName,
+        avatar: citizenAvatar,
+      }, { onConflict: 'id' });
+
+    if (upsertError) {
+      console.error('Error upserting citizen:', upsertError);
+      return NextResponse.json({ error: 'Failed to create citizen record' }, { status: 500 });
     }
 
     // Check if already in queue (unique index will also prevent this)
@@ -80,10 +101,38 @@ export async function POST(request: NextRequest) {
     const { data: queueLength } = await supabase
       .rpc('get_queue_length', { p_member_id: memberId });
 
+    // Auto-start turn if this person is first in line and no active turn
+    let turn = null;
+    if ((position ?? 0) === 0) {
+      // Check if there's already an active turn
+      const { data: existingTurn } = await supabase
+        .from('turns')
+        .select('*')
+        .eq('member_id', memberId)
+        .is('ended_at', null)
+        .maybeSingle();
+
+      if (!existingTurn) {
+        // Start their turn automatically
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002';
+        const startRes = await fetch(new URL('/api/turn/start', baseUrl), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId }),
+        });
+
+        if (startRes.ok) {
+          const startData = await startRes.json();
+          turn = startData.turn;
+        }
+      }
+    }
+
     return NextResponse.json({
       entry,
       position: position ?? 0,
       queueLength: queueLength ?? 1,
+      turn,
     });
   } catch (error) {
     console.error('Error joining queue:', error);
