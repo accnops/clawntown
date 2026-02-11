@@ -246,10 +246,39 @@ export async function POST(request: NextRequest) {
       const { data: queueLength } = await supabase
         .rpc('get_queue_length', { p_member_id: memberId });
 
-      // Broadcast turn ended
+      // Auto-start next person's turn immediately (don't wait for heartbeat)
+      let nextTurn = null;
+      const { data: nextInQueue } = await supabase
+        .from('queue_entries')
+        .select('*')
+        .eq('member_id', memberId)
+        .eq('status', 'waiting')
+        .order('joined_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (nextInQueue) {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
+        try {
+          const startRes = await fetch(new URL('/api/turn/start', baseUrl), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ memberId }),
+          });
+          if (startRes.ok) {
+            const startData = await startRes.json();
+            nextTurn = startData.turn;
+          }
+        } catch (e) {
+          console.error('Error auto-starting next turn:', e);
+        }
+      }
+
+      // Broadcast turn ended (includes next turn if started)
       await channel.httpSend('turn_ended', {
         endedTurn: { ...turn, ended_at: new Date().toISOString() },
-        nextTurn: null, // Next turn will be started by heartbeat
+        nextTurn,
         queueLength: queueLength ?? 0,
       });
 
@@ -259,6 +288,7 @@ export async function POST(request: NextRequest) {
         turn: { ...turn, chars_used: newCharsUsed, messages_used: newMessagesUsed, ended_at: new Date().toISOString() },
         shouldEnd: true,
         leftQueue: true,
+        nextTurn,
       });
     }
 

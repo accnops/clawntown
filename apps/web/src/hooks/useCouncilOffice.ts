@@ -108,6 +108,14 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
         }
         setQueueLength(payload.queueLength ?? 0);
       })
+      // Queue updated (someone left)
+      .on('broadcast', { event: 'queue_updated' }, ({ payload }) => {
+        setQueueLength(payload.queueLength ?? 0);
+        // If we're in queue and queue got shorter, we might have moved up
+        if (inQueueRef.current) {
+          setQueuePosition(prev => prev !== null && prev > 0 ? prev - 1 : prev);
+        }
+      })
       // Presence for spectator count
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
@@ -174,14 +182,22 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
 
         if (data.turnStarted) {
           // Our turn started via heartbeat!
-          const { data: turn } = await fetch(`/api/queue/status?memberId=${member.id}&citizenId=${citizenId}`)
-            .then(r => r.json());
-          if (turn?.currentTurn) {
-            setCurrentTurn(normalizeTurn(turn.currentTurn));
+          if (data.currentTurn) {
+            setCurrentTurn(normalizeTurn(data.currentTurn));
           }
           setQueuePosition(null);
+          inQueueRef.current = false; // No longer "waiting" in queue
         } else if (data.position !== undefined && data.position !== null) {
           setQueuePosition(data.position);
+        } else if (data.action === 'not_in_queue') {
+          // We're no longer in queue (maybe got skipped)
+          setQueuePosition(null);
+          inQueueRef.current = false;
+        }
+
+        // Always sync currentTurn from heartbeat for consistency
+        if (data.currentTurn !== undefined) {
+          setCurrentTurn(data.currentTurn ? normalizeTurn(data.currentTurn) : null);
         }
 
         if (data.queueLength !== undefined) {
@@ -301,6 +317,13 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
       setMessages(prev => prev.filter(m => m.id !== tempId));
       setIsStreaming(false);
       return { rejected: false, error: data.error };
+    }
+
+    // If turn ended and we left queue, update state
+    if (data.leftQueue) {
+      setQueuePosition(null);
+      inQueueRef.current = false;
+      setCurrentTurn(null);
     }
 
     // Success - streaming will end when broadcast arrives or we can end it here

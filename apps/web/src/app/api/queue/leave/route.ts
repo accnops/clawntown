@@ -27,6 +27,12 @@ export async function POST(request: NextRequest) {
     const { data: queueLength } = await supabase
       .rpc('get_queue_length', { p_member_id: memberId });
 
+    // Broadcast queue update so other users see the change
+    const channel = supabase.channel(`council:${memberId}`);
+    await channel.httpSend('queue_updated', {
+      queueLength: queueLength ?? 0,
+    });
+
     return NextResponse.json({
       success: true,
       queueLength: queueLength ?? 0,
