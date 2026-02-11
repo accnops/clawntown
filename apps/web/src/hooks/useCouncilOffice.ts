@@ -349,6 +349,12 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
     if (res.ok) {
       setQueuePosition(null);
       inQueueRef.current = false;
+      // Update to next turn if there is one
+      if (result.nextTurn) {
+        setCurrentTurn(normalizeTurn(result.nextTurn));
+      } else {
+        setCurrentTurn(null);
+      }
     }
 
     return result;

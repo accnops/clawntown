@@ -124,6 +124,20 @@ export async function POST(request: NextRequest) {
       .update({ status: 'active' })
       .eq('id', nextInQueue.id);
 
+    // Get citizen info for the turn
+    const { data: citizen } = await supabase
+      .from('citizens')
+      .select('name, avatar')
+      .eq('id', nextInQueue.citizen_id)
+      .single();
+
+    // Enrich turn with citizen info for broadcast
+    const enrichedTurn = {
+      ...turn,
+      citizen_name: citizen?.name || nextInQueue.citizen_name || 'Citizen',
+      citizen_avatar: citizen?.avatar || nextInQueue.citizen_avatar || null,
+    };
+
     // Get updated queue length
     const { data: queueLength } = await supabase
       .rpc('get_queue_length', { p_member_id: memberId });
@@ -131,12 +145,12 @@ export async function POST(request: NextRequest) {
     // Broadcast turn_started to all spectators
     const channel = supabase.channel(`council:${memberId}`);
     await channel.httpSend('turn_started', {
-      turn,
+      turn: enrichedTurn,
       queueLength: queueLength ?? 0,
     });
 
     return NextResponse.json({
-      turn,
+      turn: enrichedTurn,
       session,
       queueLength: queueLength ?? 0,
     });

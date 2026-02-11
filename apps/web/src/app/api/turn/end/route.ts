@@ -58,19 +58,25 @@ export async function POST(request: NextRequest) {
       // Start the next person's turn
       try {
         const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
+        console.log('[turn/end] Auto-starting next turn for', nextInQueue.citizen_id);
         const startRes = await fetch(new URL('/api/turn/start', baseUrl), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ memberId }),
         });
 
+        const startData = await startRes.json();
         if (startRes.ok) {
-          const startData = await startRes.json();
           nextTurn = startData.turn;
+          console.log('[turn/end] Next turn started successfully');
+        } else {
+          console.error('[turn/end] Failed to start next turn:', startData.error);
         }
       } catch (e) {
-        console.error('Error auto-starting next turn:', e);
+        console.error('[turn/end] Error auto-starting next turn:', e);
       }
+    } else {
+      console.log('[turn/end] No one waiting in queue');
     }
 
     // Get updated queue length for broadcast
