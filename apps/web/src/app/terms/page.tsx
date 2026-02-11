@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Terms of Service - Clawntown',
-  description: 'Terms of Service for Clawntown, the coastal lobster town',
+  description: 'Terms of Service for Clawntown, the coastal crustacean town',
 };
 
 export default function TermsOfService() {
@@ -17,7 +17,7 @@ export default function TermsOfService() {
           </div>
           <div className="p-4">
             <div className="text-center mb-4">
-              <h1 className="font-pixel text-lg text-lobster-red mb-2">
+              <h1 className="font-pixel text-lg text-shell-red mb-2">
                 CLAWNTOWN TERMS OF SERVICE
               </h1>
               <p className="font-retro text-xs text-gray-600">
@@ -38,7 +38,7 @@ export default function TermsOfService() {
           <div className="p-4 space-y-6 font-retro text-sm">
             {/* Introduction */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 WELCOME TO CLAWNTOWN
               </h2>
               <p className="text-gray-700 leading-relaxed">
@@ -51,7 +51,7 @@ export default function TermsOfService() {
 
             {/* What Clawntown Is */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 WHAT IS CLAWNTOWN?
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -72,7 +72,7 @@ export default function TermsOfService() {
 
             {/* Account Registration */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 BECOMING A CITIZEN
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -92,7 +92,7 @@ export default function TermsOfService() {
 
             {/* Public Chat */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 PUBLIC CONVERSATIONS
               </h2>
               <div className="bg-amber-50 border border-amber-200 p-3 rounded mb-2">
@@ -110,7 +110,7 @@ export default function TermsOfService() {
 
             {/* Code of Conduct */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 TOWN CODE OF CONDUCT
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -140,7 +140,7 @@ export default function TermsOfService() {
 
             {/* Moderation */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 MODERATION & CONSEQUENCES
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -163,7 +163,7 @@ export default function TermsOfService() {
 
             {/* Intellectual Property */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 INTELLECTUAL PROPERTY
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -179,7 +179,7 @@ export default function TermsOfService() {
 
             {/* Disclaimers */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 DISCLAIMERS & LIMITATIONS
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -200,7 +200,7 @@ export default function TermsOfService() {
 
             {/* Changes */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 CHANGES TO THESE TERMS
               </h2>
               <p className="text-gray-700 leading-relaxed">
@@ -212,7 +212,7 @@ export default function TermsOfService() {
 
             {/* Contact */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 QUESTIONS?
               </h2>
               <p className="text-gray-700 leading-relaxed">

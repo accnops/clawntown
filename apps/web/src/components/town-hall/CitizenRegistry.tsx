@@ -155,7 +155,7 @@ export function CitizenRegistry({
         >
           &larr; Lobby
         </button>
-        <h2 className="font-pixel text-sm text-lobster-red">Citizen Registry Office</h2>
+        <h2 className="font-pixel text-sm text-shell-red">Citizen Registry Office</h2>
       </div>
 
       {/* Clerk Barnacle dialogue */}
@@ -240,12 +240,12 @@ export function CitizenRegistry({
           <div className="space-y-3">
             {/* Preview */}
             <div className="flex justify-center">
-              <div className="bg-gray-100 border-2 border-gray-300 rounded p-2 w-24 h-24 flex items-center justify-center">
+              <div className="bg-gray-100 border-2 border-gray-300 rounded w-32 h-32 flex items-center justify-center overflow-hidden">
                 {displayedAvatar ? (
                   <img
-                    src={hoveredAvatar ? hoveredAvatar.srcSpinning : displayedAvatar.src}
+                    src={hoveredAvatar ? hoveredAvatar.srcSpinning : (selectedAvatar ? selectedAvatar.srcSpinning : displayedAvatar.src)}
                     alt="Selected avatar"
-                    className="w-16 h-16 object-contain"
+                    className="max-w-full max-h-full object-contain"
                     style={{ imageRendering: 'pixelated' }}
                   />
                 ) : (
@@ -263,9 +263,9 @@ export function CitizenRegistry({
                   onMouseEnter={() => setHoveredAvatar(avatar)}
                   onMouseLeave={() => setHoveredAvatar(null)}
                   className={`
-                    p-1 rounded border-2 transition-all cursor-pointer
+                    aspect-square rounded border-2 transition-all cursor-pointer flex items-center justify-center overflow-hidden
                     ${avatarId === avatar.id
-                      ? 'border-lobster-red bg-red-50'
+                      ? 'border-shell-red bg-red-50'
                       : 'border-gray-300 bg-white hover:border-gray-400'
                     }
                   `}
@@ -273,7 +273,7 @@ export function CitizenRegistry({
                   <img
                     src={avatar.src}
                     alt={avatar.id}
-                    className="w-10 h-10 object-contain mx-auto"
+                    className="max-w-full max-h-full object-contain"
                     style={{ imageRendering: 'pixelated' }}
                   />
                 </button>
@@ -349,10 +349,15 @@ export function CitizenRegistry({
               </button>
               <button
                 type="submit"
-                className="btn-retro text-xs flex-1"
+                className={`btn-retro text-xs flex-1 ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}
                 disabled={isSubmitting || !email || !captchaToken}
               >
-                {isSubmitting ? 'Sending...' : 'Send Magic Link'}
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin">~</span>
+                    Sending...
+                  </span>
+                ) : 'Send Magic Link'}
               </button>
             </div>
           </form>
@@ -362,7 +367,6 @@ export function CitizenRegistry({
         {step === 'sent' && (
           <div className="space-y-3">
             <div className="bg-green-100 border border-green-400 rounded p-4 text-center">
-              <div className="text-3xl mb-2">*</div>
               <p className="font-pixel text-sm text-green-800">
                 Magic Link Sent!
               </p>

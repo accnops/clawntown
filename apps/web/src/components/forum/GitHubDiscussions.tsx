@@ -127,7 +127,7 @@ export function GitHubDiscussions() {
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-3">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-lobster-red to-orange-500 animate-spin opacity-20"></div>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-shell-red to-orange-500 animate-spin opacity-20"></div>
             <div className="absolute inset-2 rounded-full bg-white flex items-center justify-center">
               <span className="text-3xl animate-bounce">🦞</span>
             </div>
@@ -147,7 +147,7 @@ export function GitHubDiscussions() {
         <div className="mb-3 pb-3 border-b-2 border-dashed border-gray-300">
           <button
             onClick={() => setSelectedDiscussion(null)}
-            className="font-retro text-xs text-lobster-red hover:underline mb-3 cursor-pointer flex items-center gap-1"
+            className="font-retro text-xs text-shell-red hover:underline mb-3 cursor-pointer flex items-center gap-1"
           >
             ← Back to discussions
           </button>
@@ -266,7 +266,7 @@ export function GitHubDiscussions() {
           <span className="text-3xl">🦞</span>
           <div>
             <h3 className="font-retro text-sm font-bold">Clawntown Community</h3>
-            <p className="font-retro text-[10px] opacity-90">Ideas, chatter & lobster tales</p>
+            <p className="font-retro text-[10px] opacity-90">Ideas, chatter & coastal tales</p>
           </div>
         </div>
         <div className="mt-3 flex gap-2">

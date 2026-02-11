@@ -14,6 +14,7 @@
     "ci": "turbo build && turbo lint && turbo test && playwright test"
   },
   "devDependencies": {
+    "@google/genai": "^1.40.0",
     "@playwright/test": "^1.58.1",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"

@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - Clawntown',
-  description: 'Privacy Policy for Clawntown, the coastal lobster town',
+  description: 'Privacy Policy for Clawntown, the coastal crustacean town',
 };
 
 export default function PrivacyPolicy() {
@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
           </div>
           <div className="p-4">
             <div className="text-center mb-4">
-              <h1 className="font-pixel text-lg text-lobster-red mb-2">
+              <h1 className="font-pixel text-lg text-shell-red mb-2">
                 CLAWNTOWN PRIVACY POLICY
               </h1>
               <p className="font-retro text-xs text-gray-600">
@@ -38,7 +38,7 @@ export default function PrivacyPolicy() {
           <div className="p-4 space-y-6 font-retro text-sm">
             {/* Introduction */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 PLAIN TALK ABOUT YOUR PRIVACY
               </h2>
               <p className="text-gray-700 leading-relaxed">
@@ -51,7 +51,7 @@ export default function PrivacyPolicy() {
 
             {/* What We Collect */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 WHAT WE COLLECT
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -90,7 +90,7 @@ export default function PrivacyPolicy() {
 
             {/* Public Chats Notice */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 YOUR CHATS ARE PUBLIC
               </h2>
               <div className="bg-amber-50 border border-amber-200 p-3 rounded mb-2">
@@ -108,7 +108,7 @@ export default function PrivacyPolicy() {
 
             {/* How We Use Data */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 HOW WE USE YOUR DATA
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -126,7 +126,7 @@ export default function PrivacyPolicy() {
 
             {/* AI and Data */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 AI & YOUR MESSAGES
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -143,7 +143,7 @@ export default function PrivacyPolicy() {
 
             {/* Data Sharing */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 WHO WE SHARE DATA WITH
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -158,7 +158,7 @@ export default function PrivacyPolicy() {
 
             {/* Data Retention */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 HOW LONG WE KEEP DATA
               </h2>
               <ul className="list-disc list-inside text-gray-700 space-y-1 ml-2">
@@ -171,7 +171,7 @@ export default function PrivacyPolicy() {
 
             {/* Your Rights (GDPR) */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 YOUR RIGHTS
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -207,7 +207,7 @@ export default function PrivacyPolicy() {
 
             {/* Cookies */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 COOKIES & LOCAL STORAGE
               </h2>
               <p className="text-gray-700 leading-relaxed mb-2">
@@ -220,13 +220,13 @@ export default function PrivacyPolicy() {
               </ul>
               <p className="text-gray-700 leading-relaxed mt-2">
                 We don't use tracking cookies for advertising. We're not trying to follow you
-                around the internet — we're just running a lobster town here.
+                around the internet — we're just running a crustacean town here.
               </p>
             </section>
 
             {/* Children */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 CHILDREN'S PRIVACY
               </h2>
               <p className="text-gray-700 leading-relaxed">
@@ -238,7 +238,7 @@ export default function PrivacyPolicy() {
 
             {/* Security */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 DATA SECURITY
               </h2>
               <p className="text-gray-700 leading-relaxed">
@@ -250,7 +250,7 @@ export default function PrivacyPolicy() {
 
             {/* International */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 INTERNATIONAL DATA TRANSFERS
               </h2>
               <p className="text-gray-700 leading-relaxed">
@@ -262,7 +262,7 @@ export default function PrivacyPolicy() {
 
             {/* Changes */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 CHANGES TO THIS POLICY
               </h2>
               <p className="text-gray-700 leading-relaxed">
@@ -274,7 +274,7 @@ export default function PrivacyPolicy() {
 
             {/* Contact */}
             <section>
-              <h2 className="font-pixel text-xs text-lobster-red mb-2">
+              <h2 className="font-pixel text-xs text-shell-red mb-2">
                 CONTACT US
               </h2>
               <p className="text-gray-700 leading-relaxed">

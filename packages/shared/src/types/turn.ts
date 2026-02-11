@@ -51,6 +51,7 @@ export interface ConversationMessage {
   role: 'citizen' | 'council';
   citizenId: string | null;
   citizenName: string | null;
+  citizenAvatar: string | null;
   content: string;
   createdAt: Date;
 }

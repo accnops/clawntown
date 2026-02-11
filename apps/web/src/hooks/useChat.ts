@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface ChatMessage {
   id: string;
@@ -15,6 +16,22 @@ interface UseChatOptions {
 }
 
 export function useChat({ memberId, citizenName }: UseChatOptions) {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  // Get the current session token
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAccessToken(session?.access_token ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_, session) => {
+        setAccessToken(session?.access_token ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +58,16 @@ export function useChat({ memberId, citizenName }: UseChatOptions) {
         content: msg.content,
       }));
 
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           memberId,
           citizenName,
@@ -78,7 +102,7 @@ export function useChat({ memberId, citizenName }: UseChatOptions) {
     } finally {
       setIsLoading(false);
     }
-  }, [memberId, citizenName, messages, isLoading]);
+  }, [memberId, citizenName, messages, isLoading, accessToken]);
 
   const clearChat = useCallback(() => {
     setMessages([]);

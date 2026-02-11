@@ -43,9 +43,52 @@ export async function POST(request: NextRequest) {
       .eq('member_id', memberId)
       .eq('status', 'active');
 
+    // Auto-start next turn if there's someone waiting
+    let nextTurn = null;
+    const { data: nextInQueue } = await supabase
+      .from('queue_entries')
+      .select('*')
+      .eq('member_id', memberId)
+      .eq('status', 'waiting')
+      .order('joined_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (nextInQueue) {
+      // Start the next person's turn
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
+        const startRes = await fetch(new URL('/api/turn/start', baseUrl), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ memberId }),
+        });
+
+        if (startRes.ok) {
+          const startData = await startRes.json();
+          nextTurn = startData.turn;
+        }
+      } catch (e) {
+        console.error('Error auto-starting next turn:', e);
+      }
+    }
+
+    // Get updated queue length for broadcast
+    const { data: queueLength } = await supabase
+      .rpc('get_queue_length', { p_member_id: memberId });
+
+    // Broadcast turn_ended to all spectators
+    const channel = supabase.channel(`council:${memberId}`);
+    await channel.httpSend('turn_ended', {
+      endedTurn,
+      nextTurn,
+      queueLength: queueLength ?? 0,
+    });
+
     return NextResponse.json({
       turn: endedTurn,
       reason: reason || 'completed',
+      nextTurn,
     });
   } catch (error) {
     console.error('Error ending turn:', error);

@@ -1,4 +1,4 @@
-// Tile types for the lobster town
+// Tile types for the crustacean town
 export enum TileType {
   Grass = "grass",
   Water = "water",

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Clawntown - Coastal Lobster Town',
+  title: 'Clawntown - Coastal Crustacean Town',
   description: 'A self-evolving public town powered by AI',
   icons: {
     icon: '/favicon.svg',

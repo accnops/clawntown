@@ -33,6 +33,25 @@ export async function GET(request: NextRequest) {
       .is('ended_at', null)
       .single();
 
+    // Get active session and recent messages
+    const { data: session } = await supabase
+      .from('conversation_sessions')
+      .select('id')
+      .eq('member_id', memberId)
+      .eq('status', 'active')
+      .single();
+
+    let messages: unknown[] = [];
+    if (session) {
+      const { data: recentMessages } = await supabase
+        .from('conversation_messages')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true })
+        .limit(50);  // Load last 50 messages
+      messages = recentMessages || [];
+    }
+
     // Get citizen's position if citizenId provided
     let position: number | null = null;
     if (citizenId) {
@@ -49,6 +68,7 @@ export async function GET(request: NextRequest) {
       queueLength: queue?.length ?? 0,
       position,
       currentTurn,
+      messages,
     });
   } catch (error) {
     console.error('Error getting queue status:', error);

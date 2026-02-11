@@ -224,10 +224,42 @@ def step2_remove_background(input_path: Path, output_path: Path) -> Path:
         sys.exit(1)
 
 
-def step3_convert_to_3d(image_path: Path, output_path: Path) -> Path:
-    """Convert to 3D model using Tripo3D."""
+def step2b_fill_holes_for_3d(input_path: Path, output_path: Path) -> Path:
+    """
+    Composite transparent image onto solid gray background for 3D conversion.
+    This fills any holes (like white chef hats that birefnet incorrectly removed)
+    so the 3D model doesn't have gaps.
+    """
     print(f"\n{'='*60}")
-    print("STEP 3: Convert to 3D")
+    print("STEP 2b: Fill Holes for 3D Conversion")
+    print("="*60)
+
+    try:
+        from PIL import Image
+    except ImportError:
+        print("ERROR: Pillow not installed")
+        sys.exit(1)
+
+    img = Image.open(input_path).convert("RGBA")
+
+    # Use a neutral gray background - not white (would blend with white objects)
+    # and not too dark (would affect the 3D model coloring)
+    background_color = (128, 128, 128, 255)  # Medium gray
+    background = Image.new("RGBA", img.size, background_color)
+
+    # Composite: character on gray background
+    composite = Image.alpha_composite(background, img)
+
+    # Save as PNG (keep RGB, no transparency needed for 3D conversion)
+    composite.convert("RGB").save(output_path, "PNG")
+    print(f"Saved composite for 3D: {output_path}")
+    return output_path
+
+
+def step3_convert_to_3d(image_path: Path, output_path: Path) -> Path:
+    """Convert to 3D model using Tripo3D v2.5."""
+    print(f"\n{'='*60}")
+    print("STEP 3: Convert to 3D (Tripo3D)")
     print("="*60)
 
     try:
@@ -242,6 +274,7 @@ def step3_convert_to_3d(image_path: Path, output_path: Path) -> Path:
     image_url = fal_client.upload_file(str(image_path))
     print(f"Uploaded: {image_url}")
 
+    # Use Tripo3D for consistent quality
     result = fal_client.subscribe(
         "tripo3d/tripo/v2.5/image-to-3d",
         arguments={"image_url": image_url},
@@ -257,6 +290,7 @@ def step3_convert_to_3d(image_path: Path, output_path: Path) -> Path:
         return output_path
     else:
         print(f"ERROR: Unexpected response: {result}")
+        print(f"Keys: {result.keys() if result else 'None'}")
         sys.exit(1)
 
 
@@ -463,6 +497,7 @@ def generate_member(member_id: str, output_dir: Path, skip_generate: bool = Fals
 
     concept_path = member_dir / "concept.png"
     clean_path = member_dir / "clean.png"
+    filled_path = member_dir / "filled_for_3d.png"  # Gray background for 3D conversion
     model_path = member_dir / "model.glb"
     static_path = output_dir / f"{member_id}.png"
     gif_path = output_dir / f"{member_id}_spin.gif"
@@ -487,11 +522,14 @@ def generate_member(member_id: str, output_dir: Path, skip_generate: bool = Fals
     # Step 2: Remove background
     step2_remove_background(concept_path, clean_path)
 
-    # Step 3: Create static avatar
+    # Step 2b: Fill holes for 3D (composite on gray background)
+    step2b_fill_holes_for_3d(clean_path, filled_path)
+
+    # Step 3: Create static avatar (uses transparent version)
     create_static_avatar(clean_path, static_path, 128)
 
-    # Step 4: Convert to 3D
-    step3_convert_to_3d(clean_path, model_path)
+    # Step 4: Convert to 3D (uses filled version to avoid holes)
+    step3_convert_to_3d(filled_path, model_path)
 
     # Step 5: Render spinning frames
     frames = step4_render_spinning(model_path, member_dir, 36)

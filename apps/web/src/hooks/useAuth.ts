@@ -73,11 +73,11 @@ export function useAuth() {
       return { error: new Error('Auth not configured') };
     }
 
-    // Build redirect URL with pending registration data
-    const redirectBase = `${window.location.origin}/auth/callback`;
+    // Use path-based parameters (Supabase strips query params from redirects)
+    // Format: /auth/callback or /auth/callback/{name}/{avatarId}
     const redirectUrl = pendingRegistration
-      ? `${redirectBase}?name=${encodeURIComponent(pendingRegistration.name)}&avatar=${encodeURIComponent(pendingRegistration.avatarId)}`
-      : redirectBase;
+      ? `${window.location.origin}/auth/callback/${encodeURIComponent(pendingRegistration.name)}/${encodeURIComponent(pendingRegistration.avatarId)}`
+      : `${window.location.origin}/auth/callback`;
 
     const { error } = await supabase.auth.signInWithOtp({
       email,

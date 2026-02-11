@@ -48,11 +48,11 @@ export function TownView({ onBuildingClick, population }: TownViewProps) {
       {/* Town name overlay (HUD) */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none">
         <div className="flex items-center justify-center gap-2 mb-1">
-          <span className="text-2xl md:text-3xl drop-shadow-lg">🦞</span>
+          <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
           <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
             CLAWNTOWN
           </h1>
-          <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
+          <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
         </div>
         <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
           Population: {population ?? '--'}

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TownView, Building } from '@/components/town';
 import { Dialog, Sparkline } from '@/components/ui';
 import { ProjectBoard } from '@/components/projects';
 import { GitHubDiscussions } from '@/components/forum';
-import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
+import { TownHallLobby, CouncilOfficeView, CitizenRegistry } from '@/components/town-hall';
 import { ClawMachine } from '@/components/arcade';
 import { useStats, useTrackVisit, useAuth } from '@/hooks';
 import type { CouncilMember } from '@clawntown/shared';
@@ -14,6 +14,16 @@ type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_
 
 export default function Home() {
   const [activeDialog, setActiveDialog] = useState<DialogType>('welcome');
+
+  // Check if user just authenticated - open town hall instead of welcome
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('welcome') === 'citizen') {
+      setActiveDialog('town_hall');
+      // Clean URL without reload
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [townHallView, setTownHallView] = useState<'lobby' | 'office' | 'registry'>('lobby');
   const [selectedCouncilMember, setSelectedCouncilMember] = useState<CouncilMember | null>(null);
@@ -75,11 +85,11 @@ export default function Home() {
             alt="Clawntown Sigil"
             className="w-32 h-auto mx-auto mb-3"
           />
-          <h1 className="font-pixel text-lg text-lobster-red mb-2">
+          <h1 className="font-pixel text-lg text-shell-red mb-2">
             CLAWNTOWN
           </h1>
           <p className="font-retro text-sm">
-            An evolving coastal lobster town
+            An evolving coastal crustacean town
           </p>
         </div>
 
@@ -118,42 +128,13 @@ export default function Home() {
         )}
 
         {townHallView === 'office' && selectedCouncilMember && (
-          isAuthenticated ? (
-            <ChatView
-              member={selectedCouncilMember}
-              citizenName={profile?.name || 'Citizen'}
-              onBack={handleBackToLobby}
-            />
-          ) : (
-            <div className="space-y-4">
-              <button
-                onClick={handleBackToLobby}
-                className="font-retro text-xs text-blue-600 hover:underline"
-              >
-                &larr; Back to Lobby
-              </button>
-              <div className="text-center py-8">
-                <img
-                  src={selectedCouncilMember.avatar}
-                  alt={selectedCouncilMember.name}
-                  className="w-16 h-16 mx-auto mb-3"
-                  style={{ imageRendering: 'pixelated' }}
-                />
-                <h3 className="font-retro text-sm font-bold mb-2">
-                  {selectedCouncilMember.name}
-                </h3>
-                <p className="font-retro text-xs text-gray-600 mb-4">
-                  Become a citizen to chat with the council!
-                </p>
-                <button
-                  onClick={() => setTownHallView('registry')}
-                  className="btn-retro"
-                >
-                  🦞 Become a Citizen
-                </button>
-              </div>
-            </div>
-          )
+          <CouncilOfficeView
+            member={selectedCouncilMember}
+            profile={profile}
+            isAuthenticated={isAuthenticated}
+            onBack={handleBackToLobby}
+            onShowRegistry={() => setTownHallView('registry')}
+          />
         )}
 
         {townHallView === 'registry' && (
@@ -183,7 +164,7 @@ export default function Home() {
       >
         <div className="space-y-4">
           {/* Intro section */}
-          <div className="p-3 bg-lobster-red text-white border-2 border-red-800">
+          <div className="p-3 bg-shell-red text-white border-2 border-red-800">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">🦀</span>
               <div>
@@ -192,7 +173,7 @@ export default function Home() {
               </div>
             </div>
             <p className="font-retro text-[10px] opacity-90 leading-relaxed">
-              Just as lobsters shed their shells to grow, Clawntown evolves through the ideas of its citizens.
+              Just as crustaceans shed their shells to grow, Clawntown evolves through the ideas of its citizens.
               Here you'll find proposals to improve our town — from new buildings to community events —
               shaped by residents and approved by the elected council.
             </p>
