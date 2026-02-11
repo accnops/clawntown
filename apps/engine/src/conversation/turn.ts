@@ -84,7 +84,7 @@ export async function updateTurnTokens(turnId: string, tokensUsed: number): Prom
 
 export async function endTurn(
   turnId: string,
-  status: 'completed' | 'timed_out'
+  status: 'completed' | 'timed_out' | 'violation'
 ): Promise<void> {
   const records = await queryTownData<ConversationTurn>('conversation_turn', {});
   const record = records.find(r => r.data.id === turnId);

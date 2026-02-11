@@ -4,6 +4,7 @@ import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 import { getCouncilMember } from '@/data/council-members';
 import { sanitizeMessage } from '@/lib/sanitize';
 import { moderateWithLLM } from '@/lib/moderate';
+import { recordViolation } from '@/lib/violations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,19 +27,7 @@ export async function POST(request: NextRequest) {
 
     const sanitizedContent = sanitizeResult.sanitized;
 
-    // Moderate message (Pass 2: LLM moderation)
-    if (isGeminiConfigured()) {
-      const moderation = await moderateWithLLM(sanitizedContent);
-      if (!moderation.safe) {
-        return NextResponse.json({
-          error: 'message_rejected',
-          reason: "Whoa there, citizen! That message isn't appropriate for Clawntown.",
-          category: moderation.category,
-        }, { status: 422 });
-      }
-    }
-
-    // Get current turn
+    // Get current turn (needed for violation recording before moderation)
     const { data: turn, error: turnError } = await supabase
       .from('turns')
       .select('*')
@@ -53,6 +42,53 @@ export async function POST(request: NextRequest) {
     // Verify turn belongs to this citizen
     if (turn.citizen_id !== citizenId) {
       return NextResponse.json({ error: 'Not your turn' }, { status: 403 });
+    }
+
+    // Moderate message (Pass 2: LLM moderation)
+    if (isGeminiConfigured()) {
+      const moderation = await moderateWithLLM(sanitizedContent);
+      if (!moderation.safe) {
+        // Record the violation
+        // Map moderation category to violation type
+        const validViolationTypes = ['profanity', 'injection', 'harassment', 'hate_speech', 'dangerous', 'spam'] as const;
+        type ViolationType = typeof validViolationTypes[number];
+        const violationType: ViolationType = validViolationTypes.includes(moderation.category as ViolationType)
+          ? (moderation.category as ViolationType)
+          : 'spam';
+
+        const violationResult = await recordViolation(
+          citizenId,
+          violationType,
+          content,
+          turn.id
+        );
+
+        // End the turn due to violation
+        await supabase
+          .from('turns')
+          .update({ ended_at: new Date().toISOString() })
+          .eq('id', turn.id);
+
+        // Update queue entry to reflect violation
+        await supabase
+          .from('queue_entries')
+          .update({ status: 'completed' })
+          .eq('citizen_id', citizenId)
+          .eq('member_id', memberId)
+          .eq('status', 'active');
+
+        return NextResponse.json(
+          {
+            error: 'message_rejected',
+            category: moderation.category,
+            reason: "Whoa there, citizen! That message isn't appropriate for Clawntown.",
+            turnEnded: true,
+            isBanned: violationResult.isBanned,
+            bannedUntil: violationResult.bannedUntil?.toISOString(),
+          },
+          { status: 422 }
+        );
+      }
     }
 
     // Check if turn has expired
