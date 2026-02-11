@@ -93,3 +93,22 @@ export function subscribeBroadcast<T>(
     })
     .subscribe();
 }
+
+export async function insertTownData<T>(
+  type: string,
+  data: T,
+  indexes: { index_1?: string; index_2?: string; index_3?: string } = {}
+): Promise<TownDataRecord<T>> {
+  const { data: record, error } = await supabase
+    .from('town_data')
+    .insert({
+      type,
+      data,
+      ...indexes,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return record as TownDataRecord<T>;
+}
