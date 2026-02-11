@@ -134,8 +134,8 @@ export async function POST(request: NextRequest) {
     // Enrich turn with citizen info for broadcast
     const enrichedTurn = {
       ...turn,
-      citizen_name: citizen?.name || nextInQueue.citizen_name || 'Citizen',
-      citizen_avatar: citizen?.avatar || nextInQueue.citizen_avatar || null,
+      citizen_name: citizen?.name || 'Citizen',
+      citizen_avatar: citizen?.avatar || null,
     };
 
     // Get updated queue length

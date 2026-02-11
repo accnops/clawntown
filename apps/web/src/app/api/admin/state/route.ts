@@ -22,6 +22,17 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
     const now = new Date();
 
+    // Type for queue entries with heartbeat (not in generated types yet)
+    type QueueEntryWithHeartbeat = {
+      id: string;
+      member_id: string;
+      citizen_id: string;
+      status: string;
+      joined_at: string;
+      last_heartbeat_at: string | null;
+      citizens: { name: string; avatar: string } | null;
+    };
+
     // Get all active turns
     const { data: activeTurns } = await supabase
       .from('turns')
@@ -33,13 +44,13 @@ export async function GET(request: NextRequest) {
       .from('queue_entries')
       .select('*, citizens:citizen_id(name, avatar)')
       .eq('status', 'waiting')
-      .order('joined_at', { ascending: true });
+      .order('joined_at', { ascending: true }) as { data: QueueEntryWithHeartbeat[] | null };
 
     // Get all active queue entries (people currently chatting)
     const { data: activeEntries } = await supabase
       .from('queue_entries')
       .select('*, citizens:citizen_id(name, avatar)')
-      .eq('status', 'active');
+      .eq('status', 'active') as { data: QueueEntryWithHeartbeat[] | null };
 
     // Build state per council member
     const memberStates = COUNCIL_MEMBERS.map(member => {
