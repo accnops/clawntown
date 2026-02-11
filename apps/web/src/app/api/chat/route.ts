@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 import { getCouncilMember } from '@/data/council-members';
+import { sanitizeMessage } from '@/lib/sanitize';
+import { moderateWithLLM } from '@/lib/moderate';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +10,28 @@ export async function POST(request: NextRequest) {
 
     if (!memberId || !citizenName || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Sanitize message (Pass 1: regex + profanity)
+    const sanitizeResult = sanitizeMessage(message);
+    if (!sanitizeResult.ok) {
+      return NextResponse.json({
+        error: 'message_rejected',
+        reason: sanitizeResult.reason,
+        category: sanitizeResult.category,
+      }, { status: 422 });
+    }
+
+    // Moderate message (Pass 2: LLM moderation)
+    if (isGeminiConfigured()) {
+      const moderation = await moderateWithLLM(sanitizeResult.sanitized);
+      if (!moderation.safe) {
+        return NextResponse.json({
+          error: 'message_rejected',
+          reason: "Whoa there, citizen! That message isn't appropriate for Clawntown.",
+          category: moderation.category,
+        }, { status: 422 });
+      }
     }
 
     // Get council member
@@ -28,7 +52,7 @@ export async function POST(request: NextRequest) {
     const response = await generateCouncilResponse(
       councilMember.personality,
       citizenName,
-      message,
+      sanitizeResult.sanitized,
       history || []
     );
 

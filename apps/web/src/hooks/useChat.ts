@@ -55,6 +55,13 @@ export function useChat({ memberId, citizenName }: UseChatOptions) {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 422 && data.error === 'message_rejected') {
+          // Remove the optimistically-added citizen message
+          setMessages((prev) => prev.filter((m) => m.id !== citizenMessage.id));
+          setError(data.reason || 'Message was rejected');
+          setIsLoading(false);
+          return;
+        }
         throw new Error(data.error || 'Failed to get response');
       }
 

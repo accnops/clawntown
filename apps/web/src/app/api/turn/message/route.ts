@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 import { getCouncilMember } from '@/data/council-members';
+import { sanitizeMessage } from '@/lib/sanitize';
+import { moderateWithLLM } from '@/lib/moderate';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +12,30 @@ export async function POST(request: NextRequest) {
 
     if (!memberId || !citizenId || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Sanitize message (Pass 1: regex + profanity)
+    const sanitizeResult = sanitizeMessage(content);
+    if (!sanitizeResult.ok) {
+      return NextResponse.json({
+        error: 'message_rejected',
+        reason: sanitizeResult.reason,
+        category: sanitizeResult.category,
+      }, { status: 422 });
+    }
+
+    const sanitizedContent = sanitizeResult.sanitized;
+
+    // Moderate message (Pass 2: LLM moderation)
+    if (isGeminiConfigured()) {
+      const moderation = await moderateWithLLM(sanitizedContent);
+      if (!moderation.safe) {
+        return NextResponse.json({
+          error: 'message_rejected',
+          reason: "Whoa there, citizen! That message isn't appropriate for Clawntown.",
+          category: moderation.category,
+        }, { status: 422 });
+      }
     }
 
     // Get current turn
@@ -49,8 +75,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Check character limit
-    const newCharsUsed = turn.chars_used + content.length;
+    // Check character limit (use sanitized content length)
+    const newCharsUsed = turn.chars_used + sanitizedContent.length;
     if (newCharsUsed > turn.char_budget) {
       return NextResponse.json({
         error: 'Character budget exceeded',
@@ -73,7 +99,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Council member not found' }, { status: 404 });
     }
 
-    // Save citizen message
+    // Save citizen message (sanitized)
     const { data: citizenMessage, error: msgError } = await supabase
       .from('conversation_messages')
       .insert({
@@ -81,7 +107,7 @@ export async function POST(request: NextRequest) {
         role: 'citizen',
         citizen_id: citizenId,
         citizen_name: citizenName,
-        content,
+        content: sanitizedContent,
       })
       .select()
       .single();
@@ -113,7 +139,7 @@ export async function POST(request: NextRequest) {
         const responseText = await generateCouncilResponse(
           councilMember.personality,
           citizenName,
-          content,
+          sanitizedContent,
           conversationHistory.slice(0, -1) // Exclude current message
         );
 

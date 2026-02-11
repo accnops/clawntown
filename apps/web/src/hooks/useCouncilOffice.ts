@@ -113,7 +113,17 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
       body: JSON.stringify({ memberId: member.id, citizenId, content }),
     });
 
-    return res.json();
+    const data = await res.json();
+
+    if (res.status === 422 && data.error === 'message_rejected') {
+      return { rejected: true, reason: data.reason };
+    }
+
+    if (!res.ok) {
+      return { rejected: false, error: data.error };
+    }
+
+    return data;
   }, [member.id, citizenId]);
 
   return {
