@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { CouncilMember, ConversationMessage, CitizenTurn } from '@clawntown/shared';
+import { Captcha } from '@/components/auth/Captcha';
+import { Dialog } from '@/components/ui/Dialog';
 
 interface CouncilOfficeProps {
   member: CouncilMember;
@@ -18,6 +20,9 @@ interface CouncilOfficeProps {
   onRaiseHand: () => void;
   onLeaveQueue: () => void;
   onBack: () => void;
+  onShowRegistry: () => void;
+  needsCaptcha: () => boolean;
+  updateCaptchaTimestamp: () => Promise<void>;
 }
 
 const CHAR_BUDGET = 500;
@@ -39,9 +44,13 @@ export function CouncilOffice({
   onRaiseHand,
   onLeaveQueue,
   onBack,
+  onShowRegistry,
+  needsCaptcha,
+  updateCaptchaTimestamp,
 }: CouncilOfficeProps) {
   const [input, setInput] = useState('');
   const [timeRemaining, setTimeRemaining] = useState(TIME_BUDGET_MS);
+  const [showCaptchaModal, setShowCaptchaModal] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll on new messages
@@ -204,15 +213,50 @@ export function CouncilOffice({
             Leave Queue
           </button>
         </div>
+      ) : isAuthenticated ? (
+        <button
+          onClick={() => {
+            if (needsCaptcha()) {
+              setShowCaptchaModal(true);
+            } else {
+              onRaiseHand();
+            }
+          }}
+          className="btn-retro w-full text-xs"
+        >
+          Raise Hand to Speak
+        </button>
       ) : (
         <button
-          onClick={isAuthenticated ? onRaiseHand : () => {}}
+          onClick={onShowRegistry}
           className="btn-retro w-full text-xs"
-          disabled={!isAuthenticated}
         >
-          {isAuthenticated ? 'Raise Hand to Speak' : 'Sign in to Speak'}
+          Register to Participate
         </button>
       )}
+
+      {/* Captcha Modal */}
+      <Dialog
+        title="Verification Required"
+        isOpen={showCaptchaModal}
+        onClose={() => setShowCaptchaModal(false)}
+      >
+        <p className="mb-4 text-sm font-retro">Please verify you're human to join the queue.</p>
+        <Captcha
+          onVerify={async (token) => {
+            const res = await fetch('/api/captcha/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ token }),
+            });
+            if (res.ok) {
+              await updateCaptchaTimestamp();
+              setShowCaptchaModal(false);
+              onRaiseHand();
+            }
+          }}
+        />
+      </Dialog>
     </div>
   );
 }
