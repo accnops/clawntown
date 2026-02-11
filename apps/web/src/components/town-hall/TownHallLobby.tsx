@@ -57,9 +57,9 @@ export function TownHallLobby({
       ) : (
         <button
           onClick={onOpenRegistry}
-          className="btn-retro w-full text-xs flex items-center justify-center gap-2"
+          className="btn-retro w-full text-sm py-3"
         >
-          🪪 Register / Sign In
+          🦞 Become a Citizen to Chat
         </button>
       )}
 
