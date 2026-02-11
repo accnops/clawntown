@@ -16,10 +16,25 @@ export interface CitizenTurn {
 
 export interface QueueEntry {
   id: string;
+  memberId: string;
   citizenId: string;
   citizenName: string;
   citizenAvatar: string;
-  joinedAt: number; // timestamp
+  joinedAt: Date;
+  confirmedReady: boolean;
+  confirmedAt: Date | null;
+  readyCheckSentAt: Date | null;
+  position: number;
+  status: 'waiting' | 'ready_check' | 'confirmed' | 'active' | 'completed' | 'skipped';
+}
+
+export interface ViolationLog {
+  id: string;
+  citizenId: string;
+  occurredAt: Date;
+  violationType: 'profanity' | 'injection' | 'harassment' | 'hate_speech' | 'dangerous' | 'spam';
+  messageContent: string;
+  turnId: string;
 }
 
 export interface ConversationSession {
