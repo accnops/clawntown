@@ -115,16 +115,25 @@ export async function POST(request: NextRequest) {
 
       if (!existingTurn) {
         // Start their turn automatically
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002';
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
+
+        console.log('[Queue Join] Auto-starting turn, baseUrl:', baseUrl);
+
         const startRes = await fetch(new URL('/api/turn/start', baseUrl), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ memberId }),
         });
 
+        console.log('[Queue Join] Turn start response:', startRes.status);
+
         if (startRes.ok) {
           const startData = await startRes.json();
           turn = startData.turn;
+        } else {
+          const errorData = await startRes.json().catch(() => ({}));
+          console.log('[Queue Join] Turn start failed:', errorData);
         }
       }
     }
