@@ -20,6 +20,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Debug: log token preview and secret key prefix
+  const tokenPreview = token.length > 20
+    ? `${token.slice(0, 10)}...${token.slice(-10)} (len: ${token.length})`
+    : `[short token: ${token}]`;
+  const secretPreview = TURNSTILE_SECRET.slice(0, 8) + '...';
+  console.log('[Captcha] Token:', tokenPreview);
+  console.log('[Captcha] Secret prefix:', secretPreview);
+
   try {
     const response = await fetch(TURNSTILE_VERIFY_URL, {
       method: 'POST',
