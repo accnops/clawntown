@@ -2,45 +2,40 @@
 
 import { useState } from 'react';
 import { CITIZEN_AVATARS, type CitizenAvatar } from '@/data/citizen-avatars';
+import { Captcha } from '@/components/auth/Captcha';
 
-type RegistryStep = 'welcome' | 'name' | 'avatar' | 'auth' | 'complete';
+type RegistryStep = 'welcome' | 'name' | 'avatar' | 'email' | 'sent';
 
 interface CitizenRegistryProps {
-  onRegister: (data: { name: string; avatarId: string; email: string; password: string }) => Promise<void>;
-  onSignIn: (data: { email: string; password: string }) => Promise<void>;
+  onSendMagicLink: (email: string, name: string, avatarId: string) => Promise<{ error: Error | null }>;
   onBack: () => void;
-  isAuthenticated: boolean;
 }
 
 const CLERK_DIALOGUE = {
-  welcome: {
-    new: "Welcome to the Citizen Registry Office! I am Clerk Barnacle, keeper of all official records. Are you here to register as a new citizen of Clawntown, or are you a returning resident?",
-    authenticated: "Ah, I see you're already registered in our records! Welcome back, citizen. Is there anything else I can help you with today?",
-  },
+  welcome: "Welcome to the Citizen Registry Office! I am Clerk Barnacle, keeper of all official records. Are you here to register as a new citizen of Clawntown, or are you a returning resident?",
   name: "Excellent! Let's begin the official registration process. According to Town Ordinance 12-A, I shall require your name for the permanent records. What shall I inscribe in the Registry?",
   avatar: "Splendid! Now, for the official portrait. Please select how you wish to appear in the Citizen Registry. Choose wisely - this portrait shall represent you in all town proceedings!",
-  auth: "Almost done! For security purposes mandated by Town Ordinance 47-B, I require a secure method of identification. Please provide your credentials for future access to town services.",
-  complete: "Congratulations! I hereby officially welcome you as a citizen of Clawntown! Your registration has been recorded in the permanent archives. May your time in our fair town be prosperous!",
-  signIn: "Welcome back! Please provide your credentials to access your citizen record.",
+  email: "Almost done! For security purposes mandated by Town Ordinance 47-B, I require a valid correspondence address. A magical verification link shall be dispatched forthwith!",
+  sent: "Excellent! The magical verification link has been dispatched to your correspondence address. Please check your inbox and click the link to complete your registration!",
   error: "Oh dear, there seems to be a problem with the paperwork. Perhaps we should try again?",
 };
 
 export function CitizenRegistry({
-  onRegister,
-  onSignIn,
+  onSendMagicLink,
   onBack,
-  isAuthenticated,
 }: CitizenRegistryProps) {
   const [step, setStep] = useState<RegistryStep>('welcome');
   const [mode, setMode] = useState<'register' | 'signin' | null>(null);
   const [name, setName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState<CitizenAvatar | null>(null);
-  const [hoveredAvatar, setHoveredAvatar] = useState<CitizenAvatar | null>(null);
+  const [avatarId, setAvatarId] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [hoveredAvatar, setHoveredAvatar] = useState<CitizenAvatar | null>(null);
+
+  const selectedAvatar = CITIZEN_AVATARS.find(a => a.id === avatarId) || null;
 
   const handleNewCitizen = () => {
     setMode('register');
@@ -48,9 +43,9 @@ export function CitizenRegistry({
     setError(null);
   };
 
-  const handleReturningCitizen = () => {
+  const handleSignIn = () => {
     setMode('signin');
-    setStep('auth');
+    setStep('email');
     setError(null);
   };
 
@@ -69,19 +64,19 @@ export function CitizenRegistry({
   };
 
   const handleAvatarSelect = (avatar: CitizenAvatar) => {
-    setSelectedAvatar(avatar);
+    setAvatarId(avatar.id);
   };
 
   const handleAvatarConfirm = () => {
-    if (!selectedAvatar) {
+    if (!avatarId) {
       setError('Please select a portrait for the official records.');
       return;
     }
     setError(null);
-    setStep('auth');
+    setStep('email');
   };
 
-  const handleAuthSubmit = async (e: React.FormEvent) => {
+  const handleSubmitEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -90,46 +85,42 @@ export function CitizenRegistry({
       return;
     }
 
-    if (password.length < 6) {
-      setError('Your security key must be at least 6 characters for adequate protection.');
+    if (!captchaToken) {
+      setError('Please complete the verification challenge.');
       return;
     }
 
-    if (mode === 'register') {
-      if (password !== confirmPassword) {
-        setError('The security keys do not match. Please verify and try again.');
-        return;
+    setIsSubmitting(true);
+
+    try {
+      // Verify captcha
+      const captchaResponse = await fetch('/api/captcha/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken }),
+      });
+
+      if (!captchaResponse.ok) {
+        const data = await captchaResponse.json();
+        throw new Error(data.error || 'Captcha verification failed');
       }
 
-      if (!selectedAvatar) {
-        setError('Portrait selection is required.');
-        return;
+      // Send magic link
+      const result = await onSendMagicLink(
+        email,
+        mode === 'register' ? name.trim() : '',
+        mode === 'register' ? avatarId : ''
+      );
+
+      if (result.error) {
+        throw result.error;
       }
 
-      setIsLoading(true);
-      try {
-        await onRegister({
-          name: name.trim(),
-          avatarId: selectedAvatar.id,
-          email,
-          password,
-        });
-        setStep('complete');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      setIsLoading(true);
-      try {
-        await onSignIn({ email, password });
-        setStep('complete');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Sign in failed. Please verify your credentials.');
-      } finally {
-        setIsLoading(false);
-      }
+      setStep('sent');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send magic link. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -138,15 +129,15 @@ export function CitizenRegistry({
 
     switch (step) {
       case 'welcome':
-        return isAuthenticated ? CLERK_DIALOGUE.welcome.authenticated : CLERK_DIALOGUE.welcome.new;
+        return CLERK_DIALOGUE.welcome;
       case 'name':
         return CLERK_DIALOGUE.name;
       case 'avatar':
         return CLERK_DIALOGUE.avatar;
-      case 'auth':
-        return mode === 'signin' ? CLERK_DIALOGUE.signIn : CLERK_DIALOGUE.auth;
-      case 'complete':
-        return CLERK_DIALOGUE.complete;
+      case 'email':
+        return CLERK_DIALOGUE.email;
+      case 'sent':
+        return CLERK_DIALOGUE.sent;
       default:
         return '';
     }
@@ -185,7 +176,7 @@ export function CitizenRegistry({
       {/* Step content */}
       <div className="min-h-[200px]">
         {/* Welcome step */}
-        {step === 'welcome' && !isAuthenticated && (
+        {step === 'welcome' && (
           <div className="space-y-3">
             <button
               onClick={handleNewCitizen}
@@ -194,26 +185,10 @@ export function CitizenRegistry({
               Register as New Citizen
             </button>
             <button
-              onClick={handleReturningCitizen}
+              onClick={handleSignIn}
               className="btn-retro w-full text-xs py-3"
             >
-              Returning Citizen Sign In
-            </button>
-          </div>
-        )}
-
-        {step === 'welcome' && isAuthenticated && (
-          <div className="space-y-3">
-            <div className="bg-green-100 border border-green-400 rounded p-3">
-              <p className="font-retro text-xs text-green-800 text-center">
-                You are registered and signed in!
-              </p>
-            </div>
-            <button
-              onClick={onBack}
-              className="btn-retro w-full text-xs py-3"
-            >
-              Return to Lobby
+              Sign In
             </button>
           </div>
         )}
@@ -276,7 +251,7 @@ export function CitizenRegistry({
               </div>
             </div>
 
-            {/* Avatar grid */}
+            {/* Avatar grid - 4x4 */}
             <div className="grid grid-cols-4 gap-2">
               {CITIZEN_AVATARS.map((avatar) => (
                 <button
@@ -286,7 +261,7 @@ export function CitizenRegistry({
                   onMouseLeave={() => setHoveredAvatar(null)}
                   className={`
                     p-1 rounded border-2 transition-all cursor-pointer
-                    ${selectedAvatar?.id === avatar.id
+                    ${avatarId === avatar.id
                       ? 'border-lobster-red bg-red-50'
                       : 'border-gray-300 bg-white hover:border-gray-400'
                     }
@@ -313,7 +288,7 @@ export function CitizenRegistry({
               <button
                 onClick={handleAvatarConfirm}
                 className="btn-retro text-xs flex-1"
-                disabled={!selectedAvatar}
+                disabled={!avatarId}
               >
                 Continue
               </button>
@@ -321,9 +296,9 @@ export function CitizenRegistry({
           </div>
         )}
 
-        {/* Auth step */}
-        {step === 'auth' && (
-          <form onSubmit={handleAuthSubmit} className="space-y-3">
+        {/* Email step */}
+        {step === 'email' && (
+          <form onSubmit={handleSubmitEmail} className="space-y-3">
             <div>
               <label className="font-retro text-xs text-gray-600 block mb-1">
                 Email Address
@@ -335,82 +310,71 @@ export function CitizenRegistry({
                 placeholder="your@email.com"
                 className="input-retro w-full font-retro text-sm"
                 autoFocus
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
             </div>
 
-            <div>
-              <label className="font-retro text-xs text-gray-600 block mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password..."
-                className="input-retro w-full font-retro text-sm"
-                disabled={isLoading}
+            {/* Captcha */}
+            <div className="flex justify-center">
+              <Captcha
+                onVerify={(token) => setCaptchaToken(token)}
+                onError={() => setCaptchaToken(null)}
+                onExpire={() => setCaptchaToken(null)}
               />
             </div>
 
-            {mode === 'register' && (
-              <div>
-                <label className="font-retro text-xs text-gray-600 block mb-1">
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm password..."
-                  className="input-retro w-full font-retro text-sm"
-                  disabled={isLoading}
-                />
-              </div>
-            )}
+            {/* Terms and Privacy */}
+            <p className="font-retro text-[10px] text-gray-500 text-center">
+              By continuing, you agree to our{' '}
+              <a href="/terms" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a href="/privacy" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </a>
+            </p>
 
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setStep(mode === 'register' ? 'avatar' : 'welcome')}
                 className="btn-retro text-xs flex-1"
-                disabled={isLoading}
+                disabled={isSubmitting}
               >
                 Back
               </button>
               <button
                 type="submit"
                 className="btn-retro text-xs flex-1"
-                disabled={isLoading || !email || !password}
+                disabled={isSubmitting || !email || !captchaToken}
               >
-                {isLoading ? 'Processing...' : mode === 'register' ? 'Complete Registration' : 'Sign In'}
+                {isSubmitting ? 'Sending...' : 'Send Magic Link'}
               </button>
             </div>
           </form>
         )}
 
-        {/* Complete step */}
-        {step === 'complete' && (
+        {/* Sent step */}
+        {step === 'sent' && (
           <div className="space-y-3">
             <div className="bg-green-100 border border-green-400 rounded p-4 text-center">
               <div className="text-3xl mb-2">*</div>
               <p className="font-pixel text-sm text-green-800">
-                {mode === 'register' ? 'Registration Complete!' : 'Welcome Back!'}
+                Magic Link Sent!
               </p>
-              {selectedAvatar && (
-                <img
-                  src={selectedAvatar.srcSpinning}
-                  alt="Your avatar"
-                  className="w-16 h-16 object-contain mx-auto mt-2"
-                  style={{ imageRendering: 'pixelated' }}
-                />
-              )}
+              <p className="font-retro text-xs text-green-700 mt-2">
+                Check your inbox at:
+              </p>
+              <p className="font-retro text-xs text-green-800 font-bold">
+                {email}
+              </p>
             </div>
             <button
               onClick={onBack}
               className="btn-retro w-full text-xs py-3"
             >
-              Enter Clawntown
+              Return to Lobby
             </button>
           </div>
         )}
