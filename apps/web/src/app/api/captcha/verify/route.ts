@@ -6,35 +6,60 @@ const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/sit
 export async function POST(request: NextRequest) {
   if (!TURNSTILE_SECRET) {
     // Dev mode: skip verification
+    console.log('[Captcha] Dev mode - skipping verification');
     return NextResponse.json({ success: true, dev: true });
   }
 
   const { token } = await request.json();
 
   if (!token) {
+    console.log('[Captcha] No token provided');
     return NextResponse.json(
       { success: false, error: 'Missing captcha token' },
       { status: 400 }
     );
   }
 
-  const response = await fetch(TURNSTILE_VERIFY_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      secret: TURNSTILE_SECRET,
-      response: token,
-    }),
-  });
+  try {
+    const response = await fetch(TURNSTILE_VERIFY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        secret: TURNSTILE_SECRET,
+        response: token,
+      }),
+    });
 
-  const result = await response.json();
+    const result = await response.json();
 
-  if (!result.success) {
+    console.log('[Captcha] Cloudflare response:', JSON.stringify(result));
+
+    if (!result.success) {
+      // Cloudflare error codes: https://developers.cloudflare.com/turnstile/reference/error-codes/
+      const errorCodes = result['error-codes'] || [];
+      console.log('[Captcha] Verification failed. Error codes:', errorCodes);
+
+      let errorMessage = 'Captcha verification failed';
+      if (errorCodes.includes('timeout-or-duplicate')) {
+        errorMessage = 'Captcha expired or already used. Please try again.';
+      } else if (errorCodes.includes('invalid-input-response')) {
+        errorMessage = 'Invalid captcha. Please refresh and try again.';
+      } else if (errorCodes.includes('invalid-input-secret')) {
+        errorMessage = 'Server configuration error. Please contact support.';
+      }
+
+      return NextResponse.json(
+        { success: false, error: errorMessage, codes: errorCodes },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('[Captcha] Network error:', err);
     return NextResponse.json(
-      { success: false, error: 'Captcha verification failed' },
-      { status: 400 }
+      { success: false, error: 'Failed to verify captcha. Please try again.' },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json({ success: true });
 }

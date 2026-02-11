@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { CITIZEN_AVATARS, type CitizenAvatar } from '@/data/citizen-avatars';
-import { Captcha } from '@/components/auth/Captcha';
+import { Captcha, type CaptchaHandle } from '@/components/auth/Captcha';
 
 type RegistryStep = 'welcome' | 'name' | 'avatar' | 'email' | 'sent';
 
@@ -34,6 +34,7 @@ export function CitizenRegistry({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [hoveredAvatar, setHoveredAvatar] = useState<CitizenAvatar | null>(null);
+  const captchaRef = useRef<CaptchaHandle>(null);
 
   const selectedAvatar = CITIZEN_AVATARS.find(a => a.id === avatarId) || null;
 
@@ -119,6 +120,9 @@ export function CitizenRegistry({
       setStep('sent');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to send magic link. Please try again.');
+      // Reset captcha so user can try again
+      setCaptchaToken(null);
+      captchaRef.current?.reset();
     } finally {
       setIsSubmitting(false);
     }
@@ -320,7 +324,11 @@ export function CitizenRegistry({
             {/* Captcha */}
             <div className="flex justify-center">
               <Captcha
-                onVerify={(token) => setCaptchaToken(token)}
+                ref={captchaRef}
+                onVerify={(token) => {
+                  setCaptchaToken(token);
+                  setError(null); // Clear any previous error
+                }}
                 onError={() => setCaptchaToken(null)}
                 onExpire={() => setCaptchaToken(null)}
               />

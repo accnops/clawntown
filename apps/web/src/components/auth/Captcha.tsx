@@ -1,7 +1,7 @@
 'use client';
 
-import { Turnstile } from '@marsidev/react-turnstile';
-import { useState } from 'react';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+import { useState, useRef, useImperativeHandle, forwardRef } from 'react';
 
 interface CaptchaProps {
   onVerify: (token: string) => void;
@@ -9,47 +9,83 @@ interface CaptchaProps {
   onExpire?: () => void;
 }
 
+export interface CaptchaHandle {
+  reset: () => void;
+}
+
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
-export function Captcha({ onVerify, onError, onExpire }: CaptchaProps) {
-  const [isLoading, setIsLoading] = useState(true);
+export const Captcha = forwardRef<CaptchaHandle, CaptchaProps>(
+  function Captcha({ onVerify, onError, onExpire }, ref) {
+    const [isLoading, setIsLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
+    const turnstileRef = useRef<TurnstileInstance>(null);
 
-  // Dev mode fallback
-  if (!SITE_KEY) {
+    useImperativeHandle(ref, () => ({
+      reset: () => {
+        turnstileRef.current?.reset();
+        setHasError(false);
+        setIsLoading(true);
+      },
+    }));
+
+    // Dev mode fallback
+    if (!SITE_KEY) {
+      return (
+        <button
+          type="button"
+          onClick={() => onVerify('dev-token')}
+          className="btn-retro px-4 py-2 text-sm"
+        >
+          [Dev Mode] Skip Captcha
+        </button>
+      );
+    }
+
     return (
-      <button
-        type="button"
-        onClick={() => onVerify('dev-token')}
-        className="btn-retro px-4 py-2 text-sm"
-      >
-        [Dev Mode] Skip Captcha
-      </button>
+      <div className="flex flex-col items-center gap-2">
+        {isLoading && !hasError && (
+          <div className="text-sm text-gray-500">Loading verification...</div>
+        )}
+        {hasError && (
+          <div className="text-sm text-red-600">
+            Verification failed.{' '}
+            <button
+              type="button"
+              onClick={() => {
+                turnstileRef.current?.reset();
+                setHasError(false);
+                setIsLoading(true);
+              }}
+              className="underline hover:no-underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+        <Turnstile
+          ref={turnstileRef}
+          siteKey={SITE_KEY}
+          onSuccess={(token) => {
+            setIsLoading(false);
+            setHasError(false);
+            onVerify(token);
+          }}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+            onError?.();
+          }}
+          onExpire={() => {
+            setHasError(true);
+            onExpire?.();
+          }}
+          options={{
+            theme: 'light',
+            size: 'normal',
+          }}
+        />
+      </div>
     );
   }
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      {isLoading && (
-        <div className="text-sm text-gray-500">Loading verification...</div>
-      )}
-      <Turnstile
-        siteKey={SITE_KEY}
-        onSuccess={(token) => {
-          setIsLoading(false);
-          onVerify(token);
-        }}
-        onError={() => {
-          setIsLoading(false);
-          onError?.();
-        }}
-        onExpire={() => {
-          onExpire?.();
-        }}
-        options={{
-          theme: 'light',
-          size: 'normal',
-        }}
-      />
-    </div>
-  );
-}
+);
