@@ -1,10 +1,23 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { COUNCIL_MEMBERS, isCouncilMemberOnline } from '@/data/council-members';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+const ADMIN_SECRET = process.env.CRON_SECRET || process.env.ADMIN_SECRET;
+
+export async function GET(request: NextRequest) {
+  // Require admin secret via header or query param
+  const authHeader = request.headers.get('authorization');
+  const { searchParams } = new URL(request.url);
+  const querySecret = searchParams.get('secret');
+
+  const providedSecret = authHeader?.replace('Bearer ', '') || querySecret;
+
+  if (!ADMIN_SECRET || providedSecret !== ADMIN_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const supabase = getSupabaseAdmin();
     const now = new Date();
