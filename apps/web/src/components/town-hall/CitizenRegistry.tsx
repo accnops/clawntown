@@ -357,8 +357,8 @@ export function CitizenRegistry({
               </button>
               <button
                 type="submit"
-                className={`btn-retro text-xs flex-1 ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}
-                disabled={isSubmitting || !email || !captchaToken}
+                className={`btn-retro text-xs flex-1 ${isSubmitting ? 'opacity-70 cursor-wait' : ''} ${(!email.trim() || !captchaToken) && !isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isSubmitting || !email.trim() || !captchaToken}
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center gap-2">
