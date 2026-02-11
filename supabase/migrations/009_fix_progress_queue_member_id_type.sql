@@ -1,11 +1,6 @@
--- Add heartbeat tracking to queue entries
-ALTER TABLE queue_entries ADD COLUMN IF NOT EXISTS last_heartbeat_at TIMESTAMPTZ;
+-- Fix: member_id should be TEXT, not UUID (council member IDs are strings like 'mayor')
+DROP FUNCTION IF EXISTS progress_queue(UUID, UUID, INT);
 
--- Update existing entries to have a heartbeat (so they're not immediately stale)
-UPDATE queue_entries SET last_heartbeat_at = now() WHERE last_heartbeat_at IS NULL;
-
--- Atomic queue progression function
--- Handles: expired turns, stale queue entries, race conditions
 CREATE OR REPLACE FUNCTION progress_queue(
   p_member_id TEXT,  -- Council member IDs are strings like 'mayor', 'lighthouse_keeper'
   p_citizen_id UUID,
