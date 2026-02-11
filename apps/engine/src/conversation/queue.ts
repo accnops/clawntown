@@ -9,7 +9,7 @@ export async function getQueue(memberId: string): Promise<QueueEntry[]> {
 
   return records
     .map(r => r.data)
-    .sort((a, b) => a.joinedAt - b.joinedAt);
+    .sort((a, b) => new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime());
 }
 
 export async function joinQueue(
@@ -30,10 +30,16 @@ export async function joinQueue(
 
   const entry: QueueEntry = {
     id: crypto.randomUUID(),
+    memberId,
     citizenId,
     citizenName,
     citizenAvatar,
-    joinedAt: Date.now(),
+    joinedAt: new Date(),
+    confirmedReady: false,
+    confirmedAt: null,
+    readyCheckSentAt: null,
+    position: 0,
+    status: 'waiting',
   };
 
   await insertTownData('queue_entry', entry, {

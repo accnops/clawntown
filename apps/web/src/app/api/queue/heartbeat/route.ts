@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { isCouncilMemberOnline } from '@/data/council-members';
+import { runCleanupIfNeeded } from '@/lib/cleanup';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +11,9 @@ export async function POST(request: NextRequest) {
     if (!memberId || !citizenId) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Run global cleanup (cached - at most every 20 seconds)
+    await runCleanupIfNeeded();
 
     // Zero-trust: Check if council member is actually online right now
     const now = new Date();

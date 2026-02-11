@@ -51,6 +51,7 @@ export async function addMessage(
     role,
     citizenId,
     citizenName,
+    citizenAvatar: null,
     content,
     createdAt: new Date(),
   };

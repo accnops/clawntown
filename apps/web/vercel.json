@@ -3,14 +3,6 @@
     {
       "path": "/api/cron/snapshot-stats",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/office-hours",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/cleanup",
-      "schedule": "* * * * *"
     }
   ]
 }
