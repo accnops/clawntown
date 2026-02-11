@@ -2,11 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { CouncilMember, ConversationMessage, CitizenTurn } from '@clawntown/shared';
+import { supabase } from '@/lib/supabase';
 import { Captcha } from '@/components/auth/Captcha';
 import { Dialog } from '@/components/ui/Dialog';
+import { ReadyCheckModal } from './ReadyCheckModal';
 
 interface CouncilOfficeProps {
   member: CouncilMember;
+  citizenId?: string;
   messages: ConversationMessage[];
   spectatorCount: number;
   queueLength: number;
@@ -31,6 +34,7 @@ const MESSAGE_LIMIT = 2;
 
 export function CouncilOffice({
   member,
+  citizenId,
   messages,
   spectatorCount,
   queueLength,
@@ -51,6 +55,7 @@ export function CouncilOffice({
   const [input, setInput] = useState('');
   const [timeRemaining, setTimeRemaining] = useState(TIME_BUDGET_MS);
   const [showCaptchaModal, setShowCaptchaModal] = useState(false);
+  const [readyCheck, setReadyCheck] = useState<{ expiresAt: Date } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll on new messages
@@ -70,6 +75,40 @@ export function CouncilOffice({
 
     return () => clearInterval(interval);
   }, [isMyTurn, currentTurn, isStreaming]);
+
+  // Subscribe to ready_check events
+  useEffect(() => {
+    if (!citizenId) return;
+
+    const channel = supabase.channel(`council-member-${member.id}`);
+
+    channel.on('broadcast', { event: 'ready_check' }, (payload) => {
+      if (payload.payload?.citizenId === citizenId) {
+        setReadyCheck({ expiresAt: new Date(payload.payload.expiresAt) });
+      }
+    });
+
+    channel.subscribe();
+    return () => { channel.unsubscribe(); };
+  }, [member.id, citizenId]);
+
+  const handleReadyConfirm = async () => {
+    await fetch('/api/queue/ready-check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberId: member.id,
+        citizenId,
+        action: 'confirm',
+      }),
+    });
+    setReadyCheck(null);
+  };
+
+  const handleReadyExpire = () => {
+    setReadyCheck(null);
+    // User was skipped - could show a toast notification
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,6 +296,15 @@ export function CouncilOffice({
           }}
         />
       </Dialog>
+
+      {/* Ready Check Modal */}
+      {readyCheck && (
+        <ReadyCheckModal
+          expiresAt={readyCheck.expiresAt}
+          onConfirm={handleReadyConfirm}
+          onExpire={handleReadyExpire}
+        />
+      )}
     </div>
   );
 }
