@@ -153,6 +153,9 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
   }, [member.id]);
 
   // Heartbeat while in queue - dynamic interval based on position
+  // Track if this is the first heartbeat (should be immediate)
+  const isFirstHeartbeatRef = useRef(true);
+
   useEffect(() => {
     if (!citizenId || !inQueueRef.current) {
       // Not in queue, clear any pending heartbeat
@@ -160,6 +163,7 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
         clearTimeout(heartbeatTimeoutRef.current);
         heartbeatTimeoutRef.current = null;
       }
+      isFirstHeartbeatRef.current = true; // Reset for next time we join
       return;
     }
 
@@ -218,8 +222,10 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
       }
     };
 
-    // Start heartbeat loop
-    heartbeatTimeoutRef.current = setTimeout(sendHeartbeat, heartbeatIntervalRef.current);
+    // Start heartbeat loop - first heartbeat is immediate, then uses dynamic interval
+    const initialDelay = isFirstHeartbeatRef.current ? 0 : heartbeatIntervalRef.current;
+    isFirstHeartbeatRef.current = false;
+    heartbeatTimeoutRef.current = setTimeout(sendHeartbeat, initialDelay);
 
     return () => {
       if (heartbeatTimeoutRef.current) {
