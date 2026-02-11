@@ -1,13 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 
-interface CitizenProfile {
+export interface CitizenProfile {
   id: string;
   name: string;
   avatar: string;
+  email: string;
+  bannedUntil: Date | null;
+}
+
+interface PendingRegistration {
+  name: string;
+  avatarId: string;
 }
 
 export function useAuth() {
@@ -16,75 +23,106 @@ export function useAuth() {
   const [profile, setProfile] = useState<CitizenProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state
   useEffect(() => {
-    // Get initial session
+    if (!isSupabaseConfigured()) {
+      setIsLoading(false);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        loadProfile(session.user);
+      }
       setIsLoading(false);
     });
 
-    // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          await loadProfile(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          setProfile(null);
+        }
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Sign up with email and password
-  const signUp = useCallback(async (email: string, password: string, citizenName: string, avatarId: string) => {
-    const { data, error } = await supabase.auth.signUp({
+  const loadProfile = useCallback(async (user: User) => {
+    const metadata = user.user_metadata;
+    setProfile({
+      id: user.id,
+      name: metadata.citizen_name || 'Anonymous Crab',
+      avatar: metadata.citizen_avatar || 'crab_01',
+      email: user.email || '',
+      bannedUntil: metadata.banned_until ? new Date(metadata.banned_until) : null,
+    });
+  }, []);
+
+  const sendMagicLink = useCallback(async (
+    email: string,
+    pendingRegistration?: PendingRegistration
+  ): Promise<{ error: Error | null }> => {
+    if (!isSupabaseConfigured()) {
+      return { error: new Error('Auth not configured') };
+    }
+
+    // Build redirect URL with pending registration data
+    const redirectBase = `${window.location.origin}/auth/callback`;
+    const redirectUrl = pendingRegistration
+      ? `${redirectBase}?name=${encodeURIComponent(pendingRegistration.name)}&avatar=${encodeURIComponent(pendingRegistration.avatarId)}`
+      : redirectBase;
+
+    const { error } = await supabase.auth.signInWithOtp({
       email,
-      password,
       options: {
-        data: {
-          citizen_name: citizenName,
-          citizen_avatar: avatarId,
-        },
+        emailRedirectTo: redirectUrl,
       },
     });
 
-    if (error) throw error;
-    return data;
+    return { error: error ? new Error(error.message) : null };
   }, []);
 
-  // Sign in with email and password
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  const signOut = useCallback(async (): Promise<void> => {
+    if (!isSupabaseConfigured()) return;
+    await supabase.auth.signOut();
+  }, []);
+
+  const updateCaptchaTimestamp = useCallback(async (): Promise<void> => {
+    if (!isSupabaseConfigured() || !user) return;
+
+    await supabase.auth.updateUser({
+      data: { last_captcha_at: new Date().toISOString() },
     });
+  }, [user]);
 
-    if (error) throw error;
-    return data;
-  }, []);
+  const getLastCaptchaAt = useCallback((): Date | null => {
+    const timestamp = user?.user_metadata?.last_captcha_at;
+    return timestamp ? new Date(timestamp) : null;
+  }, [user]);
 
-  // Sign out
-  const signOut = useCallback(async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    setProfile(null);
-  }, []);
-
-  // Get citizen display name and avatar
-  const citizenName = profile?.name || user?.user_metadata?.citizen_name || 'Anonymous';
-  const citizenAvatar = profile?.avatar || user?.user_metadata?.citizen_avatar || 'citizen_01';
+  const needsCaptcha = useCallback((): boolean => {
+    const lastCaptcha = getLastCaptchaAt();
+    if (!lastCaptcha) return true;
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    return lastCaptcha < oneHourAgo;
+  }, [getLastCaptchaAt]);
 
   return {
     user,
     session,
     profile,
     isLoading,
-    isAuthenticated: !!user,
-    citizenName,
-    citizenAvatar,
-    signUp,
-    signIn,
+    isAuthenticated: !!session,
+    sendMagicLink,
     signOut,
+    updateCaptchaTimestamp,
+    needsCaptcha,
   };
 }
