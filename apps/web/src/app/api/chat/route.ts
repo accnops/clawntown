@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 import { getCouncilMember } from '@/data/council-members';
 import { sanitizeMessage } from '@/lib/sanitize';
@@ -6,6 +7,24 @@ import { moderateWithLLM } from '@/lib/moderate';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const authHeader = request.headers.get('authorization');
+    if (authHeader) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (supabaseUrl && supabaseAnonKey) {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } }
+        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+        }
+      }
+    } else {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { memberId, citizenName, message, history } = await request.json();
 
     if (!memberId || !citizenName || !message) {
