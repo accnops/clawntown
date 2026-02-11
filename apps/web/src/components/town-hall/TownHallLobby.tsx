@@ -7,10 +7,19 @@ import type { CouncilMember } from '@clawntown/shared';
 
 interface TownHallLobbyProps {
   onSelectMember: (member: CouncilMember) => void;
-  onOpenRegistry?: () => void; // Optional - registry not yet implemented
+  onOpenRegistry: () => void;
+  isAuthenticated: boolean;
+  citizenName?: string;
+  onSignOut?: () => void;
 }
 
-export function TownHallLobby({ onSelectMember, onOpenRegistry }: TownHallLobbyProps) {
+export function TownHallLobby({
+  onSelectMember,
+  onOpenRegistry,
+  isAuthenticated,
+  citizenName,
+  onSignOut,
+}: TownHallLobbyProps) {
   const [now, setNow] = useState(new Date());
 
   // Update time every minute to refresh online status
@@ -32,14 +41,27 @@ export function TownHallLobby({ onSelectMember, onOpenRegistry }: TownHallLobbyP
         </p>
       </div>
 
-      {/* Citizen Registry button - hidden until auth is implemented
-      <button
-        onClick={onOpenRegistry}
-        className="btn-retro w-full text-xs flex items-center justify-center gap-2"
-      >
-        Citizen Registry Office
-      </button>
-      */}
+      {/* Auth Section */}
+      {isAuthenticated ? (
+        <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded p-2">
+          <span className="font-retro text-xs text-green-800">
+            🦀 Welcome, {citizenName}!
+          </span>
+          <button
+            onClick={onSignOut}
+            className="font-retro text-xs text-green-600 hover:underline"
+          >
+            Sign Out
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onOpenRegistry}
+          className="btn-retro w-full text-xs flex items-center justify-center gap-2"
+        >
+          🪪 Register / Sign In
+        </button>
+      )}
 
       {/* Online members */}
       {onlineMembers.length > 0 && (

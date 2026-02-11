@@ -7,7 +7,7 @@ import { ProjectBoard } from '@/components/projects';
 import { GitHubDiscussions } from '@/components/forum';
 import { TownHallLobby, ChatView, CitizenRegistry } from '@/components/town-hall';
 import { ClawMachine } from '@/components/arcade';
-import { useStats, useTrackVisit } from '@/hooks';
+import { useStats, useTrackVisit, useAuth } from '@/hooks';
 import type { CouncilMember } from '@clawntown/shared';
 
 type DialogType = 'welcome' | 'town_hall' | 'forum' | 'project_board' | 'notice_board' | 'lighthouse' | 'arcade' | null;
@@ -21,6 +21,7 @@ export default function Home() {
   // Track visitor and fetch stats
   useTrackVisit();
   const stats = useStats();
+  const { isAuthenticated, profile, sendMagicLink, signOut, isLoading: authLoading } = useAuth();
 
   const handleBuildingClick = (building: Building) => {
     setSelectedBuilding(building);
@@ -109,7 +110,10 @@ export default function Home() {
         {townHallView === 'lobby' && (
           <TownHallLobby
             onSelectMember={handleSelectCouncilMember}
-            // onOpenRegistry={() => setTownHallView('registry')} // Hidden until auth implemented
+            onOpenRegistry={() => setTownHallView('registry')}
+            isAuthenticated={isAuthenticated}
+            citizenName={profile?.name}
+            onSignOut={signOut}
           />
         )}
 
@@ -121,20 +125,14 @@ export default function Home() {
           />
         )}
 
-        {/* Citizen Registry - hidden until auth is implemented
         {townHallView === 'registry' && (
           <CitizenRegistry
-            onRegister={async () => {
-              // Placeholder - will be implemented with real auth
-            }}
-            onSignIn={async () => {
-              // Placeholder - will be implemented with real auth
+            onSendMagicLink={async (email, name, avatarId) => {
+              return sendMagicLink(email, name && avatarId ? { name, avatarId } : undefined);
             }}
             onBack={handleBackToLobby}
-            isAuthenticated={false}
           />
         )}
-        */}
       </Dialog>
 
       {/* Forum dialog - GitHub Discussions */}
