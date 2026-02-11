@@ -292,6 +292,14 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Population */}
+        <div className="mt-3 bg-indigo-900/50 rounded p-3 text-center">
+          <p className={`font-pixel text-2xl text-orange-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+            {stats.citizens ?? '--'}
+          </p>
+          <p className="font-retro text-xs text-indigo-300">Population</p>
+        </div>
+
         {/* GitHub Stars */}
         {stats.github?.stars !== undefined && stats.github.stars > 0 && (
           <div className="mt-4 text-center">

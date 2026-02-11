@@ -21,6 +21,7 @@ interface HistoryPoint {
 interface Stats {
   github: GitHubStats | null;
   visitors: number | null;
+  citizens: number | null;
   history: HistoryPoint[];
   loading: boolean;
   error: string | null;
@@ -30,6 +31,7 @@ export function useStats() {
   const [stats, setStats] = useState<Stats>({
     github: null,
     visitors: null,
+    citizens: null,
     history: [],
     loading: true,
     error: null,
@@ -38,20 +40,23 @@ export function useStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Fetch GitHub stats, visitor count, and history in parallel
-        const [githubRes, visitorsRes, historyRes] = await Promise.all([
+        // Fetch GitHub stats, visitor count, citizen count, and history in parallel
+        const [githubRes, visitorsRes, citizensRes, historyRes] = await Promise.all([
           fetch('/api/github/stats'),
           fetch('/api/stats/visitors'),
+          fetch('/api/stats/citizens'),
           fetch('/api/stats/history?days=14'),
         ]);
 
         const githubData = await githubRes.json();
         const visitorsData = await visitorsRes.json();
+        const citizensData = await citizensRes.json();
         const historyData = await historyRes.json();
 
         setStats({
           github: githubRes.ok ? githubData : null,
           visitors: visitorsData.count ?? null,
+          citizens: citizensData.count ?? null,
           history: historyData.history || [],
           loading: false,
           error: null,
