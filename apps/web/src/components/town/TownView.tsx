@@ -61,7 +61,7 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
         </div>
 
         {/* Population + Build your own */}
-        <p className="font-pixel text-[10px] md:text-xs text-white/90 drop-shadow font-normal">
+        <p className="font-pixel text-[8px] md:text-[10px] text-white/90 drop-shadow font-normal">
           Population: {population ?? '--'}
           <span className="mx-2 text-white/50">•</span>
           <button
