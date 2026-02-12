@@ -50,30 +50,27 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
       />
 
       {/* Header HUD */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none z-10">
-        {/* Left spacer for balance */}
-        <div className="w-32" />
-
-        {/* Town name (center) */}
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
+      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-10">
+        {/* Town name + population */}
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
+          <div>
             <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
               CLAWNTOWN
             </h1>
-            <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
+            <p className="font-retro text-[10px] md:text-xs text-white/80 drop-shadow -mt-0.5">
+              Pop. {population ?? '--'}
+            </p>
           </div>
-          <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
-            Population: {population ?? '--'}
-          </p>
+          <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
         </div>
 
-        {/* Build your own town button (right) */}
+        {/* Build your own town button */}
         <button
           onClick={() => setShowBuildDialog(true)}
-          className="pointer-events-auto bg-amber-500 hover:bg-amber-400 text-white font-retro text-xs px-3 py-1.5 rounded shadow-lg border-2 border-amber-600 hover:border-amber-500 transition-colors"
+          className="pointer-events-auto mt-2 bg-shell-red hover:bg-red-700 text-white font-pixel text-xs px-4 py-1.5 rounded shadow-lg border-2 border-red-900 hover:border-red-800 transition-colors drop-shadow-md"
         >
-          🏗️ Build your own!
+          BUILD YOUR OWN TOWN
         </button>
       </div>
 
