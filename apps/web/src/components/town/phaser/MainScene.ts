@@ -863,9 +863,14 @@ export class MainScene extends Phaser.Scene {
     const bottom = -pointerH;
 
     const graphics = this.add.graphics();
-    graphics.fillStyle(0xe74c3c, 1);
 
-    // Rounded rectangle body
+    // Dark drop shadow (offset 2px down-right)
+    graphics.fillStyle(0x000000, 0.3);
+    graphics.fillRoundedRect(-halfW + 2, top + 2, bannerW, bannerH, radius);
+    graphics.fillTriangle(-pointerW / 2 + 2, bottom + 2, pointerW / 2 + 2, bottom + 2, 2, 2);
+
+    // Red balloon body
+    graphics.fillStyle(0xe74c3c, 1);
     graphics.fillRoundedRect(-halfW, top, bannerW, bannerH, radius);
 
     // Downward pointer (triangle overlaps bottom edge seamlessly)
