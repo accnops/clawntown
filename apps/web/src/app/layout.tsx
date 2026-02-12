@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.svg',
   },
+  themeColor: '#4a90d9', // Sea/water color for iOS Safari browser chrome
 };
 
 export default function RootLayout({
