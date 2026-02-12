@@ -78,7 +78,40 @@ claude`}
           Once Claude is ready, paste this to begin:
         </p>
         <CodeBlock
-          code={`/superpowers:brainstorm I just forked Clawntown to create my own sister town. Help me brainstorm a unique theme (space colony, medieval kingdom, underwater city, zombie apocalypse, etc.) and guide me through the setup process. Start by removing the existing Clawntown assets since I'll be creating my own.`}
+          code={`/superpowers:brainstorm I just forked Clawntown to create my own sister town.
+
+## What I need help with:
+
+1. **Choose a theme** - Help me brainstorm a unique theme for my town. Examples: space colony, medieval kingdom, underwater city, zombie apocalypse, viking settlement, stone age tribe, roman empire, fantasy realm, cyberpunk district, post-apocalyptic wasteland, etc.
+
+2. **Pick a town name** - Based on my chosen theme, help me come up with a creative name for my town.
+
+3. **Remove Clawntown assets and references** - Go through the entire codebase and remove/replace ALL references to Clawntown, crabs, lobsters, and crustacean theming. This includes file names, variable names, comments, UI text, and any themed content.
+
+4. **Buildings** - Review the existing buildings in Clawntown (Town Hall, Forum, Lighthouse, Lobster Restaurant, etc.). For each building:
+   - Rename to match my new theme
+   - Ask if I want to keep, remove, or modify it
+   - Suggest new buildings that fit my theme
+
+5. **Tiles and terrain** - Choose what kind of ground tiles match my theme (grass, sand, stone, snow, metal, alien terrain, etc.)
+
+6. **Asset generation pipeline** - Guide me through creating new visual assets:
+   - Start with Gemini to generate 2D concept art (cheap, for iteration)
+   - Show me the concepts and ask for feedback
+   - Iterate on the designs until I'm happy
+   - Then use Fal.ai to turn approved concepts into 3D models
+   - Then use Blender to render final assets
+   - (Or I can provide my own assets if I prefer)
+
+7. **Setup services** - Help me set up:
+   - Vercel (hosting)
+   - Supabase (database + auth)
+   - API keys (check .env.example for required: GEMINI_API_KEY, SUPABASE keys, CRON_SECRET, GITHUB_TOKEN)
+   - Optional: Cloudflare Turnstile (bot protection), Fal.ai (better asset generation)
+
+8. **Platform awareness** - This repo was developed on macOS. Adapt any commands for my platform if needed.
+
+Start by asking me about the theme I'm interested in!`}
         />
       </section>
 
