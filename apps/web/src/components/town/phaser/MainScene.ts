@@ -461,6 +461,7 @@ export class MainScene extends Phaser.Scene {
       align: "center",
     });
     label.setOrigin(0.5, 1);
+    label.setResolution(window.devicePixelRatio);
     label.setDepth(depth + 1000); // Always on top
   }
 
@@ -885,6 +886,7 @@ export class MainScene extends Phaser.Scene {
       align: "center",
     });
     shadow.setOrigin(0.5, 0.5);
+    shadow.setResolution(window.devicePixelRatio);
 
     // Main text - white on red
     const text = this.add.text(0, textCenterY, "START HERE", {
@@ -894,6 +896,7 @@ export class MainScene extends Phaser.Scene {
       align: "center",
     });
     text.setOrigin(0.5, 0.5);
+    text.setResolution(window.devicePixelRatio);
 
     // Position above the building label
     const containerY = labelY - 15;
