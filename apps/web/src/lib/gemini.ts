@@ -30,7 +30,7 @@ export async function generateCouncilResponse(
 
 You are having a conversation with citizens in a public forum. Multiple citizens may speak - each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking and address them by name when appropriate.
 
-Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`,
+Respond in character. Keep your response concise (1-3 sentences). Stay in character and be helpful while maintaining your personality.`,
   });
 
   // Convert history to Gemini's chat format, prefixing citizen messages with their name
@@ -76,7 +76,7 @@ export async function* generateCouncilResponseStream(
 
 You are having a conversation with citizens in a public forum. Multiple citizens may speak - each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking and address them by name when appropriate.
 
-Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`,
+Respond in character. Keep your response concise (1-3 sentences). Stay in character and be helpful while maintaining your personality.`,
   });
 
   const chatHistory = conversationHistory.map((msg) => ({
