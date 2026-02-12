@@ -17,16 +17,16 @@ export function CodeBlock({ code, language = 'bash' }: CodeBlockProps) {
   };
 
   return (
-    <div className="relative group">
-      <pre className="bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+    <div className="relative">
+      <pre className="bg-gray-900 text-gray-100 p-3 pr-16 rounded text-xs font-mono overflow-x-auto">
         <code>{code}</code>
       </pre>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 px-2 py-1 text-[10px] bg-gray-700 hover:bg-gray-600 text-gray-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 px-2.5 py-1 text-xs bg-gray-600 hover:bg-gray-500 active:bg-gray-400 text-white rounded border border-gray-500 cursor-pointer transition-colors"
         aria-label="Copy to clipboard"
       >
-        {copied ? '✓ Copied' : 'Copy'}
+        {copied ? '✓' : 'Copy'}
       </button>
     </div>
   );
