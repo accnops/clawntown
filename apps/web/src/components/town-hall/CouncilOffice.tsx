@@ -466,7 +466,10 @@ export function CouncilOffice({
               className="btn-retro w-full text-xs"
               disabled={!input.trim() || isStreaming || charsRemaining < 0 || messagesRemaining <= 0}
             >
-              Send
+              <span className="flex items-center justify-center gap-2">
+                <span>✈️</span>
+                Speak
+              </span>
             </button>
           ) : queuePosition !== null ? (
             <button onClick={onLeaveQueue} className="btn-retro w-full text-xs">
@@ -491,7 +494,7 @@ export function CouncilOffice({
                 </span>
               ) : queueAppearsEmpty && input.trim() ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span>🦞</span>
+                  <span>✋</span>
                   Speak
                 </span>
               ) : (

@@ -28,9 +28,7 @@ export async function generateCouncilResponse(
     ],
     systemInstruction: `${personality}
 
-You are having a conversation with citizens in a public forum. The current speaker is "${citizenName}".
-
-IMPORTANT: Different citizens may speak in the conversation. Each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking - do not confuse different citizens.
+You are having a conversation with citizens in a public forum. Multiple citizens may speak - each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking and address them by name when appropriate.
 
 Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`,
   });
@@ -76,9 +74,7 @@ export async function* generateCouncilResponseStream(
     ],
     systemInstruction: `${personality}
 
-You are having a conversation with citizens in a public forum. The current speaker is "${citizenName}".
-
-IMPORTANT: Different citizens may speak in the conversation. Each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking - do not confuse different citizens.
+You are having a conversation with citizens in a public forum. Multiple citizens may speak - each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking and address them by name when appropriate.
 
 Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`,
   });
