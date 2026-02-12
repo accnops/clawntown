@@ -20,9 +20,10 @@ const PhaserGame = dynamic(() => import("./phaser/PhaserGame"), {
 interface TownViewProps {
   onBuildingClick?: (building: Building) => void;
   population?: number | null;
+  isAuthenticated?: boolean;
 }
 
-export function TownView({ onBuildingClick, population }: TownViewProps) {
+export function TownView({ onBuildingClick, population, isAuthenticated }: TownViewProps) {
   const [hoveredBuilding, setHoveredBuilding] = useState<Building | null>(null);
   const phaserRef = useRef<PhaserGameHandle>(null);
 
@@ -43,6 +44,7 @@ export function TownView({ onBuildingClick, population }: TownViewProps) {
         ref={phaserRef}
         onBuildingClick={handleBuildingClick}
         onBuildingHover={handleBuildingHover}
+        isAuthenticated={isAuthenticated}
       />
 
       {/* Town name overlay (HUD) */}

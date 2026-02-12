@@ -70,7 +70,7 @@ export default function Home() {
   return (
     <main className="h-screen w-screen overflow-hidden">
       {/* Full screen town view */}
-      <TownView onBuildingClick={handleBuildingClick} population={stats.citizens} />
+      <TownView onBuildingClick={handleBuildingClick} population={stats.citizens} isAuthenticated={isAuthenticated} />
 
       {/* Welcome dialog */}
       <Dialog

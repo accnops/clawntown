@@ -62,6 +62,9 @@ export class MainScene extends Phaser.Scene {
   // Scene ready flag
   private isReady: boolean = false;
 
+  // "Start Here" arrow for unauthenticated users
+  private startHereContainer: Phaser.GameObjects.Container | null = null;
+
   // Camera panning state
   private isPanning: boolean = false;
   private panStartX: number = 0;
@@ -155,6 +158,9 @@ export class MainScene extends Phaser.Scene {
         }
       }
     });
+
+    // Create "Start Here" arrow above Town Hall
+    this.createStartHereArrow();
 
     // Mark scene as ready
     this.isReady = true;
@@ -455,6 +461,7 @@ export class MainScene extends Phaser.Scene {
       align: "center",
     });
     label.setOrigin(0.5, 1);
+    label.setResolution(window.devicePixelRatio);
     label.setDepth(depth + 1000); // Always on top
   }
 
@@ -834,6 +841,82 @@ export class MainScene extends Phaser.Scene {
     if (this.activeTouches.size < 2 && this.isPinching) {
       this.isPinching = false;
       this.lastPinchDistance = 0;
+    }
+  }
+
+  // "Start Here" speech-balloon arrow for new visitors
+  private createStartHereArrow(): void {
+    const pos = this.gridToScreen(14, 12, 3);
+
+    // Calculate label Y (same math as renderBuilding for Town Hall)
+    const visualHeight = Math.min(512 * 0.28 * 0.7, 100);
+    const labelOffset = -15;
+    const labelY = pos.y - visualHeight - 10 - labelOffset;
+
+    // Balloon dimensions
+    const bannerW = 94;
+    const bannerH = 22;
+    const pointerH = 10;
+    const pointerW = 14;
+    const radius = 6;
+    const halfW = bannerW / 2;
+    const top = -(bannerH + pointerH);
+    const bottom = -pointerH;
+
+    const graphics = this.add.graphics();
+
+    // Dark drop shadow (offset 2px down-right)
+    graphics.fillStyle(0x000000, 0.3);
+    graphics.fillRoundedRect(-halfW + 2, top + 2, bannerW, bannerH, radius);
+    graphics.fillTriangle(-pointerW / 2 + 2, bottom + 2, pointerW / 2 + 2, bottom + 2, 2, 2);
+
+    // Red balloon body
+    graphics.fillStyle(0xe74c3c, 1);
+    graphics.fillRoundedRect(-halfW, top, bannerW, bannerH, radius);
+
+    // Downward pointer (triangle overlaps bottom edge seamlessly)
+    graphics.fillTriangle(-pointerW / 2, bottom, pointerW / 2, bottom, 0, 0);
+
+    // Text depth shadow (offset 1px down-right, dark red)
+    const textCenterY = -(pointerH + bannerH / 2);
+    const shadow = this.add.text(1, textCenterY + 1, "START HERE", {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: "8px",
+      color: "#7a1a1a",
+      align: "center",
+    });
+    shadow.setOrigin(0.5, 0.5);
+    shadow.setResolution(window.devicePixelRatio);
+
+    // Main text - white on red
+    const text = this.add.text(0, textCenterY, "START HERE", {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: "8px",
+      color: "#ffffff",
+      align: "center",
+    });
+    text.setOrigin(0.5, 0.5);
+    text.setResolution(window.devicePixelRatio);
+
+    // Position above the building label
+    const containerY = labelY - 15;
+    this.startHereContainer = this.add.container(pos.x, containerY, [graphics, shadow, text]);
+    this.startHereContainer.setDepth(999999);
+
+    // Bobbing tween
+    this.tweens.add({
+      targets: this.startHereContainer,
+      y: containerY - 8,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  public setShowStartHere(show: boolean): void {
+    if (this.startHereContainer) {
+      this.startHereContainer.setVisible(show);
     }
   }
 
