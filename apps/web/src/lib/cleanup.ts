@@ -94,9 +94,9 @@ async function performCleanup(): Promise<{ cleaned: number; timestamp: number }>
   return { cleaned, timestamp: now.getTime() };
 }
 
-// Cached cleanup - runs at most every 20 seconds
+// Cached cleanup - runs at most every 15 seconds
 export const runCleanupIfNeeded = unstable_cache(
   performCleanup,
   ['queue-cleanup'],
-  { revalidate: 20 }
+  { revalidate: 15 }
 );
