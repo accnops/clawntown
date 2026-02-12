@@ -18,15 +18,15 @@ export function CodeBlock({ code, language = 'bash' }: CodeBlockProps) {
 
   return (
     <div className="relative">
-      <pre className="bg-gray-900 text-gray-100 p-3 pr-16 rounded text-xs font-mono overflow-x-auto">
+      <pre className="bg-stone-700 text-amber-50 p-3 pr-16 text-xs font-mono overflow-x-auto border-2 border-t-stone-800 border-l-stone-800 border-b-stone-500 border-r-stone-500">
         <code>{code}</code>
       </pre>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 px-2.5 py-1 text-xs bg-gray-600 hover:bg-gray-500 active:bg-gray-400 text-white rounded border border-gray-500 cursor-pointer transition-colors"
+        className="absolute top-2 right-2 px-2 py-0.5 font-retro text-[10px] bg-retro-gray text-retro-dark cursor-pointer border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 hover:bg-gray-300 active:border-t-gray-500 active:border-l-gray-500 active:border-b-white active:border-r-white"
         aria-label="Copy to clipboard"
       >
-        {copied ? '✓' : 'Copy'}
+        {copied ? '✓ Copied' : 'Copy'}
       </button>
     </div>
   );
