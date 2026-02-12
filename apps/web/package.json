@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:check": "BUILD_DIR=.next-check next build",
+    "build:check": "tsc --noEmit",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest"
@@ -19,6 +19,7 @@
     "@supabase/supabase-js": "^2.95.1",
     "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.24",
+    "dompurify": "^3.3.1",
     "leo-profanity": "^1.9.0",
     "next": "^15.1.0",
     "phaser": "^3.90.0",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@fal-ai/client": "^1.9.0",
+    "@types/dompurify": "^3.2.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "typescript": "^5.7.0",

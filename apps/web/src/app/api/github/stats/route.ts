@@ -10,6 +10,7 @@ interface GitHubStats {
   pullRequests: number;
   commits: number;
   stars: number;
+  forks: number;
 }
 
 const REPO_OWNER = 'accnops';
@@ -36,9 +37,10 @@ async function fetchGitHubStats(): Promise<GitHubStats> {
     fetch(`${baseUrl}/commits?per_page=1`, { headers, next: { revalidate: 300 } }),
   ]);
 
-  // Get stars from repo info
+  // Get stars and forks from repo info
   const repoData = await repoRes.json();
   const stars = repoData.stargazers_count || 0;
+  const forks = repoData.forks_count || 0;
 
   // Get total counts from Link headers (pagination info)
   const contributorCount = getCountFromLinkHeader(contributorsRes.headers.get('Link')) ||
@@ -55,6 +57,7 @@ async function fetchGitHubStats(): Promise<GitHubStats> {
     pullRequests: pullCount,
     commits: commitCount,
     stars,
+    forks,
   };
 }
 

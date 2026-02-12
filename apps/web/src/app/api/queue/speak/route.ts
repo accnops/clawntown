@@ -4,6 +4,8 @@ import { getCouncilMember, isCouncilMemberOnline } from '@/data/council-members'
 import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 import { sanitizeMessage } from '@/lib/sanitize';
 import { moderateWithLLM } from '@/lib/moderate';
+import { isEmailBanned } from '@/lib/violations';
+import { checkMessageThrottle, recordMessageSent } from '@/lib/throttle';
 
 const CHAR_BUDGET = 256;
 const TIME_BUDGET_MS = 10000;
@@ -25,6 +27,51 @@ export async function POST(request: NextRequest) {
 
     if (!memberId || !citizenId || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Get user data for captcha and ban checks
+    const { data: userData } = await supabase.auth.admin.getUserById(citizenId);
+    const email = userData?.user?.email;
+
+    // Check if email is banned
+    if (email) {
+      const banStatus = await isEmailBanned(email);
+      if (banStatus.isBanned) {
+        return NextResponse.json(
+          {
+            error: 'You are temporarily banned due to conduct violations',
+            bannedUntil: banStatus.bannedUntil?.toISOString(),
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Check if captcha is needed (1 hour since last verification)
+    const lastCaptchaAt = userData?.user?.user_metadata?.last_captcha_at;
+    if (lastCaptchaAt) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (new Date(lastCaptchaAt) < oneHourAgo) {
+        return NextResponse.json(
+          { error: 'Captcha verification required', requiresCaptcha: true },
+          { status: 403 }
+        );
+      }
+    } else {
+      // No captcha ever done, require one
+      return NextResponse.json(
+        { error: 'Captcha verification required', requiresCaptcha: true },
+        { status: 403 }
+      );
+    }
+
+    // Check message throttle (5 second cooldown between messages)
+    const throttle = await checkMessageThrottle(citizenId);
+    if (!throttle.allowed) {
+      return NextResponse.json(
+        { error: `Please wait ${throttle.waitSeconds} seconds` },
+        { status: 429 }
+      );
     }
 
     // Verify council member is online
@@ -225,6 +272,9 @@ export async function POST(request: NextRequest) {
         nextTurn,
         queueLength: queueLength ?? 0,
       });
+
+      // Record message sent for throttling
+      await recordMessageSent(citizenId);
 
       return NextResponse.json({
         action: 'sent',

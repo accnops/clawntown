@@ -37,6 +37,11 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('visit_date', today);
 
+    // Get citizen count
+    const { count: citizenCount } = await supabase
+      .from('citizens')
+      .select('*', { count: 'exact', head: true });
+
     // Upsert today's snapshot
     const { error } = await supabase
       .from('stats_history')
@@ -46,7 +51,9 @@ export async function GET(request: NextRequest) {
         pull_requests: githubStats.pullRequests,
         commits: githubStats.commits,
         stars: githubStats.stars,
+        forks: githubStats.forks,
         daily_visitors: dailyVisitors || 0,
+        citizens: citizenCount || 0,
       }, {
         onConflict: 'snapshot_date',
       });
@@ -59,6 +66,7 @@ export async function GET(request: NextRequest) {
       stats: {
         ...githubStats,
         dailyVisitors: dailyVisitors || 0,
+        citizens: citizenCount || 0,
       },
     });
   } catch (error) {
@@ -88,6 +96,7 @@ async function fetchGitHubStats() {
 
   const repoData = await repoRes.json();
   const stars = repoData.stargazers_count || 0;
+  const forks = repoData.forks_count || 0;
 
   const contributorCount = getCountFromLinkHeader(contributorsRes.headers.get('Link')) ||
     (await contributorsRes.json()).length || 0;
@@ -101,6 +110,7 @@ async function fetchGitHubStats() {
     pullRequests: pullCount,
     commits: commitCount,
     stars,
+    forks,
   };
 }
 

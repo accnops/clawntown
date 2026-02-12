@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('stats_history')
-      .select('snapshot_date, contributors, pull_requests, commits, stars, daily_visitors')
+      .select('snapshot_date, contributors, pull_requests, commits, stars, forks, daily_visitors, citizens')
       .gte('snapshot_date', startDate.toISOString().split('T')[0])
       .order('snapshot_date', { ascending: true });
 
@@ -36,7 +36,9 @@ export async function GET(request: NextRequest) {
       pullRequests: row.pull_requests,
       commits: row.commits,
       stars: row.stars,
+      forks: row.forks || 0,
       visitors: row.daily_visitors,
+      citizens: row.citizens || 0,
     }));
 
     return NextResponse.json({ history });

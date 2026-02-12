@@ -7,6 +7,7 @@ interface GitHubStats {
   pullRequests: number;
   commits: number;
   stars: number;
+  forks: number;
 }
 
 interface HistoryPoint {
@@ -15,7 +16,9 @@ interface HistoryPoint {
   pullRequests: number;
   commits: number;
   stars: number;
+  forks: number;
   visitors: number;
+  citizens: number;
 }
 
 interface Stats {

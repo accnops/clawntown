@@ -5,6 +5,7 @@ import { getCouncilMember } from '@/data/council-members';
 import { sanitizeMessage } from '@/lib/sanitize';
 import { moderateWithLLM } from '@/lib/moderate';
 import { recordViolation } from '@/lib/violations';
+import { checkMessageThrottle, recordMessageSent } from '@/lib/throttle';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,15 @@ export async function POST(request: NextRequest) {
 
     if (!memberId || !citizenId || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    // Check message throttle (5 second cooldown between messages)
+    const throttle = await checkMessageThrottle(citizenId);
+    if (!throttle.allowed) {
+      return NextResponse.json(
+        { error: `Please wait ${throttle.waitSeconds} seconds` },
+        { status: 429 }
+      );
     }
 
     // Sanitize message (Pass 1: regex + profanity)
@@ -283,6 +293,9 @@ export async function POST(request: NextRequest) {
         queueLength: queueLength ?? 0,
       });
 
+      // Record message sent for throttling
+      await recordMessageSent(citizenId);
+
       return NextResponse.json({
         citizenMessage,
         councilMessage,
@@ -303,6 +316,9 @@ export async function POST(request: NextRequest) {
       .eq('id', turn.id)
       .select()
       .single();
+
+    // Record message sent for throttling
+    await recordMessageSent(citizenId);
 
     return NextResponse.json({
       citizenMessage,

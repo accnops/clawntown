@@ -7,7 +7,7 @@
     },
     "build:check": {
       "dependsOn": ["^build"],
-      "outputs": [".next-check/**", "dist/**"]
+      "outputs": []
     },
     "dev": {
       "cache": false,

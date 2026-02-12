@@ -52,7 +52,7 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
       {/* Header HUD */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-10">
         {/* Town name */}
-        <div className="flex items-center justify-center gap-2 mb-2">
+        <div className="flex items-center justify-center gap-2 mb-0.5">
           <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
           <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
             CLAWNTOWN
@@ -60,17 +60,17 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
           <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
         </div>
 
-        {/* Population + Build your own */}
-        <p className="font-pixel text-[8px] md:text-[10px] text-white/90 drop-shadow font-normal">
+        {/* Population */}
+        <p className="font-retro text-[9px] md:text-[11px] text-white/90 drop-shadow">
           Population: {population ?? '--'}
-          <span className="mx-2 text-white/50">•</span>
-          <button
-            onClick={() => setShowBuildDialog(true)}
-            className="pointer-events-auto text-white/90 hover:text-white underline decoration-dashed decoration-white/50 hover:decoration-white cursor-pointer"
-          >
-            Build your own town
-          </button>
         </p>
+        {/* Build your own */}
+        <button
+          onClick={() => setShowBuildDialog(true)}
+          className="pointer-events-auto font-pixel text-[7px] md:text-[9px] text-white/90 hover:text-white drop-shadow font-normal underline decoration-dashed decoration-white/50 hover:decoration-white cursor-pointer mt-0.5"
+        >
+          BUILD YOUR OWN TOWN
+        </button>
       </div>
 
       {/* Instructions */}

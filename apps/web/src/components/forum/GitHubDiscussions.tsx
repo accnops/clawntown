@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 
 interface Discussion {
   id: string;
@@ -189,7 +190,7 @@ export function GitHubDiscussions() {
                 [&_ul]:list-disc [&_ul]:ml-4
                 [&_ol]:list-decimal [&_ol]:ml-4
                 [&_p]:mb-2"
-              dangerouslySetInnerHTML={{ __html: selectedDiscussion.bodyHTML }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedDiscussion.bodyHTML) }}
             />
           </div>
 
@@ -228,7 +229,7 @@ export function GitHubDiscussions() {
                   [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded
                   [&_pre]:bg-gray-800 [&_pre]:text-gray-100 [&_pre]:p-2 [&_pre]:rounded [&_pre]:overflow-x-auto
                   [&_img]:max-w-full [&_img]:rounded"
-                dangerouslySetInnerHTML={{ __html: comment.bodyHTML }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(comment.bodyHTML) }}
               />
             </div>
           ))}
@@ -261,7 +262,7 @@ export function GitHubDiscussions() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="mb-4 p-3 bg-sky-600 text-white border-2 border-sky-700">
+      <div className="mb-4 p-3 bg-sky-600 text-white rounded">
         <div className="flex items-center gap-3 mb-2">
           <span className="text-3xl">🦞</span>
           <div>

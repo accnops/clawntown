@@ -23,3 +23,6 @@ pogicity-reference/
 
 # Asset pipeline output (regenerated)
 scripts/asset-pipeline/output/
+
+# Local docs/plans (kept locally, not in repo)
+docs/

@@ -3,15 +3,13 @@
 interface SparklineProps {
   data: number[];
   color?: string;
-  width?: number;
-  height?: number;
+  className?: string;
 }
 
 export function Sparkline({
   data,
   color = '#60a5fa',
-  width = 60,
-  height = 20
+  className = '',
 }: SparklineProps) {
   if (!data || data.length < 2) {
     return null;
@@ -21,38 +19,56 @@ export function Sparkline({
   const max = Math.max(...data);
   const range = max - min || 1;
 
-  // Calculate points for the polyline
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1)) * width;
-    const y = height - ((value - min) / range) * height;
-    return `${x},${y}`;
-  }).join(' ');
+  // Normalize data to 0-100 range for viewBox
+  const points = data.map((value, index) => ({
+    x: (index / (data.length - 1)) * 100,
+    y: 100 - ((value - min) / range) * 100,
+  }));
 
-  // Calculate trend (up or down)
-  const trend = data[data.length - 1] > data[0] ? 'up' : data[data.length - 1] < data[0] ? 'down' : 'flat';
+  // Create smooth monotonic curve that doesn't overshoot
+  const createSmoothPath = (pts: { x: number; y: number }[]) => {
+    if (pts.length < 2) return '';
+
+    let path = `M ${pts[0].x} ${pts[0].y}`;
+
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+
+      // Simple smooth curve: horizontal control points (no vertical overshoot)
+      const midX = (p1.x + p2.x) / 2;
+      path += ` C ${midX} ${p1.y}, ${midX} ${p2.y}, ${p2.x} ${p2.y}`;
+    }
+
+    return path;
+  };
+
+  const linePath = createSmoothPath(points);
+  // Create filled area path (line + bottom edge)
+  const areaPath = `${linePath} L 100 100 L 0 100 Z`;
 
   return (
-    <div className="inline-flex items-center gap-1">
-      <svg
-        width={width}
-        height={height}
-        className="overflow-visible"
-        style={{ opacity: 0.8 }}
-      >
-        <polyline
-          fill="none"
-          stroke={color}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          points={points}
-        />
-      </svg>
-      {trend !== 'flat' && (
-        <span className={`text-xs ${trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
-          {trend === 'up' ? '↑' : '↓'}
-        </span>
-      )}
-    </div>
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className={`absolute inset-0 w-full h-full ${className}`}
+    >
+      {/* Filled area under the curve */}
+      <path
+        d={areaPath}
+        fill={color}
+        fillOpacity="0.15"
+      />
+      {/* The line itself */}
+      <path
+        d={linePath}
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   );
 }
