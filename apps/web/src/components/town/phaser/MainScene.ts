@@ -62,6 +62,9 @@ export class MainScene extends Phaser.Scene {
   // Scene ready flag
   private isReady: boolean = false;
 
+  // "Start Here" arrow for unauthenticated users
+  private startHereContainer: Phaser.GameObjects.Container | null = null;
+
   // Camera panning state
   private isPanning: boolean = false;
   private panStartX: number = 0;
@@ -155,6 +158,9 @@ export class MainScene extends Phaser.Scene {
         }
       }
     });
+
+    // Create "Start Here" arrow above Town Hall
+    this.createStartHereArrow();
 
     // Mark scene as ready
     this.isReady = true;
@@ -834,6 +840,68 @@ export class MainScene extends Phaser.Scene {
     if (this.activeTouches.size < 2 && this.isPinching) {
       this.isPinching = false;
       this.lastPinchDistance = 0;
+    }
+  }
+
+  // "Start Here" arrow for new visitors
+  private createStartHereArrow(): void {
+    const pos = this.gridToScreen(14, 12, 3);
+
+    // Calculate label Y (same math as renderBuilding for Town Hall)
+    const visualHeight = Math.min(512 * 0.28 * 0.7, 100);
+    const labelOffset = -15;
+    const labelY = pos.y - visualHeight - 10 - labelOffset;
+
+    // Arrow graphics - downward pointing red arrow with white outline
+    const graphics = this.add.graphics();
+
+    // Shaft (rectangle) - 6px wide, 14px tall
+    graphics.fillStyle(0xe74c3c, 1);
+    graphics.fillRect(-3, -30, 6, 14);
+    graphics.lineStyle(2, 0xffffff, 1);
+    graphics.strokeRect(-3, -30, 6, 14);
+
+    // Triangle (downward pointing) - 20px wide, 16px tall
+    graphics.fillStyle(0xe74c3c, 1);
+    graphics.fillTriangle(-10, -16, 10, -16, 0, 0);
+    graphics.lineStyle(2, 0xffffff, 1);
+    graphics.beginPath();
+    graphics.moveTo(-10, -16);
+    graphics.lineTo(10, -16);
+    graphics.lineTo(0, 0);
+    graphics.closePath();
+    graphics.strokePath();
+
+    // "Start Here" text above the arrow
+    const text = this.add.text(0, -38, "Start Here", {
+      fontFamily: '"Press Start 2P", monospace',
+      fontSize: "7px",
+      color: "#ffffff",
+      stroke: "#000000",
+      strokeThickness: 2,
+      align: "center",
+    });
+    text.setOrigin(0.5, 1);
+
+    // Group into container positioned above the building label
+    const containerY = labelY - 30;
+    this.startHereContainer = this.add.container(pos.x, containerY, [graphics, text]);
+    this.startHereContainer.setDepth(999999);
+
+    // Bobbing tween
+    this.tweens.add({
+      targets: this.startHereContainer,
+      y: containerY - 8,
+      duration: 800,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+  }
+
+  public setShowStartHere(show: boolean): void {
+    if (this.startHereContainer) {
+      this.startHereContainer.setVisible(show);
     }
   }
 

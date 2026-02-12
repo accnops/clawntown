@@ -23,11 +23,12 @@ interface PhaserGameProps {
   onBuildingHover?: (building: Building | null) => void;
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
+  isAuthenticated?: boolean;
 }
 
 const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
   function PhaserGame(
-    { onBuildingClick, onBuildingHover, zoom = 1, onZoomChange },
+    { onBuildingClick, onBuildingHover, zoom = 1, onZoomChange, isAuthenticated },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -80,6 +81,9 @@ const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
         };
         scene.setEventCallbacks(events);
 
+        // Set initial "Start Here" arrow visibility
+        scene.setShowStartHere(!isAuthenticated);
+
         // Listen for zoom changes from Phaser (wheel zoom handled in scene)
         scene.events.on("zoomChanged", (newZoom: number) => {
           onZoomChange?.(newZoom);
@@ -104,6 +108,13 @@ const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
         sceneRef.current.setZoom(zoom);
       }
     }, [zoom]);
+
+    // Update "Start Here" arrow visibility when auth state changes
+    useEffect(() => {
+      if (sceneRef.current) {
+        sceneRef.current.setShowStartHere(!isAuthenticated);
+      }
+    }, [isAuthenticated]);
 
     // Update event callbacks when they change
     useEffect(() => {
