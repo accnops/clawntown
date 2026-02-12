@@ -67,8 +67,8 @@ BEGIN
 
   IF v_current_turn IS NOT NULL OR v_queue_len > 0 THEN
     -- Queue is not empty - join and wait
-    INSERT INTO queue_entries (member_id, citizen_id, citizen_name, citizen_avatar, status, last_heartbeat_at)
-    VALUES (p_member_id, p_citizen_id, p_citizen_name, p_citizen_avatar, 'waiting', v_now);
+    INSERT INTO queue_entries (member_id, citizen_id, status, last_heartbeat_at)
+    VALUES (p_member_id, p_citizen_id, 'waiting', v_now);
 
     v_position := v_queue_len; -- We're at the end
     v_queue_len := v_queue_len + 1;
@@ -90,8 +90,8 @@ BEGIN
   END IF;
 
   -- Create queue entry as active
-  INSERT INTO queue_entries (member_id, citizen_id, citizen_name, citizen_avatar, status, last_heartbeat_at)
-  VALUES (p_member_id, p_citizen_id, p_citizen_name, p_citizen_avatar, 'active', v_now);
+  INSERT INTO queue_entries (member_id, citizen_id, status, last_heartbeat_at)
+  VALUES (p_member_id, p_citizen_id, 'active', v_now);
 
   -- Create turn
   INSERT INTO turns (
