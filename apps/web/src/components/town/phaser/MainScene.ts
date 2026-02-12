@@ -853,38 +853,29 @@ export class MainScene extends Phaser.Scene {
     const labelY = pos.y - visualHeight - 10 - labelOffset;
 
     // Balloon dimensions
-    const bannerW = 88;
-    const bannerH = 20;
+    const bannerW = 94;
+    const bannerH = 22;
     const pointerH = 10;
     const pointerW = 14;
+    const radius = 6;
     const halfW = bannerW / 2;
     const top = -(bannerH + pointerH);
     const bottom = -pointerH;
 
     const graphics = this.add.graphics();
-
-    // Single speech-balloon shape: rectangle + downward pointer
     graphics.fillStyle(0xe74c3c, 1);
-    graphics.beginPath();
-    graphics.moveTo(-halfW, top);
-    graphics.lineTo(halfW, top);
-    graphics.lineTo(halfW, bottom);
-    graphics.lineTo(pointerW / 2, bottom);
-    graphics.lineTo(0, 0);
-    graphics.lineTo(-pointerW / 2, bottom);
-    graphics.lineTo(-halfW, bottom);
-    graphics.closePath();
-    graphics.fillPath();
 
-    // White outline
-    graphics.lineStyle(2, 0xffffff, 1);
-    graphics.strokePath();
+    // Rounded rectangle body
+    graphics.fillRoundedRect(-halfW, top, bannerW, bannerH, radius);
+
+    // Downward pointer (triangle overlaps bottom edge seamlessly)
+    graphics.fillTriangle(-pointerW / 2, bottom, pointerW / 2, bottom, 0, 0);
 
     // Text depth shadow (offset 1px down-right, dark red)
     const textCenterY = -(pointerH + bannerH / 2);
     const shadow = this.add.text(1, textCenterY + 1, "START HERE", {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: "7px",
+      fontSize: "8px",
       color: "#7a1a1a",
       align: "center",
     });
@@ -893,14 +884,14 @@ export class MainScene extends Phaser.Scene {
     // Main text - white on red
     const text = this.add.text(0, textCenterY, "START HERE", {
       fontFamily: '"Press Start 2P", monospace',
-      fontSize: "7px",
+      fontSize: "8px",
       color: "#ffffff",
       align: "center",
     });
     text.setOrigin(0.5, 0.5);
 
-    // Position closer to the building label
-    const containerY = labelY - 5;
+    // Position above the building label
+    const containerY = labelY - 15;
     this.startHereContainer = this.add.container(pos.x, containerY, [graphics, shadow, text]);
     this.startHereContainer.setDepth(999999);
 
