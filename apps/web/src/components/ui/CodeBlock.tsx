@@ -18,7 +18,7 @@ export function CodeBlock({ code, language = 'bash' }: CodeBlockProps) {
 
   return (
     <div className="relative">
-      <pre className="p-3 pr-16 text-xs font-mono overflow-x-auto border-2" style={{ backgroundColor: '#073642', color: '#93a1a1', borderTopColor: '#002b36', borderLeftColor: '#002b36', borderBottomColor: '#586e75', borderRightColor: '#586e75' }}>
+      <pre className="bg-cyan-950 text-slate-300 p-3 pr-16 text-xs font-mono overflow-x-auto border-2 border-t-cyan-950 border-l-cyan-950 border-b-cyan-700 border-r-cyan-700">
         <code>{code}</code>
       </pre>
       <button
