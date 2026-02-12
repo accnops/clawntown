@@ -467,7 +467,7 @@ export function CouncilOffice({
               disabled={!input.trim() || isStreaming || charsRemaining < 0 || messagesRemaining <= 0}
             >
               <span className="flex items-center justify-center gap-2">
-                <span>🗣️</span>
+                <span>💬</span>
                 Speak
               </span>
             </button>
