@@ -15,7 +15,7 @@ export async function generateCouncilResponse(
   personality: string,
   citizenName: string,
   citizenMessage: string,
-  conversationHistory: Array<{ role: 'citizen' | 'council'; content: string }>
+  conversationHistory: Array<{ role: 'citizen' | 'council'; content: string; citizenName?: string | null }>
 ): Promise<string> {
   const client = getGeminiClient();
   const model = client.getGenerativeModel({
@@ -28,17 +28,21 @@ export async function generateCouncilResponse(
     ],
     systemInstruction: `${personality}
 
-You are having a conversation with a citizen named "${citizenName}".
+You are having a conversation with citizens in a public forum. The current speaker is "${citizenName}".
 
-IMPORTANT: Remember and reference previous messages in the conversation. If the citizen asks you to recall something they said, refer back to the conversation history.
+IMPORTANT: Different citizens may speak in the conversation. Each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking - do not confuse different citizens.
 
 Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`,
   });
 
-  // Convert history to Gemini's chat format
+  // Convert history to Gemini's chat format, prefixing citizen messages with their name
   const chatHistory = conversationHistory.map((msg) => ({
     role: msg.role === 'citizen' ? 'user' : 'model',
-    parts: [{ text: msg.content }],
+    parts: [{
+      text: msg.role === 'citizen' && msg.citizenName
+        ? `[${msg.citizenName}]: ${msg.content}`
+        : msg.content
+    }],
   }));
 
   // Use the chat API for proper multi-turn conversation
@@ -46,7 +50,8 @@ Respond in character. Keep your response concise (2-4 sentences). Stay in charac
     history: chatHistory as any,
   });
 
-  const result = await chat.sendMessage(citizenMessage);
+  // Prefix current message with citizen name for consistency
+  const result = await chat.sendMessage(`[${citizenName}]: ${citizenMessage}`);
   const response = result.response;
   return response.text();
 }
@@ -58,7 +63,7 @@ export async function* generateCouncilResponseStream(
   personality: string,
   citizenName: string,
   citizenMessage: string,
-  conversationHistory: Array<{ role: 'citizen' | 'council'; content: string }>
+  conversationHistory: Array<{ role: 'citizen' | 'council'; content: string; citizenName?: string | null }>
 ): AsyncGenerator<string, string, unknown> {
   const client = getGeminiClient();
   const model = client.getGenerativeModel({
@@ -71,23 +76,28 @@ export async function* generateCouncilResponseStream(
     ],
     systemInstruction: `${personality}
 
-You are having a conversation with a citizen named "${citizenName}".
+You are having a conversation with citizens in a public forum. The current speaker is "${citizenName}".
 
-IMPORTANT: Remember and reference previous messages in the conversation. If the citizen asks you to recall something they said, refer back to the conversation history.
+IMPORTANT: Different citizens may speak in the conversation. Each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking - do not confuse different citizens.
 
 Respond in character. Keep your response concise (2-4 sentences). Stay in character and be helpful while maintaining your personality.`,
   });
 
   const chatHistory = conversationHistory.map((msg) => ({
     role: msg.role === 'citizen' ? 'user' : 'model',
-    parts: [{ text: msg.content }],
+    parts: [{
+      text: msg.role === 'citizen' && msg.citizenName
+        ? `[${msg.citizenName}]: ${msg.content}`
+        : msg.content
+    }],
   }));
 
   const chat = model.startChat({
     history: chatHistory as any,
   });
 
-  const result = await chat.sendMessageStream(citizenMessage);
+  // Prefix current message with citizen name for consistency
+  const result = await chat.sendMessageStream(`[${citizenName}]: ${citizenMessage}`);
   let fullText = '';
 
   for await (const chunk of result.stream) {

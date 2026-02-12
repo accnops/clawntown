@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         // Fetch recent conversation history (last 100 messages, capped at 100k chars)
         const { data: historyData } = await supabase
           .from('conversation_messages')
-          .select('role, content')
+          .select('role, content, citizen_name')
           .eq('session_id', turn.session_id)
           .order('created_at', { ascending: false })
           .limit(100);
@@ -180,6 +180,7 @@ export async function POST(request: NextRequest) {
         const conversationHistory = cappedHistory.map(msg => ({
           role: msg.role as 'citizen' | 'council',
           content: msg.content,
+          citizenName: msg.citizen_name as string | null,
         }));
 
         // Generate response

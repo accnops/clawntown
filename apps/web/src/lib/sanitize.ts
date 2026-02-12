@@ -90,15 +90,8 @@ export function sanitizeMessage(raw: string): SanitizeResult {
     text = text.replace(pattern, '');
   }
 
-  // 4. Profanity check (on stripped text)
-  if (filter.check(text)) {
-    return {
-      ok: false,
-      sanitized: '',
-      reason: "Whoa there, citizen! That language isn't welcome in Clawntown.",
-      category: 'profanity',
-    };
-  }
+  // 4. Clean profanity (replace with asterisks)
+  text = filter.clean(text);
 
   // 5. Prompt injection detection (on original raw input)
   for (const pattern of INJECTION_PATTERNS) {

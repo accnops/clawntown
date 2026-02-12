@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { getCouncilMember, isCouncilMemberOnline } from '@/data/council-members';
 
-const CHAR_BUDGET = 500;
-const TIME_BUDGET_MS = 20000;
-const MESSAGE_LIMIT = 2;
+const CHAR_BUDGET = 256;
+const TIME_BUDGET_MS = 10000;
+const MESSAGE_LIMIT = 1;
 
 export async function POST(request: NextRequest) {
   try {

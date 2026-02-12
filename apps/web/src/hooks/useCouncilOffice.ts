@@ -360,6 +360,61 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
     return result;
   }, [member.id]);
 
+  // Optimistic "speak" - tries to send directly if queue appears empty
+  // Returns { action: 'sent' | 'queued' | 'rejected', ... }
+  const speak = useCallback(async (content: string, citizenName: string, citizenAvatar: string) => {
+    if (!citizenId) return { action: 'error', error: 'Not authenticated' };
+
+    const res = await fetch('/api/queue/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        memberId: member.id,
+        citizenId,
+        citizenName,
+        citizenAvatar,
+        content,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (res.status === 422) {
+      // Message rejected
+      return { action: 'rejected', reason: data.reason };
+    }
+
+    if (!res.ok) {
+      return { action: 'error', error: data.error };
+    }
+
+    if (data.action === 'queued') {
+      // Race condition - we got queued instead
+      setQueuePosition(data.position ?? 0);
+      setQueueLength(data.queueLength ?? 1);
+      inQueueRef.current = true;
+      return { action: 'queued', position: data.position };
+    }
+
+    if (data.action === 'sent') {
+      // Message was sent successfully
+      setQueuePosition(null);
+      inQueueRef.current = false;
+      if (data.nextTurn) {
+        setCurrentTurn(normalizeTurn(data.nextTurn));
+      } else {
+        setCurrentTurn(null);
+      }
+      setQueueLength(data.queueLength ?? 0);
+      return { action: 'sent' };
+    }
+
+    return { action: 'error', error: 'Unexpected response' };
+  }, [member.id, citizenId]);
+
+  // Check if queue appears empty (for UI to decide button text)
+  const queueAppearsEmpty = queueLength === 0 && !currentTurn;
+
   return {
     messages,
     queueLength,
@@ -370,9 +425,11 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
     spectatorCount,
     isStreaming,
     streamingContent,
+    queueAppearsEmpty,
     raiseHand,
     leaveQueue,
     sendMessage,
+    speak,
     endTurn,
   };
 }

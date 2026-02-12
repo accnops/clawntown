@@ -48,9 +48,11 @@ interface CouncilOfficeProps {
   isStreaming: boolean;
   streamingContent: string;
   isJoiningQueue?: boolean;
+  queueAppearsEmpty: boolean;
   onSendMessage: (message: string) => Promise<{ rejected?: boolean; reason?: string } | undefined>;
   onRaiseHand: () => void;
   onLeaveQueue: () => void;
+  onSpeak: (message: string) => Promise<{ action: string; position?: number; reason?: string }>;
   onEndTurn: () => void;
   onBack: () => void;
   onShowRegistry: () => void;
@@ -58,9 +60,9 @@ interface CouncilOfficeProps {
   updateCaptchaTimestamp: () => Promise<void>;
 }
 
-const CHAR_BUDGET = 500;
-const TIME_BUDGET_MS = 20000;
-const MESSAGE_LIMIT = 2;
+const CHAR_BUDGET = 256;
+const TIME_BUDGET_MS = 10000;
+const MESSAGE_LIMIT = 1;
 
 export function CouncilOffice({
   member,
@@ -76,9 +78,11 @@ export function CouncilOffice({
   isStreaming,
   streamingContent,
   isJoiningQueue = false,
+  queueAppearsEmpty,
   onSendMessage,
   onRaiseHand,
   onLeaveQueue,
+  onSpeak,
   onEndTurn,
   onBack,
   onShowRegistry,
@@ -93,6 +97,7 @@ export function CouncilOffice({
   const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const originalTitleRef = useRef<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Play notification sound
   const playNotificationSound = useCallback(() => {
@@ -240,6 +245,52 @@ export function CouncilOffice({
       setRejectionMessage("Pinched! Try again 🦞");
       setTimeout(() => setRejectionMessage(null), 3000);
     }
+
+    // Maintain focus on input
+    inputRef.current?.focus();
+  };
+
+  // Smart button handler - "Speak" if queue empty, "Raise Hand" otherwise
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const handleSmartAction = async () => {
+    if (!input.trim()) {
+      // No message - just raise hand to join queue
+      onRaiseHand();
+      return;
+    }
+
+    if (queueAppearsEmpty) {
+      // Queue appears empty - try optimistic send
+      const message = input.trim();
+      setInput(''); // Clear optimistically
+      setIsSpeaking(true);
+      setRejectionMessage(null);
+
+      const result = await onSpeak(message);
+
+      if (result.action === 'rejected') {
+        // Message rejected - restore input
+        setInput(message);
+        setRejectionMessage("Pinched! Try again 🦞");
+        setTimeout(() => setRejectionMessage(null), 3000);
+      } else if (result.action === 'queued') {
+        // Race lost - restore input, show queue position
+        setInput(message);
+        // Queue position is already updated by the hook
+      } else if (result.action === 'error') {
+        // Error - restore input
+        setInput(message);
+        setRejectionMessage("Something went wrong. Try again!");
+        setTimeout(() => setRejectionMessage(null), 3000);
+      }
+      // 'sent' action - input stays cleared
+
+      setIsSpeaking(false);
+      inputRef.current?.focus();
+    } else {
+      // Queue not empty - just raise hand (keep input for when turn starts)
+      onRaiseHand();
+    }
   };
 
   const charsRemaining = currentTurn
@@ -383,17 +434,27 @@ export function CouncilOffice({
 
           {/* Text input - always visible */}
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={isMyTurn ? "Type your message..." : "Prepare your message..."}
             className="input-retro w-full font-retro text-base"
-            disabled={isMyTurn && (isStreaming || charsRemaining < 0 || messagesRemaining <= 0)}
+            disabled={(isMyTurn && (isStreaming || charsRemaining < 0 || messagesRemaining <= 0)) || isSpeaking}
             maxLength={currentTurn?.charBudget ?? CHAR_BUDGET}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && isMyTurn && input.trim()) {
+              if (e.key === 'Enter' && input.trim()) {
                 e.preventDefault();
-                handleSubmit(e as unknown as React.FormEvent);
+                if (isMyTurn) {
+                  handleSubmit(e as unknown as React.FormEvent);
+                } else if (queuePosition === null && !isSpeaking) {
+                  // Not in queue - trigger smart action
+                  if (needsCaptcha()) {
+                    setShowCaptchaModal(true);
+                  } else {
+                    handleSmartAction();
+                  }
+                }
               }
             }}
           />
@@ -417,16 +478,21 @@ export function CouncilOffice({
                 if (needsCaptcha()) {
                   setShowCaptchaModal(true);
                 } else {
-                  onRaiseHand();
+                  handleSmartAction();
                 }
               }}
-              disabled={isJoiningQueue}
-              className={`btn-retro w-full text-xs ${isJoiningQueue ? 'opacity-70 cursor-wait' : ''}`}
+              disabled={isJoiningQueue || isSpeaking}
+              className={`btn-retro w-full text-xs ${(isJoiningQueue || isSpeaking) ? 'opacity-70 cursor-wait' : ''}`}
             >
-              {isJoiningQueue ? (
+              {isJoiningQueue || isSpeaking ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin">~</span>
-                  Joining Queue...
+                  {isSpeaking ? 'Speaking...' : 'Joining Queue...'}
+                </span>
+              ) : queueAppearsEmpty && input.trim() ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span>🦞</span>
+                  Speak
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">

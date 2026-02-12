@@ -41,9 +41,11 @@ export function CouncilOfficeView({
     spectatorCount,
     isStreaming,
     streamingContent,
+    queueAppearsEmpty,
     raiseHand,
     leaveQueue,
     sendMessage,
+    speak,
     endTurn,
   } = useCouncilOffice({
     member,
@@ -62,6 +64,11 @@ export function CouncilOfficeView({
 
   const handleSendMessage = async (content: string) => {
     return await sendMessage(content, profile?.name, profile?.avatar);
+  };
+
+  const handleSpeak = async (content: string) => {
+    if (!profile) return { action: 'error', error: 'Not authenticated' };
+    return await speak(content, profile.name, profile.avatar);
   };
 
   // Show guest view if not authenticated
@@ -113,9 +120,11 @@ export function CouncilOfficeView({
       isStreaming={isStreaming}
       streamingContent={streamingContent}
       isJoiningQueue={isJoiningQueue}
+      queueAppearsEmpty={queueAppearsEmpty}
       onSendMessage={handleSendMessage}
       onRaiseHand={handleRaiseHand}
       onLeaveQueue={leaveQueue}
+      onSpeak={handleSpeak}
       onEndTurn={endTurn}
       onBack={onBack}
       onShowRegistry={onShowRegistry}
