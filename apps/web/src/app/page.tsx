@@ -68,7 +68,7 @@ export default function Home() {
   };
 
   return (
-    <main className="h-screen w-screen overflow-hidden">
+    <main className="h-dvh w-screen overflow-hidden">
       {/* Full screen town view */}
       <TownView onBuildingClick={handleBuildingClick} population={stats.citizens} isAuthenticated={isAuthenticated} />
 
@@ -92,16 +92,6 @@ export default function Home() {
             An evolving coastal crustacean town
           </p>
         </div>
-
-        <div className="bg-rct-water/30 p-3 rounded mb-4">
-          <p className="font-retro text-xs text-center">
-            Where citizens shape the future
-          </p>
-        </div>
-
-        <p className="font-retro text-xs text-gray-600 mb-4">
-          Explore the town by tapping on buildings. Visit the Town Hall to speak with Mayor Clawrence!
-        </p>
 
         <button
           onClick={closeDialog}
@@ -162,7 +152,7 @@ export default function Home() {
       >
         <div className="space-y-4">
           {/* Intro section */}
-          <div className="p-3 bg-shell-red text-white border-2 border-red-800">
+          <div className="p-3 bg-teal-700 text-white rounded">
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">🦀</span>
               <div>
@@ -211,14 +201,6 @@ export default function Home() {
               <span>📸</span>
               Follow on Instagram
             </a>
-            <a
-              href="#"
-              className="btn-retro w-full flex items-center justify-center gap-2 text-sm"
-              onClick={(e) => e.preventDefault()}
-            >
-              <span>💬</span>
-              Join WhatsApp Community
-            </a>
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded p-3 mt-4">
@@ -242,80 +224,96 @@ export default function Home() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <div className="flex items-center justify-center gap-2">
+          {/* Row 1: Social proof */}
+          <a
+            href="https://github.com/accnops/clawntown/stargazers"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative overflow-hidden bg-indigo-900/50 rounded p-3 text-center hover:bg-indigo-800/50 transition-colors"
+          >
+            {stats.history.length > 1 && (
+              <Sparkline data={stats.history.map(h => h.stars)} color="rgba(252, 211, 77, 0.4)" />
+            )}
+            <div className="relative z-10">
+              <p className={`font-pixel text-2xl text-amber-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                {stats.github?.stars ?? '--'}
+              </p>
+              <p className="font-retro text-xs text-indigo-300">Stars</p>
+            </div>
+          </a>
+          <a
+            href="https://github.com/accnops/clawntown/graphs/contributors"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative overflow-hidden bg-indigo-900/50 rounded p-3 text-center hover:bg-indigo-800/50 transition-colors"
+          >
+            {stats.history.length > 1 && (
+              <Sparkline data={stats.history.map(h => h.contributors)} color="rgba(253, 224, 71, 0.4)" />
+            )}
+            <div className="relative z-10">
               <p className={`font-pixel text-2xl text-yellow-300 ${stats.loading ? 'animate-pulse' : ''}`}>
                 {stats.github?.contributors ?? '--'}
               </p>
-              {stats.history.length > 1 && (
-                <Sparkline
-                  data={stats.history.map(h => h.contributors)}
-                  color="#fde047"
-                />
-              )}
+              <p className="font-retro text-xs text-indigo-300">Contributors</p>
             </div>
-            <p className="font-retro text-xs text-indigo-300">Contributors</p>
-          </div>
-          <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <div className="flex items-center justify-center gap-2">
+          </a>
+          {/* Row 2: Engagement */}
+          <a
+            href="https://github.com/accnops/clawntown/forks"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative overflow-hidden bg-indigo-900/50 rounded p-3 text-center hover:bg-indigo-800/50 transition-colors"
+          >
+            {stats.history.length > 1 && (
+              <Sparkline data={stats.history.map(h => h.forks)} color="rgba(103, 232, 249, 0.4)" />
+            )}
+            <div className="relative z-10">
+              <p className={`font-pixel text-2xl text-cyan-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                {stats.github?.forks ?? '--'}
+              </p>
+              <p className="font-retro text-xs text-indigo-300">Sister Towns</p>
+            </div>
+          </a>
+          <a
+            href="https://github.com/accnops/clawntown/pulls"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative overflow-hidden bg-indigo-900/50 rounded p-3 text-center hover:bg-indigo-800/50 transition-colors"
+          >
+            {stats.history.length > 1 && (
+              <Sparkline data={stats.history.map(h => h.pullRequests)} color="rgba(134, 239, 172, 0.4)" />
+            )}
+            <div className="relative z-10">
               <p className={`font-pixel text-2xl text-green-300 ${stats.loading ? 'animate-pulse' : ''}`}>
                 {stats.github?.pullRequests ?? '--'}
               </p>
-              {stats.history.length > 1 && (
-                <Sparkline
-                  data={stats.history.map(h => h.pullRequests)}
-                  color="#86efac"
-                />
-              )}
+              <p className="font-retro text-xs text-indigo-300">Pull Requests</p>
             </div>
-            <p className="font-retro text-xs text-indigo-300">Pull Requests</p>
-          </div>
-          <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <p className={`font-pixel text-2xl text-blue-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-                {stats.github?.commits ?? '--'}
-              </p>
-              {stats.history.length > 1 && (
-                <Sparkline
-                  data={stats.history.map(h => h.commits)}
-                  color="#93c5fd"
-                />
-              )}
-            </div>
-            <p className="font-retro text-xs text-indigo-300">Commits</p>
-          </div>
-          <div className="bg-indigo-900/50 rounded p-3 text-center">
-            <div className="flex items-center justify-center gap-2">
+          </a>
+          {/* Row 3: Activity */}
+          <div className="relative overflow-hidden bg-indigo-900/50 rounded p-3 text-center">
+            {stats.history.length > 1 && (
+              <Sparkline data={stats.history.map(h => h.visitors)} color="rgba(249, 168, 212, 0.4)" />
+            )}
+            <div className="relative z-10">
               <p className={`font-pixel text-2xl text-pink-300 ${stats.loading ? 'animate-pulse' : ''}`}>
                 {stats.visitors ?? '--'}
               </p>
-              {stats.history.length > 1 && (
-                <Sparkline
-                  data={stats.history.map(h => h.visitors)}
-                  color="#f9a8d4"
-                />
-              )}
+              <p className="font-retro text-xs text-indigo-300">Visitors</p>
             </div>
-            <p className="font-retro text-xs text-indigo-300">Visitors</p>
+          </div>
+          <div className="relative overflow-hidden bg-indigo-900/50 rounded p-3 text-center">
+            {stats.history.length > 1 && (
+              <Sparkline data={stats.history.map(h => h.citizens)} color="rgba(253, 186, 116, 0.4)" />
+            )}
+            <div className="relative z-10">
+              <p className={`font-pixel text-2xl text-orange-300 ${stats.loading ? 'animate-pulse' : ''}`}>
+                {stats.citizens ?? '--'}
+              </p>
+              <p className="font-retro text-xs text-indigo-300">Population</p>
+            </div>
           </div>
         </div>
-
-        {/* Population */}
-        <div className="mt-3 bg-indigo-900/50 rounded p-3 text-center">
-          <p className={`font-pixel text-2xl text-orange-300 ${stats.loading ? 'animate-pulse' : ''}`}>
-            {stats.citizens ?? '--'}
-          </p>
-          <p className="font-retro text-xs text-indigo-300">Population</p>
-        </div>
-
-        {/* GitHub Stars */}
-        {stats.github?.stars !== undefined && stats.github.stars > 0 && (
-          <div className="mt-4 text-center">
-            <span className="font-retro text-xs text-yellow-400">
-              ⭐ {stats.github.stars} GitHub Stars
-            </span>
-          </div>
-        )}
 
         <p className="font-retro text-xs text-indigo-300 text-center mt-4">
           From the lighthouse, we watch over all of Clawntown's activity.
