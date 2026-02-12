@@ -70,7 +70,7 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
           onClick={() => setShowBuildDialog(true)}
           className="pointer-events-auto mt-1.5 bg-orange-700 hover:bg-orange-600 text-white font-pixel text-[10px] px-2.5 py-1 rounded shadow-md border border-orange-900 hover:border-orange-700 transition-colors"
         >
-          BUILD YOUR OWN
+          BUILD YOUR OWN TOWN
         </button>
       </div>
 
