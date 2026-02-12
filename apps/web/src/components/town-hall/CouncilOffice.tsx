@@ -492,7 +492,7 @@ export function CouncilOffice({
                   <span className="animate-spin">~</span>
                   {isSpeaking ? 'Speaking...' : 'Joining Queue...'}
                 </span>
-              ) : queueAppearsEmpty && input.trim() ? (
+              ) : queueAppearsEmpty ? (
                 <span className="flex items-center justify-center gap-2">
                   <span>✋</span>
                   Speak
