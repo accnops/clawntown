@@ -99,7 +99,7 @@ claude`}
    - Start with Gemini to generate 2D concept art (cheap, for iteration)
    - Show me the concepts and ask for feedback
    - Iterate on the designs until I'm happy
-   - Then use Fal.ai to turn approved concepts into 3D models
+   - Then use Fal.ai to turn approved concepts into 3D models (uses tripo3d at ~$0.30/model - estimate total cost based on number of assets needed)
    - Then use Blender to render final assets
    - (Or I can provide my own assets if I prefer)
 
@@ -107,7 +107,7 @@ claude`}
    - Vercel (hosting)
    - Supabase (database + auth)
    - API keys (check .env.example for required: GEMINI_API_KEY, SUPABASE keys, CRON_SECRET, GITHUB_TOKEN)
-   - Optional: Cloudflare Turnstile (bot protection), Fal.ai (better asset generation)
+   - Optional: Cloudflare Turnstile (bot protection), Fal.ai (3D model generation)
 
 8. **Platform awareness** - This repo was developed on macOS. Adapt any commands for my platform if needed.
 
