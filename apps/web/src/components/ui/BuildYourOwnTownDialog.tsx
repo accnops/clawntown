@@ -58,10 +58,10 @@ claude`}
 
           <div>
             <p className="font-retro text-xs text-gray-700 mb-1 font-semibold">Option B: Manual fork</p>
-            <p className="font-retro text-[10px] text-gray-600 mb-1">
+            <p className="font-retro text-xs text-gray-600 mb-1">
               1. <a href="https://github.com/accnops/clawntown/fork" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Fork on GitHub</a> (change the repository name!)
             </p>
-            <p className="font-retro text-[10px] text-gray-600 mb-1">2. Then:</p>
+            <p className="font-retro text-xs text-gray-600 mb-1">2. Then:</p>
             <CodeBlock
               code={`git clone https://github.com/YOUR_USERNAME/your-town-name
 cd your-town-name
