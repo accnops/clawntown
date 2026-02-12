@@ -127,7 +127,7 @@ Start by asking me about the theme I'm interested in!`}
           <li>• Turning concepts into 3D models (Fal.ai → Blender)</li>
           <li>• Deploying your town</li>
         </ul>
-        <p className="font-retro text-[10px] text-gray-500 mt-2">
+        <p className="font-retro text-xs text-gray-500 mt-2">
           You can also provide your own assets if you prefer.
         </p>
       </section>
