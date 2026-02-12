@@ -86,7 +86,7 @@ claude`}
 
 2. **Pick a town name** - Based on my chosen theme, help me come up with a creative name for my town.
 
-3. **Remove Clawntown assets and references** - Go through the entire codebase and remove/replace ALL references to Clawntown, crabs, lobsters, and crustacean theming. This includes file names, variable names, comments, UI text, and any themed content.
+3. **Remove Clawntown assets and references** - Go through the entire codebase and remove/replace ALL references to Clawntown, crabs, lobsters, and crustacean theming. This includes file names, variable names, comments, UI text, themed content, and repository URLs (accnops/clawntown). The only acceptable reference is acknowledging that the project was forked from Clawntown.
 
 4. **Buildings** - Review the existing buildings in Clawntown (Town Hall, Forum, Lighthouse, Lobster Restaurant, etc.). For each building:
    - Rename to match my new theme
