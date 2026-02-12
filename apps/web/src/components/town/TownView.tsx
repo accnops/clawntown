@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import type { PhaserGameHandle } from "./phaser/PhaserGame";
 import { Building } from "./types";
+import { BuildYourOwnTownDialog } from "@/components/ui";
 
 // Dynamic import to avoid SSR issues with Phaser
 const PhaserGame = dynamic(() => import("./phaser/PhaserGame"), {
@@ -25,6 +26,7 @@ interface TownViewProps {
 
 export function TownView({ onBuildingClick, population, isAuthenticated }: TownViewProps) {
   const [hoveredBuilding, setHoveredBuilding] = useState<Building | null>(null);
+  const [showBuildDialog, setShowBuildDialog] = useState(false);
   const phaserRef = useRef<PhaserGameHandle>(null);
 
   const handleBuildingClick = useCallback(
@@ -47,18 +49,32 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
         isAuthenticated={isAuthenticated}
       />
 
-      {/* Town name overlay (HUD) */}
-      <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none">
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
-          <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
-            CLAWNTOWN
-          </h1>
-          <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
+      {/* Header HUD */}
+      <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none z-10">
+        {/* Left spacer for balance */}
+        <div className="w-32" />
+
+        {/* Town name (center) */}
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
+            <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
+              CLAWNTOWN
+            </h1>
+            <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
+          </div>
+          <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
+            Population: {population ?? '--'}
+          </p>
         </div>
-        <p className="font-retro text-xs md:text-sm text-white/80 drop-shadow">
-          Population: {population ?? '--'}
-        </p>
+
+        {/* Build your own town button (right) */}
+        <button
+          onClick={() => setShowBuildDialog(true)}
+          className="pointer-events-auto bg-amber-500 hover:bg-amber-400 text-white font-retro text-xs px-3 py-1.5 rounded shadow-lg border-2 border-amber-600 hover:border-amber-500 transition-colors"
+        >
+          🏗️ Build your own!
+        </button>
       </div>
 
       {/* Instructions */}
@@ -69,6 +85,11 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
             : "Click building to interact \u2022 Drag to pan \u2022 Scroll to zoom"}
         </p>
       </div>
+
+      <BuildYourOwnTownDialog
+        isOpen={showBuildDialog}
+        onClose={() => setShowBuildDialog(false)}
+      />
     </div>
   );
 }
