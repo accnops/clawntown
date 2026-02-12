@@ -12,6 +12,21 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleAuth = async () => {
       try {
+        // Check for error in URL hash (Supabase puts errors there)
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+        const urlError = hashParams.get('error_description');
+        if (urlError) {
+          const decodedError = decodeURIComponent(urlError.replace(/\+/g, ' '));
+          // Make error message more user-friendly
+          if (decodedError.toLowerCase().includes('expired') || decodedError.toLowerCase().includes('invalid')) {
+            setError('Your magic link has expired or is invalid. Please request a new one.');
+          } else {
+            setError(decodedError);
+          }
+          setStatus('error');
+          return;
+        }
+
         // Wait for Supabase to process the magic link
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -95,10 +110,10 @@ export default function AuthCallbackPage() {
             <p className="font-pixel text-lg text-red-700">Authentication Failed</p>
             <p className="font-retro text-sm text-gray-600 mt-2">{error}</p>
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/?welcome=citizen')}
               className="btn-retro mt-4 px-4 py-2 text-sm"
             >
-              Return to Town
+              Go to Town Hall
             </button>
           </>
         )}
