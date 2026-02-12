@@ -29,22 +29,6 @@ export function Dialog({ title, isOpen, onClose, children, className = '', bodyC
     }
   }, [isOpen, handleKeyDown]);
 
-  // Keep iOS Safari browser chrome sea-blue when dialog overlay is visible
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const SEA_COLOR = '#4a90d9';
-    let metaTag = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
-
-    if (!metaTag) {
-      metaTag = document.createElement('meta');
-      metaTag.name = 'theme-color';
-      document.head.appendChild(metaTag);
-    }
-
-    metaTag.content = SEA_COLOR;
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   return (
