@@ -39,9 +39,6 @@ export function BuildYourOwnTownDialog({ isOpen, onClose }: BuildYourOwnTownDial
             • <a href="https://github.com/obra/superpowers" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Superpowers</a> plugin for Claude Code
           </li>
         </ul>
-        <p className="font-retro text-[10px] text-gray-500 mt-2">
-          That's it. Claude will guide you through setting up Vercel, Supabase, Gemini, and other services as needed.
-        </p>
       </section>
 
       {/* Section 3: Quick Start */}
