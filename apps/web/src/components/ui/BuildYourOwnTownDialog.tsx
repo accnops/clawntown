@@ -33,7 +33,7 @@ export function BuildYourOwnTownDialog({ isOpen, onClose }: BuildYourOwnTownDial
         <h3 className="font-retro text-sm font-bold mb-2">To get started:</h3>
         <ul className="font-retro text-xs text-gray-700 space-y-1">
           <li>
-            • <a href="https://claude.ai/download" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Claude Code</a> installed
+            • <a href="https://code.claude.com/docs/en/overview" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Claude Code</a> installed
           </li>
           <li>
             • <a href="https://github.com/obra/superpowers" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Superpowers</a> plugin for Claude Code
