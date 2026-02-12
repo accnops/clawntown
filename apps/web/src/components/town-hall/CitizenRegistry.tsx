@@ -7,7 +7,7 @@ import { Captcha, type CaptchaHandle } from '@/components/auth/Captcha';
 type RegistryStep = 'welcome' | 'name' | 'avatar' | 'email' | 'sent';
 
 interface CitizenRegistryProps {
-  onSendMagicLink: (email: string, name: string, avatarId: string) => Promise<{ error: Error | null }>;
+  onSendMagicLink: (email: string) => Promise<{ error: Error | null }>;
   onBack: () => void;
 }
 
@@ -94,27 +94,41 @@ export function CitizenRegistry({
     setIsSubmitting(true);
 
     try {
-      // Verify captcha
-      const captchaResponse = await fetch('/api/captcha/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: captchaToken }),
-      });
+      if (mode === 'register') {
+        // New signup flow - call server-side API (handles captcha verification)
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            name: name.trim(),
+            avatarId,
+            captchaToken,
+          }),
+        });
 
-      if (!captchaResponse.ok) {
-        const data = await captchaResponse.json();
-        throw new Error(data.error || 'Captcha verification failed');
-      }
+        const data = await response.json();
 
-      // Send magic link
-      const result = await onSendMagicLink(
-        email,
-        mode === 'register' ? name.trim() : '',
-        mode === 'register' ? avatarId : ''
-      );
+        if (!response.ok) {
+          throw new Error(data.error || 'Signup failed');
+        }
+      } else {
+        // Sign-in flow - verify captcha first, then send magic link
+        const captchaResponse = await fetch('/api/captcha/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: captchaToken }),
+        });
 
-      if (result.error) {
-        throw result.error;
+        if (!captchaResponse.ok) {
+          const data = await captchaResponse.json();
+          throw new Error(data.error || 'Captcha verification failed');
+        }
+
+        const result = await onSendMagicLink(email);
+        if (result.error) {
+          throw result.error;
+        }
       }
 
       setStep('sent');

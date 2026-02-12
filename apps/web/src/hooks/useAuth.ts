@@ -12,10 +12,6 @@ export interface CitizenProfile {
   bannedUntil: Date | null;
 }
 
-interface PendingRegistration {
-  name: string;
-  avatarId: string;
-}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -65,24 +61,15 @@ export function useAuth() {
     });
   }, []);
 
-  const sendMagicLink = useCallback(async (
-    email: string,
-    pendingRegistration?: PendingRegistration
-  ): Promise<{ error: Error | null }> => {
+  const sendMagicLink = useCallback(async (email: string): Promise<{ error: Error | null }> => {
     if (!isSupabaseConfigured()) {
       return { error: new Error('Auth not configured') };
     }
 
-    // Use path-based parameters (Supabase strips query params from redirects)
-    // Format: /auth/callback or /auth/callback/{name}/{avatarId}
-    const redirectUrl = pendingRegistration
-      ? `${window.location.origin}/auth/callback/${encodeURIComponent(pendingRegistration.name)}/${encodeURIComponent(pendingRegistration.avatarId)}`
-      : `${window.location.origin}/auth/callback`;
-
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectUrl,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

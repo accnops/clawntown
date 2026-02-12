@@ -1,25 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const params = useParams();
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleAuth = async () => {
       try {
-        // Get name and avatar from path params: /auth/callback/[name]/[avatar]
-        const pathParams = params.params as string[] | undefined;
-        const name = pathParams?.[0] ? decodeURIComponent(pathParams[0]) : null;
-        const avatar = pathParams?.[1] ? decodeURIComponent(pathParams[1]) : null;
-
-        // Supabase client automatically picks up the hash fragment
-        // and exchanges it for a session
+        // Wait for Supabase to process the magic link
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -27,27 +20,13 @@ export default function AuthCallbackPage() {
         }
 
         if (!session) {
-          // No session yet - wait for Supabase to process the hash
+          // No session yet - wait for auth state change
           const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
               if (event === 'SIGNED_IN' && session?.user) {
-                // Update user metadata if this is a new registration
-                if (name && avatar) {
-                  await supabase.auth.updateUser({
-                    data: {
-                      citizen_name: name,
-                      citizen_avatar: avatar,
-                      last_captcha_at: new Date().toISOString(),
-                      violation_count: 0,
-                      banned_until: null,
-                    },
-                  });
-                }
-
+                await ensureCitizenExists(session.user.id);
                 setStatus('success');
                 subscription.unsubscribe();
-
-                // Redirect to home and open town hall
                 setTimeout(() => router.push('/?welcome=citizen'), 1000);
               }
             }
@@ -63,19 +42,8 @@ export default function AuthCallbackPage() {
           return;
         }
 
-        // Session exists - update metadata if needed
-        if (name && avatar && session.user) {
-          await supabase.auth.updateUser({
-            data: {
-              citizen_name: name,
-              citizen_avatar: avatar,
-              last_captcha_at: new Date().toISOString(),
-              violation_count: 0,
-              banned_until: null,
-            },
-          });
-        }
-
+        // Session exists - ensure citizen record
+        await ensureCitizenExists(session.user.id);
         setStatus('success');
         setTimeout(() => router.push('/?welcome=citizen'), 1000);
       } catch (err) {
@@ -86,7 +54,21 @@ export default function AuthCallbackPage() {
     };
 
     handleAuth();
-  }, [router, params]);
+  }, [router]);
+
+  // Helper to ensure citizen row exists
+  const ensureCitizenExists = async (userId: string) => {
+    const response = await fetch('/api/auth/ensure-citizen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to create citizen record');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-sky-200 flex items-center justify-center">

@@ -139,9 +139,7 @@ export default function Home() {
 
         {townHallView === 'registry' && (
           <CitizenRegistry
-            onSendMagicLink={async (email, name, avatarId) => {
-              return sendMagicLink(email, name && avatarId ? { name, avatarId } : undefined);
-            }}
+            onSendMagicLink={sendMagicLink}
             onBack={handleBackToLobby}
           />
         )}
