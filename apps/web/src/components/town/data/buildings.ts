@@ -54,7 +54,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     renderHeight: 3,
     interactive: true,
     scale: 0.15,
-    labelOffset: -10,
+    labelOffset: -5,
   },
 
   [BuildingType.ProjectBoard]: {
@@ -252,6 +252,7 @@ export const BUILDINGS: Record<BuildingType, BuildingDefinition> = {
     renderHeight: 3,
     interactive: true,
     scale: 0.19,
+    labelOffset: -8,
   },
 };
 
