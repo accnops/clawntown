@@ -51,27 +51,26 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
 
       {/* Header HUD */}
       <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-center pointer-events-none z-10">
-        {/* Town name + population */}
-        <div className="flex items-center justify-center gap-2">
+        {/* Town name */}
+        <div className="flex items-center justify-center gap-2 mb-2">
           <span className="text-2xl md:text-3xl drop-shadow-lg">🦀</span>
-          <div>
-            <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
-              CLAWNTOWN
-            </h1>
-            <p className="font-retro text-[10px] md:text-xs text-white/80 drop-shadow -mt-0.5">
-              Population: {population ?? '--'}
-            </p>
-          </div>
+          <h1 className="font-pixel text-lg md:text-2xl text-white drop-shadow-lg">
+            CLAWNTOWN
+          </h1>
           <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
         </div>
 
-        {/* Build your own town button */}
-        <button
-          onClick={() => setShowBuildDialog(true)}
-          className="pointer-events-auto mt-1.5 bg-orange-700 hover:bg-orange-600 text-white font-pixel text-[10px] px-2.5 py-1 rounded shadow-md border border-orange-900 hover:border-orange-700 transition-colors cursor-pointer"
-        >
-          BUILD YOUR OWN TOWN
-        </button>
+        {/* Population + Build your own */}
+        <p className="font-retro text-xs md:text-sm text-white/90 drop-shadow">
+          Population: {population ?? '--'}
+          <span className="mx-2 text-white/50">•</span>
+          <button
+            onClick={() => setShowBuildDialog(true)}
+            className="pointer-events-auto text-white/90 hover:text-white underline decoration-dashed decoration-white/50 hover:decoration-white cursor-pointer"
+          >
+            Build your own town
+          </button>
+        </p>
       </div>
 
       {/* Instructions */}
