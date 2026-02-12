@@ -59,7 +59,7 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
               CLAWNTOWN
             </h1>
             <p className="font-retro text-[10px] md:text-xs text-white/80 drop-shadow -mt-0.5">
-              Pop. {population ?? '--'}
+              Population: {population ?? '--'}
             </p>
           </div>
           <span className="text-2xl md:text-3xl drop-shadow-lg scale-x-[-1]">🦀</span>
