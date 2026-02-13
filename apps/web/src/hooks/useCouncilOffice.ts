@@ -105,15 +105,7 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
             return updated;
           }
           // Add and sort by createdAt to handle out-of-order arrivals
-          // Secondary sort: citizen before council when timestamps match
-          return [...prev, msg].sort((a, b) => {
-            const timeDiff = a.createdAt.getTime() - b.createdAt.getTime();
-            if (timeDiff !== 0) return timeDiff;
-            // Same timestamp: citizen messages come before council
-            if (a.role === 'citizen' && b.role === 'council') return -1;
-            if (a.role === 'council' && b.role === 'citizen') return 1;
-            return 0;
-          });
+          return [...prev, msg].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
         });
       })
       // Turn started - someone's turn began

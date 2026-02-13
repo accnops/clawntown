@@ -235,7 +235,9 @@ export async function POST(request: NextRequest) {
         : null;
 
       // Pre-generate UUIDs and timestamps for immediate broadcast + return
-      const now = new Date().toISOString();
+      const nowDate = new Date();
+      const now = nowDate.toISOString();
+      const councilNow = new Date(nowDate.getTime() + 1).toISOString(); // +1ms for ordering
       const citizenMessageId = crypto.randomUUID();
       const councilMessageId = councilResponseText ? crypto.randomUUID() : null;
 
@@ -259,7 +261,7 @@ export async function POST(request: NextRequest) {
         citizen_name: null,
         citizen_avatar: null,
         content: councilResponseText,
-        created_at: now,
+        created_at: councilNow,
       } : null;
 
       // Broadcast messages immediately (before DB save)
