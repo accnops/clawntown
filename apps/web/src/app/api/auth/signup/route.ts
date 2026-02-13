@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: captchaResult.error || 'Captcha verification failed' }, { status: 400 });
     }
 
+    const origin = request.headers.get('origin') || new URL(request.url).origin;
     const supabase = getSupabaseAdmin();
 
     // Check if user already exists
