@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import type { CouncilMember } from '@clawntown/shared';
 import { useCouncilOffice, useAuth } from '@/hooks';
 import { CouncilOffice } from './CouncilOffice';
@@ -29,47 +28,28 @@ export function CouncilOfficeView({
   onShowRegistry,
 }: CouncilOfficeViewProps) {
   const { needsCaptcha, updateCaptchaTimestamp } = useAuth();
-  const [isJoiningQueue, setIsJoiningQueue] = useState(false);
 
   const {
     messages,
+    chatState,
     queueLength,
     queuePosition,
-    currentTurn,
-    isMyTurn,
-    isLoading,
     spectatorCount,
-    isStreaming,
-    streamingContent,
-    queueAppearsEmpty,
-    raiseHand,
-    leaveQueue,
+    isLoading,
+    canSend,
+    isQueued,
+    isMyTurn,
+    isSending,
+    pendingContent,
+    turnExpiresAt,
     sendMessage,
-    speak,
-    endTurn,
+    leaveQueue,
   } = useCouncilOffice({
     member,
     citizenId: profile?.id,
+    citizenName: profile?.name,
+    citizenAvatar: profile?.avatar,
   });
-
-  const handleRaiseHand = async () => {
-    if (!profile) return;
-    setIsJoiningQueue(true);
-    try {
-      await raiseHand(profile.name, profile.avatar);
-    } finally {
-      setIsJoiningQueue(false);
-    }
-  };
-
-  const handleSendMessage = async (content: string) => {
-    return await sendMessage(content, profile?.name, profile?.avatar);
-  };
-
-  const handleSpeak = async (content: string) => {
-    if (!profile) return { action: 'error', error: 'Not authenticated' };
-    return await speak(content, profile.name, profile.avatar);
-  };
 
   // Show guest view if not authenticated
   if (!isAuthenticated) {
@@ -110,22 +90,20 @@ export function CouncilOfficeView({
       member={member}
       citizenId={profile?.id}
       messages={messages}
+      chatState={chatState}
       spectatorCount={spectatorCount}
       queueLength={queueLength}
       queuePosition={queuePosition}
-      currentTurn={currentTurn}
       isMyTurn={isMyTurn}
+      isQueued={isQueued}
+      isSending={isSending}
+      canSend={canSend}
+      pendingContent={pendingContent}
+      turnExpiresAt={turnExpiresAt}
       isLoading={isLoading}
       isAuthenticated={isAuthenticated}
-      isStreaming={isStreaming}
-      streamingContent={streamingContent}
-      isJoiningQueue={isJoiningQueue}
-      queueAppearsEmpty={queueAppearsEmpty}
-      onSendMessage={handleSendMessage}
-      onRaiseHand={handleRaiseHand}
+      onSendMessage={sendMessage}
       onLeaveQueue={leaveQueue}
-      onSpeak={handleSpeak}
-      onEndTurn={endTurn}
       onBack={onBack}
       onShowRegistry={onShowRegistry}
       needsCaptcha={needsCaptcha}

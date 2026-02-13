@@ -2,28 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { CouncilMember, ConversationMessage, CitizenTurn } from '@clawntown/shared';
+import type { CouncilMember, ConversationMessage } from '@clawntown/shared';
 
 // Transform snake_case DB data to camelCase for TypeScript
-function normalizeTurn(dbTurn: Record<string, unknown> | null): CitizenTurn | null {
-  if (!dbTurn) return null;
-  return {
-    id: dbTurn.id as string,
-    sessionId: (dbTurn.session_id || dbTurn.sessionId) as string,
-    memberId: (dbTurn.member_id || dbTurn.memberId) as string,
-    citizenId: (dbTurn.citizen_id || dbTurn.citizenId) as string,
-    citizenName: (dbTurn.citizen_name || dbTurn.citizenName || '') as string,
-    charsUsed: (dbTurn.chars_used ?? dbTurn.charsUsed ?? 0) as number,
-    charBudget: (dbTurn.char_budget ?? dbTurn.charBudget ?? 500) as number,
-    timeUsedMs: (dbTurn.time_used_ms ?? dbTurn.timeUsedMs ?? 0) as number,
-    timeBudgetMs: (dbTurn.time_budget_ms ?? dbTurn.timeBudgetMs ?? 10000) as number,
-    messagesUsed: (dbTurn.messages_used ?? dbTurn.messagesUsed ?? 0) as number,
-    messageLimit: (dbTurn.message_limit ?? dbTurn.messageLimit ?? 2) as number,
-    startedAt: new Date(dbTurn.started_at as string || dbTurn.startedAt as string).getTime(),
-    status: (dbTurn.status || 'active') as 'active' | 'completed' | 'expired',
-  };
-}
-
 function normalizeMessage(dbMsg: Record<string, unknown>): ConversationMessage {
   return {
     id: dbMsg.id as string,
@@ -37,25 +18,66 @@ function normalizeMessage(dbMsg: Record<string, unknown>): ConversationMessage {
   };
 }
 
+/**
+ * Chat state machine - simplified from design doc
+ */
+type ChatState =
+  | { status: 'idle' }
+  | { status: 'sending'; pendingId: string; pendingContent: string }
+  | { status: 'queued'; position: number; queueLength: number; pendingContent: string }
+  | { status: 'myTurn'; expiresAt: number; pendingContent: string }
+  | { status: 'error'; message: string };
+
 interface UseCouncilOfficeOptions {
   member: CouncilMember;
   citizenId?: string;
+  citizenName?: string;
+  citizenAvatar?: string;
 }
 
-export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions) {
+export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar }: UseCouncilOfficeOptions) {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [chatState, setChatState] = useState<ChatState>({ status: 'idle' });
   const [queueLength, setQueueLength] = useState(0);
-  const [queuePosition, setQueuePosition] = useState<number | null>(null);
-  const [currentTurn, setCurrentTurn] = useState<CitizenTurn | null>(null);
   const [spectatorCount, setSpectatorCount] = useState(0);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamingContent, setStreamingContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Track if we're in queue to know when to decrement position
-  const inQueueRef = useRef(false);
-  const heartbeatIntervalRef = useRef<number>(15000); // Start with 15s
+  // Refs for tracking
+  const heartbeatIntervalRef = useRef<number>(15000);
   const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const turnExpiryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Computed properties
+  const canSend = chatState.status === 'idle' || chatState.status === 'myTurn';
+  const isQueued = chatState.status === 'queued';
+  const isMyTurn = chatState.status === 'myTurn';
+  const isSending = chatState.status === 'sending';
+
+  // Get pending content if in queued or myTurn state (for restoring to input)
+  const pendingContent =
+    (chatState.status === 'queued' || chatState.status === 'myTurn')
+      ? chatState.pendingContent
+      : '';
+
+  // Clear turn expiry timer
+  const clearTurnExpiryTimer = useCallback(() => {
+    if (turnExpiryTimeoutRef.current) {
+      clearTimeout(turnExpiryTimeoutRef.current);
+      turnExpiryTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Start turn expiry timer
+  const startTurnExpiryTimer = useCallback((expiresAt: number, pendingContent: string) => {
+    clearTurnExpiryTimer();
+    const timeUntilExpiry = expiresAt - Date.now();
+    if (timeUntilExpiry > 0) {
+      turnExpiryTimeoutRef.current = setTimeout(() => {
+        // Silent expiry - return to idle, message stays in input
+        setChatState({ status: 'idle' });
+      }, timeUntilExpiry);
+    }
+  }, [clearTurnExpiryTimer]);
 
   // Subscribe to broadcast events
   useEffect(() => {
@@ -70,51 +92,59 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
           if (prev.some(m => m.id === msg.id)) {
             return prev;
           }
-          // Check for temp message to replace (content may differ due to sanitization)
+          // Check for temp message to replace (by pendingId match)
           const tempIndex = prev.findIndex(m =>
-            m.id.startsWith('temp-') &&
+            m.id.startsWith('pending-') &&
             m.role === msg.role &&
             m.citizenId === msg.citizenId
           );
           if (tempIndex !== -1) {
-            // Replace temp message with real one (sanitized version from server)
+            // Replace pending message with real one
             const updated = [...prev];
             updated[tempIndex] = msg;
             return updated;
           }
           return [...prev, msg];
         });
-        // Clear streaming content when final message arrives (for spectators)
-        if (msg.role === 'council') {
-          setIsStreaming(false);
-          setStreamingContent('');
-        }
       })
       // Turn started - someone's turn began
       .on('broadcast', { event: 'turn_started' }, ({ payload }) => {
-        setCurrentTurn(normalizeTurn(payload.turn));
+        const turn = payload.turn;
         setQueueLength(payload.queueLength ?? 0);
-        // If we're in queue, decrement position (someone ahead got their turn)
-        if (inQueueRef.current) {
-          setQueuePosition(prev => prev !== null && prev > 0 ? prev - 1 : prev);
+
+        // Check if this is MY turn
+        if (turn?.citizen_id === citizenId) {
+          const expiresAt = new Date(turn.expires_at).getTime();
+          setChatState(prev => {
+            const pendingContent = prev.status === 'queued' ? prev.pendingContent : '';
+            startTurnExpiryTimer(expiresAt, pendingContent);
+            return { status: 'myTurn', expiresAt, pendingContent };
+          });
+        } else {
+          // Someone else got a turn - if we're queued, decrement position
+          setChatState(prev => {
+            if (prev.status === 'queued' && prev.position > 1) {
+              return { ...prev, position: prev.position - 1 };
+            }
+            return prev;
+          });
         }
       })
       // Turn ended
       .on('broadcast', { event: 'turn_ended' }, ({ payload }) => {
-        if (payload.nextTurn) {
-          setCurrentTurn(normalizeTurn(payload.nextTurn));
-        } else {
-          setCurrentTurn(null);
-        }
         setQueueLength(payload.queueLength ?? 0);
+        // If I was in myTurn, go back to idle
+        setChatState(prev => {
+          if (prev.status === 'myTurn') {
+            clearTurnExpiryTimer();
+            return { status: 'idle' };
+          }
+          return prev;
+        });
       })
-      // Queue updated (someone left)
+      // Queue updated
       .on('broadcast', { event: 'queue_updated' }, ({ payload }) => {
         setQueueLength(payload.queueLength ?? 0);
-        // If we're in queue and queue got shorter, we might have moved up
-        if (inQueueRef.current) {
-          setQueuePosition(prev => prev !== null && prev > 0 ? prev - 1 : prev);
-        }
       })
       // Presence for spectator count
       .on('presence', { event: 'sync' }, () => {
@@ -133,11 +163,21 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
       .then(res => res.json())
       .then(data => {
         setQueueLength(data.queueLength ?? 0);
-        setCurrentTurn(normalizeTurn(data.currentTurn));
-        if (data.position !== undefined && data.position !== null) {
-          setQueuePosition(data.position);
-          inQueueRef.current = true;
+
+        // Check if user is in queue or has active turn
+        if (data.currentTurn?.citizen_id === citizenId) {
+          const expiresAt = new Date(data.currentTurn.expires_at).getTime();
+          startTurnExpiryTimer(expiresAt, '');
+          setChatState({ status: 'myTurn', expiresAt, pendingContent: '' });
+        } else if (data.position !== undefined && data.position !== null) {
+          setChatState({
+            status: 'queued',
+            position: data.position,
+            queueLength: data.queueLength ?? 0,
+            pendingContent: ''
+          });
         }
+
         // Load message history
         if (data.messages?.length > 0) {
           setMessages(data.messages.map((m: Record<string, unknown>) => normalizeMessage(m)));
@@ -149,21 +189,17 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
 
     return () => {
       channel.unsubscribe();
+      clearTurnExpiryTimer();
     };
-  }, [member.id]);
+  }, [member.id, citizenId, startTurnExpiryTimer, clearTurnExpiryTimer]);
 
-  // Heartbeat while in queue - dynamic interval based on position
-  // Track if this is the first heartbeat (should be immediate)
-  const isFirstHeartbeatRef = useRef(true);
-
+  // Heartbeat while in queue
   useEffect(() => {
-    if (!citizenId || !inQueueRef.current) {
-      // Not in queue, clear any pending heartbeat
+    if (!citizenId || chatState.status !== 'queued') {
       if (heartbeatTimeoutRef.current) {
         clearTimeout(heartbeatTimeoutRef.current);
         heartbeatTimeoutRef.current = null;
       }
-      isFirstHeartbeatRef.current = true; // Reset for next time we join
       return;
     }
 
@@ -177,38 +213,38 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
 
         const data = await res.json();
 
-        if (data.offline) {
-          // Council member went offline
-          setQueuePosition(null);
-          inQueueRef.current = false;
+        if (data.offline || data.action === 'not_in_queue') {
+          // Council member went offline or we're no longer in queue
+          setChatState({ status: 'idle' });
           return;
         }
 
-        if (data.turnStarted) {
+        if (data.turnStarted && data.currentTurn) {
           // Our turn started via heartbeat!
-          if (data.currentTurn) {
-            setCurrentTurn(normalizeTurn(data.currentTurn));
-          }
-          setQueuePosition(null);
-          inQueueRef.current = false; // No longer "waiting" in queue
-        } else if (data.position !== undefined && data.position !== null) {
-          setQueuePosition(data.position);
-        } else if (data.action === 'not_in_queue') {
-          // We're no longer in queue (maybe got skipped)
-          setQueuePosition(null);
-          inQueueRef.current = false;
+          const expiresAt = new Date(data.currentTurn.expires_at).getTime();
+          setChatState(prev => {
+            const pendingContent = prev.status === 'queued' ? prev.pendingContent : '';
+            startTurnExpiryTimer(expiresAt, pendingContent);
+            return { status: 'myTurn', expiresAt, pendingContent };
+          });
+          return;
         }
 
-        // Always sync currentTurn from heartbeat for consistency
-        if (data.currentTurn !== undefined) {
-          setCurrentTurn(data.currentTurn ? normalizeTurn(data.currentTurn) : null);
+        // Update position if provided
+        if (data.position !== undefined && data.position !== null) {
+          setChatState(prev => {
+            if (prev.status === 'queued') {
+              return { ...prev, position: data.position, queueLength: data.queueLength ?? prev.queueLength };
+            }
+            return prev;
+          });
         }
 
         if (data.queueLength !== undefined) {
           setQueueLength(data.queueLength);
         }
 
-        // Use server-recommended interval, or default
+        // Use server-recommended interval
         if (data.nextHeartbeatMs) {
           heartbeatIntervalRef.current = data.nextHeartbeatMs;
         }
@@ -217,15 +253,13 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
       }
 
       // Schedule next heartbeat if still in queue
-      if (inQueueRef.current) {
+      if (chatState.status === 'queued') {
         heartbeatTimeoutRef.current = setTimeout(sendHeartbeat, heartbeatIntervalRef.current);
       }
     };
 
-    // Start heartbeat loop - first heartbeat is immediate, then uses dynamic interval
-    const initialDelay = isFirstHeartbeatRef.current ? 0 : heartbeatIntervalRef.current;
-    isFirstHeartbeatRef.current = false;
-    heartbeatTimeoutRef.current = setTimeout(sendHeartbeat, initialDelay);
+    // Start heartbeat loop immediately
+    heartbeatTimeoutRef.current = setTimeout(sendHeartbeat, 0);
 
     return () => {
       if (heartbeatTimeoutRef.current) {
@@ -233,43 +267,11 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
         heartbeatTimeoutRef.current = null;
       }
     };
-  }, [member.id, citizenId, queuePosition]); // Re-run when queue position changes
+  }, [member.id, citizenId, chatState.status, startTurnExpiryTimer]);
 
-  const isMyTurn = currentTurn?.citizenId === citizenId;
-
-  const raiseHand = useCallback(async (citizenName: string, citizenAvatar: string) => {
-    if (!citizenId) return;
-
-    const res = await fetch('/api/queue/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        memberId: member.id,
-        citizenId,
-        citizenName,
-        citizenAvatar,
-      }),
-    });
-
-    const result = await res.json();
-
-    if (res.ok) {
-      // Set initial queue position from API response
-      setQueuePosition(result.position ?? 0);
-      setQueueLength(result.queueLength ?? 1);
-      inQueueRef.current = true;
-
-      // If turn was auto-started (first in line), update state
-      if (result.turn) {
-        setCurrentTurn(normalizeTurn(result.turn));
-      }
-    }
-
-    return result;
-  }, [member.id, citizenId]);
-
+  // Leave queue
   const leaveQueue = useCallback(async () => {
-    if (!citizenId) return;
+    if (!citizenId || chatState.status !== 'queued') return;
 
     const res = await fetch('/api/queue/leave', {
       method: 'POST',
@@ -278,215 +280,169 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
     });
 
     if (res.ok) {
-      setQueuePosition(null);
-      inQueueRef.current = false;
+      setChatState({ status: 'idle' });
     }
 
     return res.json();
-  }, [member.id, citizenId]);
+  }, [member.id, citizenId, chatState.status]);
 
-  const sendMessage = useCallback(async (content: string, citizenName?: string, citizenAvatar?: string) => {
-    if (!citizenId) return;
+  /**
+   * Send a message - the unified "speak" action
+   *
+   * Flow:
+   * 1. If idle: show optimistic message, call /api/queue/speak
+   * 2. If response is "sent": keep message, done
+   * 3. If response is "queued": remove optimistic, store content, enter queued state
+   * 4. If myTurn: same as idle (optimistic + speak)
+   */
+  const sendMessage = useCallback(async (content: string): Promise<{
+    success: boolean;
+    action?: 'sent' | 'queued' | 'rejected';
+    error?: string;
+    reason?: string;
+    requiresCaptcha?: boolean;
+  }> => {
+    if (!citizenId || !canSend) {
+      return { success: false, error: 'Cannot send message right now' };
+    }
 
-    // Optimistic UI: show message immediately
-    const tempId = `temp-${Date.now()}`;
+    const pendingId = `pending-${Date.now()}`;
+    const finalCitizenName = citizenName || 'Citizen';
+    const finalCitizenAvatar = citizenAvatar || null;
+
+    // Transition to sending state
+    setChatState({ status: 'sending', pendingId, pendingContent: content });
+
+    // Optimistic UI: show message immediately (only if idle/myTurn)
     const optimisticMessage: ConversationMessage = {
-      id: tempId,
+      id: pendingId,
       sessionId: '',
       role: 'citizen',
       citizenId,
-      citizenName: citizenName || 'You',
-      citizenAvatar: citizenAvatar || null,
+      citizenName: finalCitizenName,
+      citizenAvatar: finalCitizenAvatar,
       content,
       createdAt: new Date(),
     };
     setMessages(prev => [...prev, optimisticMessage]);
-    setIsStreaming(true);  // Show loading state for council response
 
-    const res = await fetch('/api/turn/message', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberId: member.id, citizenId, content }),
-    });
+    try {
+      const res = await fetch('/api/queue/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memberId: member.id,
+          citizenId,
+          citizenName: finalCitizenName,
+          citizenAvatar: finalCitizenAvatar,
+          content,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (res.status === 422 && data.error === 'message_rejected') {
-      // Remove optimistic message on rejection
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      setIsStreaming(false);
-      return { rejected: true, reason: data.reason };
-    }
-
-    if (!res.ok) {
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      setIsStreaming(false);
-      return { rejected: false, error: data.error };
-    }
-
-    // If turn ended and we left queue, update state
-    if (data.leftQueue) {
-      setQueuePosition(null);
-      inQueueRef.current = false;
-      setCurrentTurn(null);
-    }
-
-    // Success - streaming will end when broadcast arrives or we can end it here
-    setIsStreaming(false);
-    return data;
-  }, [member.id, citizenId]);
-
-  const endTurn = useCallback(async () => {
-    const res = await fetch('/api/turn/end', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberId: member.id, reason: 'timeout' }),
-    });
-
-    const result = await res.json();
-
-    if (res.ok) {
-      setQueuePosition(null);
-      inQueueRef.current = false;
-      // Update to next turn if there is one
-      if (result.nextTurn) {
-        setCurrentTurn(normalizeTurn(result.nextTurn));
-      } else {
-        setCurrentTurn(null);
+      // Handle captcha requirement
+      if (data.requiresCaptcha) {
+        setMessages(prev => prev.filter(m => m.id !== pendingId));
+        setChatState({ status: 'idle' });
+        return { success: false, error: data.error, requiresCaptcha: true };
       }
-    }
 
-    return result;
-  }, [member.id]);
-
-  // Optimistic "speak" - tries to send directly if queue appears empty
-  // Returns { action: 'sent' | 'queued' | 'rejected', ... }
-  const speak = useCallback(async (content: string, citizenName: string, citizenAvatar: string) => {
-    if (!citizenId) return { action: 'error', error: 'Not authenticated' };
-
-    // Optimistic UI: show message immediately
-    const tempId = `temp-${Date.now()}`;
-    const optimisticMessage: ConversationMessage = {
-      id: tempId,
-      sessionId: '',
-      role: 'citizen',
-      citizenId,
-      citizenName: citizenName || 'You',
-      citizenAvatar: citizenAvatar || null,
-      content,
-      createdAt: new Date(),
-    };
-    setMessages(prev => [...prev, optimisticMessage]);
-    setIsStreaming(true);  // Show loading state for council response
-
-    const res = await fetch('/api/queue/speak', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        memberId: member.id,
-        citizenId,
-        citizenName,
-        citizenAvatar,
-        content,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (res.status === 422) {
-      // Message rejected - remove optimistic message
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      setIsStreaming(false);
-      return { action: 'rejected', reason: data.reason };
-    }
-
-    if (!res.ok) {
-      // Error - remove optimistic message
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      setIsStreaming(false);
-      return { action: 'error', error: data.error };
-    }
-
-    if (data.action === 'queued') {
-      // Race condition - we got queued instead, remove optimistic message
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      setIsStreaming(false);
-      setQueuePosition(data.position ?? 0);
-      setQueueLength(data.queueLength ?? 1);
-      inQueueRef.current = true;
-      return { action: 'queued', position: data.position };
-    }
-
-    if (data.action === 'sent') {
-      // Message was sent successfully
-      setQueuePosition(null);
-      inQueueRef.current = false;
-      if (data.nextTurn) {
-        setCurrentTurn(normalizeTurn(data.nextTurn));
-      } else {
-        setCurrentTurn(null);
+      // Message rejected (moderation)
+      if (res.status === 422) {
+        setMessages(prev => prev.filter(m => m.id !== pendingId));
+        setChatState({ status: 'idle' });
+        return { success: false, action: 'rejected', reason: data.reason };
       }
-      setQueueLength(data.queueLength ?? 0);
 
-      // Add citizen message from response (replaces optimistic, handles sanitization)
-      if (data.citizenMessage) {
-        const realCitizenMsg = normalizeMessage(data.citizenMessage);
-        setMessages(prev => {
-          // Replace temp message with real one
-          const tempIndex = prev.findIndex(m => m.id === tempId);
-          if (tempIndex !== -1) {
-            const updated = [...prev];
-            updated[tempIndex] = realCitizenMsg;
-            return updated;
-          }
-          // Or add if not found (shouldn't happen)
-          if (!prev.some(m => m.id === realCitizenMsg.id)) {
-            return [...prev, realCitizenMsg];
-          }
-          return prev;
+      // Other errors
+      if (!res.ok) {
+        setMessages(prev => prev.filter(m => m.id !== pendingId));
+        setChatState({ status: 'idle' });
+        return { success: false, error: data.error };
+      }
+
+      // Queued (race condition - someone else got in first)
+      if (data.action === 'queued') {
+        setMessages(prev => prev.filter(m => m.id !== pendingId));
+        setQueueLength(data.queueLength ?? 1);
+        setChatState({
+          status: 'queued',
+          position: data.position ?? 1,
+          queueLength: data.queueLength ?? 1,
+          pendingContent: content  // Store for when it's our turn
         });
+        return { success: true, action: 'queued' };
       }
 
-      // Add council message from response (don't wait for broadcast)
-      if (data.councilMessage) {
-        const councilMsg = normalizeMessage(data.councilMessage);
-        setMessages(prev => {
-          if (!prev.some(m => m.id === councilMsg.id)) {
-            return [...prev, councilMsg];
-          }
-          return prev;
-        });
+      // Sent successfully
+      if (data.action === 'sent') {
+        setQueueLength(data.queueLength ?? 0);
+        clearTurnExpiryTimer();
+        setChatState({ status: 'idle' });
+
+        // Replace optimistic with real message from response
+        if (data.citizenMessage) {
+          const realMsg = normalizeMessage(data.citizenMessage);
+          setMessages(prev => {
+            const idx = prev.findIndex(m => m.id === pendingId);
+            if (idx !== -1) {
+              const updated = [...prev];
+              updated[idx] = realMsg;
+              return updated;
+            }
+            // Or dedupe if broadcast already arrived
+            if (!prev.some(m => m.id === realMsg.id)) {
+              return [...prev, realMsg];
+            }
+            return prev;
+          });
+        }
+
+        // Add council response
+        if (data.councilMessage) {
+          const councilMsg = normalizeMessage(data.councilMessage);
+          setMessages(prev => {
+            if (!prev.some(m => m.id === councilMsg.id)) {
+              return [...prev, councilMsg];
+            }
+            return prev;
+          });
+        }
+
+        return { success: true, action: 'sent' };
       }
 
-      setIsStreaming(false);
-      return { action: 'sent' };
+      // Unexpected response
+      setMessages(prev => prev.filter(m => m.id !== pendingId));
+      setChatState({ status: 'idle' });
+      return { success: false, error: 'Unexpected response' };
+    } catch (error) {
+      setMessages(prev => prev.filter(m => m.id !== pendingId));
+      setChatState({ status: 'idle' });
+      return { success: false, error: 'Network error' };
     }
-
-    // Unexpected - remove optimistic message
-    setMessages(prev => prev.filter(m => m.id !== tempId));
-    setIsStreaming(false);
-    return { action: 'error', error: 'Unexpected response' };
-  }, [member.id, citizenId]);
-
-  // Check if queue appears empty (for UI to decide button text)
-  const queueAppearsEmpty = queueLength === 0 && !currentTurn;
+  }, [citizenId, citizenName, citizenAvatar, member.id, canSend, clearTurnExpiryTimer]);
 
   return {
+    // State
     messages,
+    chatState,
     queueLength,
-    queuePosition,
-    currentTurn,
-    isMyTurn,
-    isLoading,
     spectatorCount,
-    isStreaming,
-    streamingContent,
-    queueAppearsEmpty,
-    raiseHand,
-    leaveQueue,
+    isLoading,
+
+    // Computed
+    canSend,
+    isQueued,
+    isMyTurn,
+    isSending,
+    pendingContent,
+    queuePosition: chatState.status === 'queued' ? chatState.position : null,
+    turnExpiresAt: chatState.status === 'myTurn' ? chatState.expiresAt : null,
+
+    // Actions
     sendMessage,
-    speak,
-    endTurn,
+    leaveQueue,
   };
 }

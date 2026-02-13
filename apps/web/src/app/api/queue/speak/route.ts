@@ -138,6 +138,9 @@ export async function POST(request: NextRequest) {
 
     // We got the turn! Now send the message
     if (speakResult.action === 'turn_started' && speakResult.turn_id && speakResult.session_id) {
+      const sessionId = speakResult.session_id;
+      const turnId = speakResult.turn_id;
+
       // Parallel: get citizen info + fetch history
       const [citizenResult, historyResult] = await Promise.all([
         supabase
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
           ? supabase
               .from('conversation_messages')
               .select('role, content, citizen_name')
-              .eq('session_id', speakResult.session_id)
+              .eq('session_id', sessionId)
               .order('created_at', { ascending: false })
               .limit(20)
           : Promise.resolve({ data: null }),
@@ -161,7 +164,7 @@ export async function POST(request: NextRequest) {
       const finalCitizenName = citizen?.name || citizenName || 'Citizen';
       const finalCitizenAvatar = citizen?.avatar || citizenAvatar || null;
 
-      // Prepare conversation history for LLM (do this sync while we parallelize below)
+      // Prepare conversation history for LLM
       let conversationHistory: Array<{ role: 'citizen' | 'council'; content: string; citizenName: string | null }> = [];
       if (isGeminiConfigured() && historyData) {
         const MAX_CHARS = 8_000;
@@ -178,118 +181,122 @@ export async function POST(request: NextRequest) {
         }));
       }
 
-      // Parallel: save citizen message + generate council response
-      const [citizenMsgResult, responseText] = await Promise.all([
-        supabase
-          .from('conversation_messages')
-          .insert({
-            session_id: speakResult.session_id,
-            role: 'citizen',
-            citizen_id: citizenId,
-            citizen_name: finalCitizenName,
-            citizen_avatar: finalCitizenAvatar,
-            content: sanitizedContent,
-          })
-          .select()
-          .single(),
-        isGeminiConfigured()
-          ? generateCouncilResponse(member.personality, finalCitizenName, sanitizedContent, conversationHistory)
-          : Promise.resolve(null),
-      ]);
+      // Generate council response (critical path - must wait for this)
+      const councilResponseText = isGeminiConfigured()
+        ? await generateCouncilResponse(member.personality, finalCitizenName, sanitizedContent, conversationHistory)
+        : null;
 
-      if (citizenMsgResult.error) {
-        console.error('Error saving citizen message:', citizenMsgResult.error);
-        return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
-      }
-      const citizenMessage = citizenMsgResult.data;
+      // Pre-generate UUIDs and timestamps for immediate broadcast + return
+      const now = new Date().toISOString();
+      const citizenMessageId = crypto.randomUUID();
+      const councilMessageId = councilResponseText ? crypto.randomUUID() : null;
 
-      // Build council message object (save to DB happens in parallel below)
-      let councilMessage = null;
-      const councilMsgContent = responseText;
+      // Build message objects with pre-generated IDs
+      const citizenMessage = {
+        id: citizenMessageId,
+        session_id: sessionId,
+        role: 'citizen' as const,
+        citizen_id: citizenId,
+        citizen_name: finalCitizenName,
+        citizen_avatar: finalCitizenAvatar,
+        content: sanitizedContent,
+        created_at: now,
+      };
 
-      // End the turn + save council message in parallel
-      const [endTurnResult, savedCouncilResult] = await Promise.all([
-        (supabase.rpc as CallableFunction)('end_turn_batch', {
-          p_turn_id: speakResult.turn_id,
-          p_citizen_id: citizenId,
-          p_member_id: memberId,
-          p_messages_used: 1,
-          p_chars_used: sanitizedContent.length,
-        }),
-        councilMsgContent
-          ? supabase
-              .from('conversation_messages')
-              .insert({
-                session_id: speakResult.session_id,
-                role: 'council',
-                citizen_id: null,
-                citizen_name: null,
-                content: councilMsgContent,
-              })
-              .select()
-              .single()
-          : Promise.resolve({ data: null }),
-      ]);
+      const councilMessage = councilResponseText ? {
+        id: councilMessageId!,
+        session_id: sessionId,
+        role: 'council' as const,
+        citizen_id: null,
+        citizen_name: null,
+        citizen_avatar: null,
+        content: councilResponseText,
+        created_at: now,
+      } : null;
 
-      const queueLength = endTurnResult.data ?? 0;
-      if (savedCouncilResult.data) {
-        councilMessage = savedCouncilResult.data;
-      }
-
-      // Auto-start next turn if someone is waiting
-      let nextTurn = null;
-      const { data: nextInQueue } = await supabase
-        .from('queue_entries')
-        .select('*')
-        .eq('member_id', memberId)
-        .eq('status', 'waiting')
-        .order('joined_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (nextInQueue) {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
-        try {
-          const startRes = await fetch(new URL('/api/turn/start', baseUrl), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memberId }),
-          });
-          if (startRes.ok) {
-            const startData = await startRes.json();
-            nextTurn = startData.turn;
-          }
-        } catch (e) {
-          console.error('Error auto-starting next turn:', e);
-        }
-      }
-
-      // Broadcast messages
+      // Broadcast messages immediately (before DB save)
       const channel = supabase.channel(`council:${memberId}`);
       await channel.httpSend('message', { message: citizenMessage });
       if (councilMessage) {
         await channel.httpSend('message', { message: councilMessage });
       }
 
-      // Broadcast turn ended
+      // Broadcast turn ended (queueLength will be updated by after())
       await channel.httpSend('turn_ended', {
-        endedTurn: { id: speakResult.turn_id },
-        nextTurn,
-        queueLength,
+        endedTurn: { id: turnId },
+        nextTurn: null, // Will be handled by after()
+        queueLength: 0, // Approximate - real value comes from end_turn_batch
       });
 
-      // Defer only throttle recording to after response
+      // Defer ALL DB operations to after response
       after(async () => {
-        await recordMessageSent(citizenId);
+        const afterSupabase = getSupabaseAdmin();
+
+        // Save both messages + end turn in parallel
+        await Promise.all([
+          afterSupabase
+            .from('conversation_messages')
+            .insert({
+              id: citizenMessageId,
+              session_id: sessionId,
+              role: 'citizen',
+              citizen_id: citizenId,
+              citizen_name: finalCitizenName,
+              citizen_avatar: finalCitizenAvatar,
+              content: sanitizedContent,
+            }),
+          councilResponseText
+            ? afterSupabase
+                .from('conversation_messages')
+                .insert({
+                  id: councilMessageId!,
+                  session_id: sessionId,
+                  role: 'council',
+                  citizen_id: null,
+                  citizen_name: null,
+                  content: councilResponseText,
+                })
+            : Promise.resolve(),
+          (afterSupabase.rpc as CallableFunction)('end_turn_batch', {
+            p_turn_id: turnId,
+            p_citizen_id: citizenId,
+            p_member_id: memberId,
+            p_messages_used: 1,
+            p_chars_used: sanitizedContent.length,
+          }),
+          recordMessageSent(citizenId),
+        ]);
+
+        // Auto-start next turn if someone is waiting
+        const { data: nextInQueue } = await afterSupabase
+          .from('queue_entries')
+          .select('id')
+          .eq('member_id', memberId)
+          .eq('status', 'waiting')
+          .order('joined_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (nextInQueue) {
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+            || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
+          try {
+            await fetch(new URL('/api/turn/start', baseUrl), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ memberId }),
+            });
+          } catch (e) {
+            console.error('Error auto-starting next turn:', e);
+          }
+        }
       });
 
       return NextResponse.json({
         action: 'sent',
         citizenMessage,
         councilMessage,
-        queueLength,
-        nextTurn,
+        queueLength: 0, // Approximate - real value comes from broadcast
       });
     }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { CouncilMember, ConversationMessage, CitizenTurn } from '@clawntown/shared';
+import type { CouncilMember, ConversationMessage } from '@clawntown/shared';
 import { supabase } from '@/lib/supabase';
 import { Captcha } from '@/components/auth/Captcha';
 import { Dialog } from '@/components/ui/Dialog';
@@ -29,31 +29,43 @@ function getCitizenColor(citizenId: string | null): typeof CITIZEN_COLORS[0] {
   let hash = 0;
   for (let i = 0; i < citizenId.length; i++) {
     hash = ((hash << 5) - hash) + citizenId.charCodeAt(i);
-    hash = hash & hash; // Convert to 32-bit integer
+    hash = hash & hash;
   }
   return CITIZEN_COLORS[Math.abs(hash) % CITIZEN_COLORS.length];
 }
+
+// Chat state type from hook
+type ChatState =
+  | { status: 'idle' }
+  | { status: 'sending'; pendingId: string; pendingContent: string }
+  | { status: 'queued'; position: number; queueLength: number; pendingContent: string }
+  | { status: 'myTurn'; expiresAt: number; pendingContent: string }
+  | { status: 'error'; message: string };
 
 interface CouncilOfficeProps {
   member: CouncilMember;
   citizenId?: string;
   messages: ConversationMessage[];
+  chatState: ChatState;
   spectatorCount: number;
   queueLength: number;
-  queuePosition: number | null; // null if not in queue
-  currentTurn: CitizenTurn | null;
+  queuePosition: number | null;
   isMyTurn: boolean;
+  isQueued: boolean;
+  isSending: boolean;
+  canSend: boolean;
+  pendingContent: string;
+  turnExpiresAt: number | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  isStreaming: boolean;
-  streamingContent: string;
-  isJoiningQueue?: boolean;
-  queueAppearsEmpty: boolean;
-  onSendMessage: (message: string) => Promise<{ rejected?: boolean; reason?: string } | undefined>;
-  onRaiseHand: () => void;
+  onSendMessage: (message: string) => Promise<{
+    success: boolean;
+    action?: 'sent' | 'queued' | 'rejected';
+    error?: string;
+    reason?: string;
+    requiresCaptcha?: boolean;
+  }>;
   onLeaveQueue: () => void;
-  onSpeak: (message: string) => Promise<{ action: string; position?: number; reason?: string }>;
-  onEndTurn: () => void;
   onBack: () => void;
   onShowRegistry: () => void;
   needsCaptcha: () => boolean;
@@ -61,36 +73,32 @@ interface CouncilOfficeProps {
 }
 
 const CHAR_BUDGET = 256;
-const TIME_BUDGET_MS = 10000;
-const MESSAGE_LIMIT = 1;
 
 export function CouncilOffice({
   member,
   citizenId,
   messages,
+  chatState,
   spectatorCount,
   queueLength,
   queuePosition,
-  currentTurn,
   isMyTurn,
+  isQueued,
+  isSending,
+  canSend,
+  pendingContent,
+  turnExpiresAt,
   isLoading,
   isAuthenticated,
-  isStreaming,
-  streamingContent,
-  isJoiningQueue = false,
-  queueAppearsEmpty,
   onSendMessage,
-  onRaiseHand,
   onLeaveQueue,
-  onSpeak,
-  onEndTurn,
   onBack,
   onShowRegistry,
   needsCaptcha,
   updateCaptchaTimestamp,
 }: CouncilOfficeProps) {
   const [input, setInput] = useState('');
-  const [timeRemaining, setTimeRemaining] = useState(TIME_BUDGET_MS);
+  const [timeRemaining, setTimeRemaining] = useState(10000);
   const [showCaptchaModal, setShowCaptchaModal] = useState(false);
   const [readyCheck, setReadyCheck] = useState<{ expiresAt: Date } | null>(null);
   const [wasNotified, setWasNotified] = useState(false);
@@ -99,10 +107,16 @@ export function CouncilOffice({
   const originalTitleRef = useRef<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Restore pending content to input when transitioning to myTurn or queued
+  useEffect(() => {
+    if (pendingContent && (chatState.status === 'myTurn' || chatState.status === 'queued')) {
+      setInput(pendingContent);
+    }
+  }, [pendingContent, chatState.status]);
+
   // Play notification sound
   const playNotificationSound = useCallback(() => {
     try {
-      // Create a simple beep using Web Audio API
       const AudioContextClass = window.AudioContext || (window as never as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioContextClass) return;
 
@@ -174,30 +188,19 @@ export function CouncilOffice({
   // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingContent]);
+  }, [messages]);
 
   // Timer countdown when it's my turn
-  const turnEndedRef = useRef(false);
   useEffect(() => {
-    if (!isMyTurn || !currentTurn || isStreaming) {
-      turnEndedRef.current = false;
-      return;
-    }
+    if (!isMyTurn || !turnExpiresAt) return;
 
     const interval = setInterval(() => {
-      const elapsed = Date.now() - currentTurn.startedAt;
-      const remaining = Math.max(0, currentTurn.timeBudgetMs - currentTurn.timeUsedMs - elapsed);
+      const remaining = Math.max(0, turnExpiresAt - Date.now());
       setTimeRemaining(remaining);
-
-      // Auto-end turn when time runs out
-      if (remaining === 0 && !turnEndedRef.current) {
-        turnEndedRef.current = true;
-        onEndTurn();
-      }
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isMyTurn, currentTurn, isStreaming, onEndTurn]);
+  }, [isMyTurn, turnExpiresAt]);
 
   // Subscribe to ready_check events
   useEffect(() => {
@@ -230,76 +233,64 @@ export function CouncilOffice({
 
   const handleReadyExpire = () => {
     setReadyCheck(null);
-    // User was skipped - could show a toast notification
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+  // Unified send handler
+  const handleSend = async () => {
+    if (!input.trim() || !canSend) return;
+
     const message = input.trim();
-    setInput('');
+    setInput(''); // Clear optimistically
     setRejectionMessage(null);
 
     const result = await onSendMessage(message);
-    if (result?.rejected) {
-      setRejectionMessage("Pinched! Try again 🦞");
-      setTimeout(() => setRejectionMessage(null), 3000);
-    }
 
-    // Maintain focus on input
+    if (!result.success) {
+      // Restore input on error/rejection
+      setInput(message);
+      if (result.action === 'rejected') {
+        setRejectionMessage("Pinched! Try again 🦞");
+        setTimeout(() => setRejectionMessage(null), 3000);
+      } else if (result.requiresCaptcha) {
+        setShowCaptchaModal(true);
+      } else if (result.error) {
+        setRejectionMessage(result.error);
+        setTimeout(() => setRejectionMessage(null), 3000);
+      }
+    } else if (result.action === 'queued') {
+      // Message was queued - content is already stored in hook state
+      // Input will be restored via pendingContent effect
+    }
+    // 'sent' - input stays cleared, all good
+
     inputRef.current?.focus();
   };
 
-  // Smart button handler - "Speak" if queue empty, "Raise Hand" otherwise
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const handleSmartAction = async () => {
-    if (!input.trim()) {
-      // No message - just raise hand to join queue
-      onRaiseHand();
-      return;
-    }
-
-    if (queueAppearsEmpty) {
-      // Queue appears empty - try optimistic send
-      const message = input.trim();
-      setInput(''); // Clear optimistically
-      setIsSpeaking(true);
-      setRejectionMessage(null);
-
-      const result = await onSpeak(message);
-
-      if (result.action === 'rejected') {
-        // Message rejected - restore input
-        setInput(message);
-        setRejectionMessage("Pinched! Try again 🦞");
-        setTimeout(() => setRejectionMessage(null), 3000);
-      } else if (result.action === 'queued') {
-        // Race lost - restore input, show queue position
-        setInput(message);
-        // Queue position is already updated by the hook
-      } else if (result.action === 'error') {
-        // Error - restore input
-        setInput(message);
-        setRejectionMessage("Something went wrong. Try again!");
-        setTimeout(() => setRejectionMessage(null), 3000);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && input.trim() && canSend) {
+      e.preventDefault();
+      if (needsCaptcha()) {
+        setShowCaptchaModal(true);
+      } else {
+        handleSend();
       }
-      // 'sent' action - input stays cleared
-
-      setIsSpeaking(false);
-      inputRef.current?.focus();
-    } else {
-      // Queue not empty - just raise hand (keep input for when turn starts)
-      onRaiseHand();
     }
   };
 
-  const charsRemaining = currentTurn
-    ? currentTurn.charBudget - currentTurn.charsUsed - input.length
-    : CHAR_BUDGET - input.length;
+  const handleButtonClick = () => {
+    if (needsCaptcha()) {
+      setShowCaptchaModal(true);
+    } else {
+      handleSend();
+    }
+  };
 
-  const messagesRemaining = currentTurn
-    ? currentTurn.messageLimit - currentTurn.messagesUsed
-    : MESSAGE_LIMIT;
+  const charsRemaining = CHAR_BUDGET - input.length;
+
+  // Check if waiting for council response
+  const isWaitingForResponse = messages.length > 0 &&
+    messages[messages.length - 1].role === 'citizen' &&
+    messages[messages.length - 1].id.startsWith('pending-');
 
   return (
     <div className="flex flex-col h-full max-h-[70vh]">
@@ -344,48 +335,49 @@ export function CouncilOffice({
         ) : messages.map((msg) => {
           const citizenColor = getCitizenColor(msg.citizenId);
           return (
-          <div
-            key={msg.id}
-            className={`flex gap-1.5 ${msg.role === 'citizen' ? 'flex-row-reverse' : ''}`}
-          >
-            {msg.role === 'council' ? (
-              <img
-                src={member.avatar}
-                alt={member.name}
-                className="w-10 h-10 object-contain shrink-0"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            ) : msg.citizenAvatar ? (
-              <img
-                src={`/assets/citizens/${msg.citizenAvatar}.png`}
-                alt={msg.citizenName || 'Citizen'}
-                className="w-10 h-10 object-contain shrink-0"
-                style={{ imageRendering: 'pixelated' }}
-              />
-            ) : (
-              <div className={`w-10 h-10 ${citizenColor.bg} rounded-full flex items-center justify-center shrink-0`}>
-                <span className="text-sm">{msg.citizenName?.charAt(0) || 'C'}</span>
-              </div>
-            )}
             <div
-              className={`rounded px-2 py-1 max-w-[80%] ${
-                msg.role === 'council'
-                  ? 'bg-white border border-gray-300'
-                  : `${citizenColor.bg} border ${citizenColor.border}`
-              }`}
+              key={msg.id}
+              className={`flex gap-1.5 ${msg.role === 'citizen' ? 'flex-row-reverse' : ''}`}
             >
-              {msg.citizenName && (
-                <p className="font-retro text-[10px] text-gray-500">{msg.citizenName}</p>
+              {msg.role === 'council' ? (
+                <img
+                  src={member.avatar}
+                  alt={member.name}
+                  className="w-10 h-10 object-contain shrink-0"
+                  style={{ imageRendering: 'pixelated' }}
+                />
+              ) : msg.citizenAvatar ? (
+                <img
+                  src={`/assets/citizens/${msg.citizenAvatar}.png`}
+                  alt={msg.citizenName || 'Citizen'}
+                  className="w-10 h-10 object-contain shrink-0"
+                  style={{ imageRendering: 'pixelated' }}
+                />
+              ) : (
+                <div className={`w-10 h-10 ${citizenColor.bg} rounded-full flex items-center justify-center shrink-0`}>
+                  <span className="text-sm">{msg.citizenName?.charAt(0) || 'C'}</span>
+                </div>
               )}
-              <p className="font-retro text-xs text-gray-700 whitespace-pre-wrap">
-                {msg.content}
-              </p>
+              <div
+                className={`rounded px-2 py-1 max-w-[80%] ${
+                  msg.role === 'council'
+                    ? 'bg-white border border-gray-300'
+                    : `${citizenColor.bg} border ${citizenColor.border}`
+                }`}
+              >
+                {msg.citizenName && (
+                  <p className="font-retro text-[10px] text-gray-500">{msg.citizenName}</p>
+                )}
+                <p className="font-retro text-xs text-gray-700 whitespace-pre-wrap">
+                  {msg.content}
+                </p>
+              </div>
             </div>
-          </div>
-        );})}
+          );
+        })}
 
         {/* Typing indicator while waiting for council response */}
-        {isStreaming && (
+        {(isSending || isWaitingForResponse) && (
           <div className="flex gap-1.5">
             <img
               src={member.avatar}
@@ -409,13 +401,15 @@ export function CouncilOffice({
         <div className="space-y-2">
           {/* Turn timer (only when it's my turn) */}
           {isMyTurn && (
-            <div className="text-center text-[10px] font-retro text-gray-500">
-              <span>Time: {Math.ceil(timeRemaining / 1000)}s</span>
+            <div className="bg-green-100 border border-green-400 rounded p-2">
+              <p className="font-retro text-xs text-green-800 text-center">
+                It's your turn! Time: {Math.ceil(timeRemaining / 1000)}s
+              </p>
             </div>
           )}
 
           {/* Queue position indicator */}
-          {queuePosition !== null && !isMyTurn && (
+          {isQueued && queuePosition !== null && (
             <div className="bg-yellow-100 border border-yellow-400 rounded p-2">
               <p className="font-retro text-xs text-yellow-800 text-center">
                 {queuePosition === 0
@@ -438,69 +432,33 @@ export function CouncilOffice({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isMyTurn ? "Type your message..." : "Prepare your message..."}
+            placeholder={isQueued ? "Your message is ready..." : "Type your message..."}
             className="input-retro w-full font-retro text-base"
-            disabled={(isMyTurn && (isStreaming || charsRemaining < 0 || messagesRemaining <= 0)) || isSpeaking}
-            maxLength={currentTurn?.charBudget ?? CHAR_BUDGET}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && input.trim()) {
-                e.preventDefault();
-                if (isMyTurn) {
-                  handleSubmit(e as unknown as React.FormEvent);
-                } else if (queuePosition === null && !isSpeaking) {
-                  // Not in queue - trigger smart action
-                  if (needsCaptcha()) {
-                    setShowCaptchaModal(true);
-                  } else {
-                    handleSmartAction();
-                  }
-                }
-              }
-            }}
+            disabled={!canSend || isSending || charsRemaining < 0}
+            maxLength={CHAR_BUDGET}
+            onKeyDown={handleKeyDown}
           />
 
           {/* Action button - changes based on state */}
-          {isMyTurn ? (
-            <button
-              onClick={handleSubmit as unknown as () => void}
-              className="btn-retro w-full text-xs"
-              disabled={!input.trim() || isStreaming || charsRemaining < 0 || messagesRemaining <= 0}
-            >
-              <span className="flex items-center justify-center gap-2">
-                <span>💬</span>
-                Speak
-              </span>
-            </button>
-          ) : queuePosition !== null ? (
+          {isQueued ? (
             <button onClick={onLeaveQueue} className="btn-retro w-full text-xs">
               Leave Queue
             </button>
           ) : (
             <button
-              onClick={() => {
-                if (needsCaptcha()) {
-                  setShowCaptchaModal(true);
-                } else {
-                  handleSmartAction();
-                }
-              }}
-              disabled={isJoiningQueue || isSpeaking}
-              className={`btn-retro w-full text-xs ${(isJoiningQueue || isSpeaking) ? 'opacity-70 cursor-wait' : ''}`}
+              onClick={handleButtonClick}
+              disabled={!input.trim() || !canSend || isSending}
+              className={`btn-retro w-full text-xs ${(!input.trim() || !canSend || isSending) ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {isJoiningQueue || isSpeaking ? (
+              {isSending ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="animate-spin">~</span>
-                  {isSpeaking ? 'Speaking...' : 'Joining Queue...'}
-                </span>
-              ) : queueAppearsEmpty ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span>✋</span>
-                  Speak
+                  Sending...
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  <span>✋</span>
-                  Raise Hand to Speak
+                  <span>💬</span>
+                  Speak
                 </span>
               )}
             </button>
@@ -521,7 +479,7 @@ export function CouncilOffice({
         isOpen={showCaptchaModal}
         onClose={() => setShowCaptchaModal(false)}
       >
-        <p className="mb-4 text-sm font-retro">Please verify you're human to join the queue.</p>
+        <p className="mb-4 text-sm font-retro">Please verify you're human to speak.</p>
         <Captcha
           onVerify={async (token) => {
             const res = await fetch('/api/captcha/verify', {
@@ -532,7 +490,8 @@ export function CouncilOffice({
             if (res.ok) {
               await updateCaptchaTimestamp();
               setShowCaptchaModal(false);
-              onRaiseHand();
+              // Now try to send
+              handleSend();
             }
           }}
         />
