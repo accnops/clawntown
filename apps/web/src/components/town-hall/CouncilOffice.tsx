@@ -258,8 +258,8 @@ export function CouncilOffice({
         setTimeout(() => setRejectionMessage(null), 3000);
       }
     } else if (result.action === 'queued') {
-      // Message was queued - content is already stored in hook state
-      // Input will be restored via pendingContent effect
+      // Message was queued - restore input explicitly (don't rely on effect timing)
+      setInput(message);
     }
     // 'sent' - input stays cleared, all good
 
