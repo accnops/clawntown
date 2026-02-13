@@ -124,26 +124,32 @@ export async function POST(request: NextRequest) {
     if (rpcError || !result) {
       console.log(`[speak] citizenId=${citizenId} try_speak failed, falling back to queue join. Error: ${rpcError?.message || 'no result'}`);
 
-      // Fallback: just join the queue
-      const { data: queueEntry, error: joinError } = await supabase
+      // Check if already in queue
+      const { data: existingEntry } = await supabase
         .from('queue_entries')
-        .upsert({
-          member_id: memberId,
-          citizen_id: citizenId,
-          status: 'waiting',
-          last_heartbeat_at: new Date().toISOString(),
-        }, {
-          onConflict: 'member_id,citizen_id',
-          ignoreDuplicates: false,
-        })
-        .select()
-        .single();
+        .select('id, status')
+        .eq('member_id', memberId)
+        .eq('citizen_id', citizenId)
+        .in('status', ['waiting', 'active'])
+        .maybeSingle();
 
-      console.log(`[speak] citizenId=${citizenId} fallback upsert result:`, { queueEntry, joinError: joinError?.message });
+      if (!existingEntry) {
+        // Not in queue yet, insert
+        const { error: insertError } = await supabase
+          .from('queue_entries')
+          .insert({
+            member_id: memberId,
+            citizen_id: citizenId,
+            status: 'waiting',
+            last_heartbeat_at: new Date().toISOString(),
+          });
 
-      if (joinError && !joinError.message.includes('duplicate')) {
-        console.error(`[speak] citizenId=${citizenId} FAILED - fallback queue join error:`, joinError);
-        return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+        if (insertError) {
+          console.log(`[speak] citizenId=${citizenId} fallback insert error (may be duplicate):`, insertError.message);
+          // Continue anyway - they might have been inserted by another request
+        }
+      } else {
+        console.log(`[speak] citizenId=${citizenId} already in queue with status=${existingEntry.status}`);
       }
 
       // Get accurate queue position using RPC
