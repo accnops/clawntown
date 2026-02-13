@@ -8,6 +8,7 @@ import { moderateWithLLM } from '@/lib/moderate';
 import { isEmailBanned } from '@/lib/violations';
 import { checkMessageThrottle, recordMessageSent } from '@/lib/throttle';
 import { startNextTurn } from '@/lib/turn';
+import { runCleanupIfNeeded } from '@/lib/cleanup';
 
 const CHAR_BUDGET = 256;
 const TIME_BUDGET_MS = 10000;
@@ -34,6 +35,8 @@ export async function POST(request: NextRequest) {
     // Verify council member is online (sync, fast)
     const member = getCouncilMember(memberId);
     if (!member || !isCouncilMemberOnline(member)) {
+      // Opportunistically trigger cleanup (cached, runs at most every 15s)
+      after(() => runCleanupIfNeeded());
       return NextResponse.json({ error: 'Council member is offline' }, { status: 400 });
     }
 
