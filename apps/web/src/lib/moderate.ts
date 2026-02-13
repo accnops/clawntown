@@ -29,7 +29,7 @@ export async function moderateWithLLM(message: string): Promise<ModerationResult
   try {
     const client = getGeminiClient();
     const model = client.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash-lite',
       safetySettings: SAFETY_SETTINGS,
       generationConfig: {
         temperature: 0,

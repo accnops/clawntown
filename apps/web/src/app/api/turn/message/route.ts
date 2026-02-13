@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 import { getCouncilMember } from '@/data/council-members';
@@ -16,8 +17,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Check message throttle (5 second cooldown between messages)
-    const throttle = await checkMessageThrottle(citizenId);
+    // Parallel: throttle + sanitize + get turn
+    const [throttle, sanitizeResult, turnResult] = await Promise.all([
+      checkMessageThrottle(citizenId),
+      Promise.resolve(sanitizeMessage(content)),
+      supabase
+        .from('turns')
+        .select('*')
+        .eq('member_id', memberId)
+        .is('ended_at', null)
+        .single(),
+    ]);
+
     if (!throttle.allowed) {
       return NextResponse.json(
         { error: `Please wait ${throttle.waitSeconds} seconds` },
@@ -25,8 +36,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sanitize message (Pass 1: regex + profanity)
-    const sanitizeResult = sanitizeMessage(content);
     if (!sanitizeResult.ok) {
       return NextResponse.json({
         error: 'message_rejected',
@@ -34,17 +43,9 @@ export async function POST(request: NextRequest) {
         category: sanitizeResult.category,
       }, { status: 422 });
     }
-
     const sanitizedContent = sanitizeResult.sanitized;
 
-    // Get current turn (needed for violation recording before moderation)
-    const { data: turn, error: turnError } = await supabase
-      .from('turns')
-      .select('*')
-      .eq('member_id', memberId)
-      .is('ended_at', null)
-      .single();
-
+    const { data: turn, error: turnError } = turnResult;
     if (turnError || !turn) {
       return NextResponse.json({ error: 'No active turn' }, { status: 400 });
     }
@@ -130,135 +131,118 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get citizen info for the message
-    const { data: citizen } = await supabase
-      .from('citizens')
-      .select('name, avatar')
-      .eq('id', citizenId)
-      .single();
-
-    const citizenName = citizen?.name || 'Citizen';
-    const citizenAvatar = citizen?.avatar || null;
-
     // Get council member personality
     const councilMember = getCouncilMember(memberId);
     if (!councilMember) {
       return NextResponse.json({ error: 'Council member not found' }, { status: 404 });
     }
 
-    // Save citizen message (sanitized)
-    const { data: citizenMessage, error: msgError } = await supabase
-      .from('conversation_messages')
-      .insert({
-        session_id: turn.session_id,
-        role: 'citizen',
-        citizen_id: citizenId,
-        citizen_name: citizenName,
-        citizen_avatar: citizenAvatar,
-        content: sanitizedContent,
-      })
-      .select()
-      .single();
+    // Parallel: get citizen info + fetch history
+    const [citizenResult, historyResult] = await Promise.all([
+      supabase
+        .from('citizens')
+        .select('name, avatar')
+        .eq('id', citizenId)
+        .single(),
+      isGeminiConfigured()
+        ? supabase
+            .from('conversation_messages')
+            .select('role, content, citizen_name')
+            .eq('session_id', turn.session_id)
+            .order('created_at', { ascending: false })
+            .limit(20)
+        : Promise.resolve({ data: null }),
+    ]);
 
-    if (msgError) {
-      console.error('Error saving citizen message:', msgError);
+    const citizen = citizenResult.data;
+    const historyData = historyResult.data;
+
+    const citizenName = citizen?.name || 'Citizen';
+    const citizenAvatar = citizen?.avatar || null;
+
+    // Prepare conversation history for LLM
+    let conversationHistory: Array<{ role: 'citizen' | 'council'; content: string; citizenName: string | null }> = [];
+    if (isGeminiConfigured() && historyData) {
+      const MAX_CHARS = 8_000;
+      let totalChars = 0;
+      const cappedHistory = historyData.filter(msg => {
+        if (totalChars >= MAX_CHARS) return false;
+        totalChars += msg.content.length;
+        return true;
+      }).reverse();
+      conversationHistory = cappedHistory.map(msg => ({
+        role: msg.role as 'citizen' | 'council',
+        content: msg.content,
+        citizenName: msg.citizen_name as string | null,
+      }));
+    }
+
+    // Parallel: save citizen message + generate council response
+    const [citizenMsgResult, responseText] = await Promise.all([
+      supabase
+        .from('conversation_messages')
+        .insert({
+          session_id: turn.session_id,
+          role: 'citizen',
+          citizen_id: citizenId,
+          citizen_name: citizenName,
+          citizen_avatar: citizenAvatar,
+          content: sanitizedContent,
+        })
+        .select()
+        .single(),
+      isGeminiConfigured()
+        ? generateCouncilResponse(councilMember.personality, citizenName, sanitizedContent, conversationHistory)
+        : Promise.resolve(null),
+    ]);
+
+    if (citizenMsgResult.error) {
+      console.error('Error saving citizen message:', citizenMsgResult.error);
       return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
     }
+    const citizenMessage = citizenMsgResult.data;
 
-    // Generate council response if Gemini is configured
-    let councilMessage = null;
-
-    if (isGeminiConfigured()) {
-      try {
-        // Fetch recent conversation history (last 100 messages, capped at 100k chars)
-        const { data: historyData } = await supabase
-          .from('conversation_messages')
-          .select('role, content, citizen_name')
-          .eq('session_id', turn.session_id)
-          .order('created_at', { ascending: false })
-          .limit(100);
-
-        // Cap at 100k chars (taking most recent messages first)
-        const MAX_CHARS = 100_000;
-        let totalChars = 0;
-        const cappedHistory = (historyData || []).filter(msg => {
-          if (totalChars >= MAX_CHARS) return false;
-          totalChars += msg.content.length;
-          return true;
-        }).reverse(); // Reverse back to chronological order
-
-        const conversationHistory = cappedHistory.map(msg => ({
-          role: msg.role as 'citizen' | 'council',
-          content: msg.content,
-          citizenName: msg.citizen_name as string | null,
-        }));
-
-        // Generate response
-        const responseText = await generateCouncilResponse(
-          councilMember.personality,
-          citizenName,
-          sanitizedContent,
-          conversationHistory.slice(0, -1) // Exclude current message
-        );
-
-        // Save council message
-        const { data: savedCouncilMessage } = await supabase
-          .from('conversation_messages')
-          .insert({
-            session_id: turn.session_id,
-            role: 'council',
-            citizen_id: null,
-            citizen_name: null,
-            content: responseText,
-          })
-          .select()
-          .single();
-
-        councilMessage = savedCouncilMessage;
-      } catch (error) {
-        console.error('Error generating council response:', error);
-        // Continue without council response - citizen message was already saved
-      }
-    }
-
-    // Update turn
+    // Update turn state
     const newMessagesUsed = turn.messages_used + 1;
     const shouldEnd = newMessagesUsed >= turn.message_limit;
+    const councilMsgContent = responseText;
 
-    // Broadcast messages to all spectators via httpSend (REST-based, no subscription needed)
-    const channel = supabase.channel(`council:${memberId}`);
-    await channel.httpSend('message', { message: citizenMessage });
+    // Save council message (parallel with end_turn if ending, or update_turn if not)
+    let councilMessage = null;
+    let queueLength = 0;
+    let nextTurn = null;
 
-    if (councilMessage) {
-      await channel.httpSend('message', { message: councilMessage });
-    }
-
-    // If message limit reached, end the turn and leave queue
     if (shouldEnd) {
-      // End the turn
-      await supabase
-        .from('turns')
-        .update({
-          chars_used: newCharsUsed,
-          messages_used: newMessagesUsed,
-          ended_at: new Date().toISOString(),
-        })
-        .eq('id', turn.id);
+      // End turn + save council message in parallel
+      const [endTurnResult, savedCouncilResult] = await Promise.all([
+        (supabase.rpc as CallableFunction)('end_turn_batch', {
+          p_turn_id: turn.id,
+          p_citizen_id: citizenId,
+          p_member_id: memberId,
+          p_messages_used: newMessagesUsed,
+          p_chars_used: newCharsUsed,
+        }),
+        councilMsgContent
+          ? supabase
+              .from('conversation_messages')
+              .insert({
+                session_id: turn.session_id,
+                role: 'council',
+                citizen_id: null,
+                citizen_name: null,
+                content: councilMsgContent,
+              })
+              .select()
+              .single()
+          : Promise.resolve({ data: null }),
+      ]);
 
-      // Mark queue entry as completed
-      await supabase
-        .from('queue_entries')
-        .update({ status: 'completed' })
-        .eq('citizen_id', citizenId)
-        .eq('member_id', memberId)
-        .eq('status', 'active');
+      queueLength = endTurnResult.data ?? 0;
+      if (savedCouncilResult.data) {
+        councilMessage = savedCouncilResult.data;
+      }
 
-      // Get updated queue length
-      const { data: queueLength } = await supabase
-        .rpc('get_queue_length', { p_member_id: memberId });
-
-      // Auto-start next person's turn immediately (don't wait for heartbeat)
-      let nextTurn = null;
+      // Auto-start next turn
       const { data: nextInQueue } = await supabase
         .from('queue_entries')
         .select('*')
@@ -285,46 +269,64 @@ export async function POST(request: NextRequest) {
           console.error('Error auto-starting next turn:', e);
         }
       }
+    } else {
+      // Update turn + save council message in parallel
+      const [, savedCouncilResult] = await Promise.all([
+        supabase
+          .from('turns')
+          .update({
+            chars_used: newCharsUsed,
+            messages_used: newMessagesUsed,
+          })
+          .eq('id', turn.id),
+        councilMsgContent
+          ? supabase
+              .from('conversation_messages')
+              .insert({
+                session_id: turn.session_id,
+                role: 'council',
+                citizen_id: null,
+                citizen_name: null,
+                content: councilMsgContent,
+              })
+              .select()
+              .single()
+          : Promise.resolve({ data: null }),
+      ]);
 
-      // Broadcast turn ended (includes next turn if started)
+      if (savedCouncilResult.data) {
+        councilMessage = savedCouncilResult.data;
+      }
+    }
+
+    // Broadcast messages
+    const channel = supabase.channel(`council:${memberId}`);
+    await channel.httpSend('message', { message: citizenMessage });
+    if (councilMessage) {
+      await channel.httpSend('message', { message: councilMessage });
+    }
+
+    if (shouldEnd) {
+      // Broadcast turn ended
       await channel.httpSend('turn_ended', {
         endedTurn: { ...turn, ended_at: new Date().toISOString() },
         nextTurn,
-        queueLength: queueLength ?? 0,
-      });
-
-      // Record message sent for throttling
-      await recordMessageSent(citizenId);
-
-      return NextResponse.json({
-        citizenMessage,
-        councilMessage,
-        turn: { ...turn, chars_used: newCharsUsed, messages_used: newMessagesUsed, ended_at: new Date().toISOString() },
-        shouldEnd: true,
-        leftQueue: true,
-        nextTurn,
+        queueLength,
       });
     }
 
-    // Just update the turn (not ending)
-    const { data: updatedTurn } = await supabase
-      .from('turns')
-      .update({
-        chars_used: newCharsUsed,
-        messages_used: newMessagesUsed,
-      })
-      .eq('id', turn.id)
-      .select()
-      .single();
-
-    // Record message sent for throttling
-    await recordMessageSent(citizenId);
+    // Defer only throttle recording to after response
+    after(async () => {
+      await recordMessageSent(citizenId);
+    });
 
     return NextResponse.json({
       citizenMessage,
       councilMessage,
-      turn: updatedTurn,
-      shouldEnd: false,
+      turn: { ...turn, chars_used: newCharsUsed, messages_used: newMessagesUsed, ended_at: shouldEnd ? new Date().toISOString() : null },
+      shouldEnd,
+      leftQueue: shouldEnd,
+      nextTurn,
     });
   } catch (error) {
     console.error('Error sending message:', error);

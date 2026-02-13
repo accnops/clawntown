@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { getCouncilMember, isCouncilMemberOnline } from '@/data/council-members';
 import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
@@ -29,23 +30,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Get user data for captcha and ban checks
-    const { data: userData } = await supabase.auth.admin.getUserById(citizenId);
+    // Verify council member is online (sync, fast)
+    const member = getCouncilMember(memberId);
+    if (!member || !isCouncilMemberOnline(member)) {
+      return NextResponse.json({ error: 'Council member is offline' }, { status: 400 });
+    }
+
+    // Parallel: get_user + sanitize (independent operations)
+    const [userDataResult, sanitizeResult] = await Promise.all([
+      supabase.auth.admin.getUserById(citizenId),
+      Promise.resolve(sanitizeMessage(content)),
+    ]);
+
+    const userData = userDataResult.data;
     const email = userData?.user?.email;
 
-    // Check if email is banned
-    if (email) {
-      const banStatus = await isEmailBanned(email);
-      if (banStatus.isBanned) {
-        return NextResponse.json(
-          {
-            error: 'You are temporarily banned due to conduct violations',
-            bannedUntil: banStatus.bannedUntil?.toISOString(),
-          },
-          { status: 403 }
-        );
-      }
+    // Check sanitization result
+    if (!sanitizeResult.ok) {
+      return NextResponse.json({
+        error: 'message_rejected',
+        reason: sanitizeResult.reason,
+        category: sanitizeResult.category,
+      }, { status: 422 });
     }
+    const sanitizedContent = sanitizeResult.sanitized;
 
     // Check if captcha is needed (1 hour since last verification)
     const lastCaptchaAt = userData?.user?.user_metadata?.last_captcha_at;
@@ -65,8 +73,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check message throttle (5 second cooldown between messages)
-    const throttle = await checkMessageThrottle(citizenId);
+    // Parallel: ban check + throttle check + moderation
+    const [banStatus, throttle, moderation] = await Promise.all([
+      email ? isEmailBanned(email) : Promise.resolve({ isBanned: false, bannedUntil: null }),
+      checkMessageThrottle(citizenId),
+      isGeminiConfigured() ? moderateWithLLM(sanitizedContent) : Promise.resolve({ safe: true } as const),
+    ]);
+
+    if (banStatus.isBanned) {
+      return NextResponse.json(
+        {
+          error: 'You are temporarily banned due to conduct violations',
+          bannedUntil: banStatus.bannedUntil?.toISOString(),
+        },
+        { status: 403 }
+      );
+    }
+
     if (!throttle.allowed) {
       return NextResponse.json(
         { error: `Please wait ${throttle.waitSeconds} seconds` },
@@ -74,33 +97,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify council member is online
-    const member = getCouncilMember(memberId);
-    if (!member || !isCouncilMemberOnline(member)) {
-      return NextResponse.json({ error: 'Council member is offline' }, { status: 400 });
-    }
-
-    // Sanitize message first
-    const sanitizeResult = sanitizeMessage(content);
-    if (!sanitizeResult.ok) {
+    if (!moderation.safe) {
       return NextResponse.json({
         error: 'message_rejected',
-        reason: sanitizeResult.reason,
-        category: sanitizeResult.category,
+        reason: "Whoa there, citizen! That message isn't appropriate for Clawntown.",
+        category: 'category' in moderation ? moderation.category : 'unknown',
       }, { status: 422 });
-    }
-    const sanitizedContent = sanitizeResult.sanitized;
-
-    // LLM moderation
-    if (isGeminiConfigured()) {
-      const moderation = await moderateWithLLM(sanitizedContent);
-      if (!moderation.safe) {
-        return NextResponse.json({
-          error: 'message_rejected',
-          reason: "Whoa there, citizen! That message isn't appropriate for Clawntown.",
-          category: moderation.category,
-        }, { status: 422 });
-      }
     }
 
     // Use advisory lock for atomic queue check + join + turn start
@@ -136,99 +138,103 @@ export async function POST(request: NextRequest) {
 
     // We got the turn! Now send the message
     if (speakResult.action === 'turn_started' && speakResult.turn_id && speakResult.session_id) {
-      // Get citizen info
-      const { data: citizen } = await supabase
-        .from('citizens')
-        .select('name, avatar')
-        .eq('id', citizenId)
-        .single();
+      // Parallel: get citizen info + fetch history
+      const [citizenResult, historyResult] = await Promise.all([
+        supabase
+          .from('citizens')
+          .select('name, avatar')
+          .eq('id', citizenId)
+          .single(),
+        isGeminiConfigured()
+          ? supabase
+              .from('conversation_messages')
+              .select('role, content, citizen_name')
+              .eq('session_id', speakResult.session_id)
+              .order('created_at', { ascending: false })
+              .limit(20)
+          : Promise.resolve({ data: null }),
+      ]);
+
+      const citizen = citizenResult.data;
+      const historyData = historyResult.data;
 
       const finalCitizenName = citizen?.name || citizenName || 'Citizen';
       const finalCitizenAvatar = citizen?.avatar || citizenAvatar || null;
 
-      // Save citizen message
-      const { data: citizenMessage, error: msgError } = await supabase
-        .from('conversation_messages')
-        .insert({
-          session_id: speakResult.session_id,
-          role: 'citizen',
-          citizen_id: citizenId,
-          citizen_name: finalCitizenName,
-          citizen_avatar: finalCitizenAvatar,
-          content: sanitizedContent,
-        })
-        .select()
-        .single();
+      // Prepare conversation history for LLM (do this sync while we parallelize below)
+      let conversationHistory: Array<{ role: 'citizen' | 'council'; content: string; citizenName: string | null }> = [];
+      if (isGeminiConfigured() && historyData) {
+        const MAX_CHARS = 8_000;
+        let totalChars = 0;
+        const cappedHistory = historyData.filter(msg => {
+          if (totalChars >= MAX_CHARS) return false;
+          totalChars += msg.content.length;
+          return true;
+        }).reverse();
+        conversationHistory = cappedHistory.map(msg => ({
+          role: msg.role as 'citizen' | 'council',
+          content: msg.content,
+          citizenName: msg.citizen_name as string | null,
+        }));
+      }
 
-      if (msgError) {
-        console.error('Error saving citizen message:', msgError);
+      // Parallel: save citizen message + generate council response
+      const [citizenMsgResult, responseText] = await Promise.all([
+        supabase
+          .from('conversation_messages')
+          .insert({
+            session_id: speakResult.session_id,
+            role: 'citizen',
+            citizen_id: citizenId,
+            citizen_name: finalCitizenName,
+            citizen_avatar: finalCitizenAvatar,
+            content: sanitizedContent,
+          })
+          .select()
+          .single(),
+        isGeminiConfigured()
+          ? generateCouncilResponse(member.personality, finalCitizenName, sanitizedContent, conversationHistory)
+          : Promise.resolve(null),
+      ]);
+
+      if (citizenMsgResult.error) {
+        console.error('Error saving citizen message:', citizenMsgResult.error);
         return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
       }
+      const citizenMessage = citizenMsgResult.data;
 
-      // Generate council response
+      // Build council message object (save to DB happens in parallel below)
       let councilMessage = null;
-      if (isGeminiConfigured()) {
-        try {
-          // Fetch recent conversation history
-          const { data: historyData } = await supabase
-            .from('conversation_messages')
-            .select('role, content, citizen_name')
-            .eq('session_id', speakResult.session_id)
-            .order('created_at', { ascending: false })
-            .limit(100);
+      const councilMsgContent = responseText;
 
-          const conversationHistory = (historyData || []).reverse().map(msg => ({
-            role: msg.role as 'citizen' | 'council',
-            content: msg.content,
-            citizenName: msg.citizen_name as string | null,
-          }));
+      // End the turn + save council message in parallel
+      const [endTurnResult, savedCouncilResult] = await Promise.all([
+        (supabase.rpc as CallableFunction)('end_turn_batch', {
+          p_turn_id: speakResult.turn_id,
+          p_citizen_id: citizenId,
+          p_member_id: memberId,
+          p_messages_used: 1,
+          p_chars_used: sanitizedContent.length,
+        }),
+        councilMsgContent
+          ? supabase
+              .from('conversation_messages')
+              .insert({
+                session_id: speakResult.session_id,
+                role: 'council',
+                citizen_id: null,
+                citizen_name: null,
+                content: councilMsgContent,
+              })
+              .select()
+              .single()
+          : Promise.resolve({ data: null }),
+      ]);
 
-          const responseText = await generateCouncilResponse(
-            member.personality,
-            finalCitizenName,
-            sanitizedContent,
-            conversationHistory.slice(0, -1)
-          );
-
-          const { data: savedCouncilMessage } = await supabase
-            .from('conversation_messages')
-            .insert({
-              session_id: speakResult.session_id,
-              role: 'council',
-              citizen_id: null,
-              citizen_name: null,
-              content: responseText,
-            })
-            .select()
-            .single();
-
-          councilMessage = savedCouncilMessage;
-        } catch (error) {
-          console.error('Error generating council response:', error);
-        }
+      const queueLength = endTurnResult.data ?? 0;
+      if (savedCouncilResult.data) {
+        councilMessage = savedCouncilResult.data;
       }
-
-      // End the turn (1 message limit reached)
-      await supabase
-        .from('turns')
-        .update({
-          messages_used: 1,
-          chars_used: sanitizedContent.length,
-          ended_at: new Date().toISOString()
-        })
-        .eq('id', speakResult.turn_id);
-
-      // Mark queue entry as completed
-      await supabase
-        .from('queue_entries')
-        .update({ status: 'completed' })
-        .eq('citizen_id', citizenId)
-        .eq('member_id', memberId)
-        .eq('status', 'active');
-
-      // Get updated queue length
-      const { data: queueLength } = await supabase
-        .rpc('get_queue_length', { p_member_id: memberId });
 
       // Auto-start next turn if someone is waiting
       let nextTurn = null;
@@ -270,17 +276,19 @@ export async function POST(request: NextRequest) {
       await channel.httpSend('turn_ended', {
         endedTurn: { id: speakResult.turn_id },
         nextTurn,
-        queueLength: queueLength ?? 0,
+        queueLength,
       });
 
-      // Record message sent for throttling
-      await recordMessageSent(citizenId);
+      // Defer only throttle recording to after response
+      after(async () => {
+        await recordMessageSent(citizenId);
+      });
 
       return NextResponse.json({
         action: 'sent',
         citizenMessage,
         councilMessage,
-        queueLength: queueLength ?? 0,
+        queueLength,
         nextTurn,
       });
     }

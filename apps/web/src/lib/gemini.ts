@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Check lazily at runtime, not at module load time
 export const isGeminiConfigured = () => !!process.env.GEMINI_API_KEY;
@@ -19,18 +19,15 @@ export async function generateCouncilResponse(
 ): Promise<string> {
   const client = getGeminiClient();
   const model = client.getGenerativeModel({
-    model: 'gemini-3-flash-preview',
-    safetySettings: [
-      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-      { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-      { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-    ],
+    model: 'gemini-2.5-flash-lite',
+    // Safety settings removed - we moderate inputs separately via moderate.ts
     systemInstruction: `${personality}
 
 You are having a conversation with citizens in a public forum. Multiple citizens may speak - each citizen message is prefixed with their name in brackets like [CitizenName]. Pay attention to WHO is speaking and address them by name when appropriate.
 
-Respond in character. Keep your response concise (1-3 sentences). Stay in character and be helpful while maintaining your personality.`,
+Respond in character. Keep your response concise (1-3 sentences). Stay in character and be helpful while maintaining your personality.
+
+IMPORTANT: Do NOT prefix your responses with your name or any label like "[Name]:". Just respond directly with your message.`,
   });
 
   // Convert history to Gemini's chat format, prefixing citizen messages with their name
@@ -48,8 +45,11 @@ Respond in character. Keep your response concise (1-3 sentences). Stay in charac
     history: chatHistory as any,
   });
 
-  // Prefix current message with citizen name for consistency
   const result = await chat.sendMessage(`[${citizenName}]: ${citizenMessage}`);
-  const response = result.response;
-  return response.text();
+  let text = result.response.text();
+
+  // Strip any [Name]: prefix the LLM might add (it sometimes mimics the citizen format)
+  text = text.replace(/^\[[\w\s]+\]:\s*/i, '');
+
+  return text;
 }

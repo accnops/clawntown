@@ -5,6 +5,7 @@ import {
   useRef,
   useImperativeHandle,
   forwardRef,
+  useState,
 } from "react";
 import * as Phaser from "phaser";
 import { MainScene, SceneEvents } from "./MainScene";
@@ -36,6 +37,8 @@ const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
     const sceneRef = useRef<MainScene | null>(null);
     // Track zoom value set via zoomAtPoint to skip re-centering in useEffect
     const zoomFromAtPoint = useRef<number | null>(null);
+    // Track when scene is ready for safe updates
+    const [sceneReady, setSceneReady] = useState(false);
 
     // Expose methods to parent via ref
     useImperativeHandle(
@@ -81,8 +84,8 @@ const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
         };
         scene.setEventCallbacks(events);
 
-        // Set initial "Start Here" arrow visibility
-        scene.setShowStartHere(!isAuthenticated);
+        // Mark scene as ready - visibility will be set by useEffect
+        setSceneReady(true);
 
         // Listen for zoom changes from Phaser (wheel zoom handled in scene)
         scene.events.on("zoomChanged", (newZoom: number) => {
@@ -109,12 +112,12 @@ const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
       }
     }, [zoom]);
 
-    // Update "Start Here" arrow visibility when auth state changes
+    // Update "Start Here" arrow visibility when auth state changes or scene becomes ready
     useEffect(() => {
-      if (sceneRef.current) {
+      if (sceneReady && sceneRef.current) {
         sceneRef.current.setShowStartHere(!isAuthenticated);
       }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, sceneReady]);
 
     // Update event callbacks when they change
     useEffect(() => {

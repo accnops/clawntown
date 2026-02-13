@@ -365,6 +365,21 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
   const speak = useCallback(async (content: string, citizenName: string, citizenAvatar: string) => {
     if (!citizenId) return { action: 'error', error: 'Not authenticated' };
 
+    // Optimistic UI: show message immediately
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: ConversationMessage = {
+      id: tempId,
+      sessionId: '',
+      role: 'citizen',
+      citizenId,
+      citizenName: citizenName || 'You',
+      citizenAvatar: citizenAvatar || null,
+      content,
+      createdAt: new Date(),
+    };
+    setMessages(prev => [...prev, optimisticMessage]);
+    setIsStreaming(true);  // Show loading state for council response
+
     const res = await fetch('/api/queue/speak', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -380,16 +395,23 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
     const data = await res.json();
 
     if (res.status === 422) {
-      // Message rejected
+      // Message rejected - remove optimistic message
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setIsStreaming(false);
       return { action: 'rejected', reason: data.reason };
     }
 
     if (!res.ok) {
+      // Error - remove optimistic message
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setIsStreaming(false);
       return { action: 'error', error: data.error };
     }
 
     if (data.action === 'queued') {
-      // Race condition - we got queued instead
+      // Race condition - we got queued instead, remove optimistic message
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setIsStreaming(false);
       setQueuePosition(data.position ?? 0);
       setQueueLength(data.queueLength ?? 1);
       inQueueRef.current = true;
@@ -406,9 +428,44 @@ export function useCouncilOffice({ member, citizenId }: UseCouncilOfficeOptions)
         setCurrentTurn(null);
       }
       setQueueLength(data.queueLength ?? 0);
+
+      // Add citizen message from response (replaces optimistic, handles sanitization)
+      if (data.citizenMessage) {
+        const realCitizenMsg = normalizeMessage(data.citizenMessage);
+        setMessages(prev => {
+          // Replace temp message with real one
+          const tempIndex = prev.findIndex(m => m.id === tempId);
+          if (tempIndex !== -1) {
+            const updated = [...prev];
+            updated[tempIndex] = realCitizenMsg;
+            return updated;
+          }
+          // Or add if not found (shouldn't happen)
+          if (!prev.some(m => m.id === realCitizenMsg.id)) {
+            return [...prev, realCitizenMsg];
+          }
+          return prev;
+        });
+      }
+
+      // Add council message from response (don't wait for broadcast)
+      if (data.councilMessage) {
+        const councilMsg = normalizeMessage(data.councilMessage);
+        setMessages(prev => {
+          if (!prev.some(m => m.id === councilMsg.id)) {
+            return [...prev, councilMsg];
+          }
+          return prev;
+        });
+      }
+
+      setIsStreaming(false);
       return { action: 'sent' };
     }
 
+    // Unexpected - remove optimistic message
+    setMessages(prev => prev.filter(m => m.id !== tempId));
+    setIsStreaming(false);
     return { action: 'error', error: 'Unexpected response' };
   }, [member.id, citizenId]);
 
