@@ -426,15 +426,15 @@ export function CouncilOffice({
             </div>
           )}
 
-          {/* Text input - always visible */}
+          {/* Text input - always visible, editable even when queued */}
           <input
             ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isQueued ? "Your message is ready..." : "Type your message..."}
+            placeholder={isQueued ? "Edit your message while waiting..." : "Type your message..."}
             className="input-retro w-full font-retro text-base"
-            disabled={!canSend || isSending || charsRemaining < 0}
+            disabled={isSending || charsRemaining < 0}
             maxLength={CHAR_BUDGET}
             onKeyDown={handleKeyDown}
           />
