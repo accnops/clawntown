@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -7,6 +7,9 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.svg',
   },
+};
+
+export const viewport: Viewport = {
   themeColor: '#357a99', // Sea/water tile color for iOS Safari
 };
 
