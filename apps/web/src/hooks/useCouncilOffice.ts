@@ -111,14 +111,12 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
       // Turn started - someone's turn began
       .on('broadcast', { event: 'turn_started' }, ({ payload }) => {
         const turn = payload.turn;
-        console.log('[useCouncilOffice] turn_started broadcast', { turn_citizen_id: turn?.citizen_id, my_citizen_id: citizenId, queueLength: payload.queueLength });
         setQueueLength(payload.queueLength ?? 0);
 
         // Check if this is MY turn
         if (turn?.citizen_id === citizenId) {
           const expiresAt = new Date(turn.expires_at).getTime();
           setChatState(prev => {
-            console.log('[useCouncilOffice] MY turn started, prev state:', prev.status);
             const pendingContent = prev.status === 'queued' ? prev.pendingContent : '';
             startTurnExpiryTimer(expiresAt, pendingContent);
             return { status: 'myTurn', expiresAt, pendingContent };
@@ -127,7 +125,6 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
           // Someone else got a turn - if we're queued, decrement position
           setChatState(prev => {
             if (prev.status === 'queued' && prev.position > 1) {
-              console.log('[useCouncilOffice] Someone else turn, decrementing position', prev.position, '->', prev.position - 1);
               return { ...prev, position: prev.position - 1 };
             }
             return prev;
@@ -136,12 +133,10 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
       })
       // Turn ended
       .on('broadcast', { event: 'turn_ended' }, ({ payload }) => {
-        console.log('[useCouncilOffice] turn_ended broadcast', { endedTurn: payload.endedTurn, queueLength: payload.queueLength });
         setQueueLength(payload.queueLength ?? 0);
         // If I was in myTurn, go back to idle
         setChatState(prev => {
           if (prev.status === 'myTurn') {
-            console.log('[useCouncilOffice] My turn ended, going to idle');
             clearTurnExpiryTimer();
             return { status: 'idle' };
           }
@@ -350,7 +345,6 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
       });
 
       const data = await res.json();
-      console.log('[useCouncilOffice] speak response', { status: res.status, action: data.action, error: data.error, position: data.position, queueLength: data.queueLength });
 
       // Handle captcha requirement
       if (data.requiresCaptcha) {
@@ -380,10 +374,8 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
         // Don't regress from myTurn to queued - turn_started broadcast may have arrived first
         setChatState(prev => {
           if (prev.status === 'myTurn') {
-            console.log('[useCouncilOffice] NOT regressing from myTurn to queued - turn already started');
             return prev;
           }
-          console.log('[useCouncilOffice] Setting state to queued, position:', data.position);
           return {
             status: 'queued',
             position: data.position ?? 1,
@@ -433,7 +425,6 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
       }
 
       // Unexpected response
-      console.error('[useCouncilOffice] Unexpected response from speak API', { data });
       setMessages(prev => prev.filter(m => m.id !== pendingId));
       setChatState({ status: 'idle' });
       return { success: false, error: data.error || 'Unexpected response' };
