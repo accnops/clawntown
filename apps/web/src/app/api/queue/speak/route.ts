@@ -7,6 +7,7 @@ import { sanitizeMessage } from '@/lib/sanitize';
 import { moderateWithLLM } from '@/lib/moderate';
 import { isEmailBanned } from '@/lib/violations';
 import { checkMessageThrottle, recordMessageSent } from '@/lib/throttle';
+import { startNextTurn } from '@/lib/turn';
 
 const CHAR_BUDGET = 256;
 const TIME_BUDGET_MS = 10000;
@@ -365,27 +366,13 @@ export async function POST(request: NextRequest) {
         ]);
 
         // Auto-start next turn if someone is waiting
-        const { data: nextInQueue } = await afterSupabase
-          .from('queue_entries')
-          .select('id')
-          .eq('member_id', memberId)
-          .eq('status', 'waiting')
-          .order('joined_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        if (nextInQueue) {
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
-            || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
-          try {
-            await fetch(new URL('/api/turn/start', baseUrl), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ memberId }),
-            });
-          } catch (e) {
-            console.error('Error auto-starting next turn:', e);
+        try {
+          const result = await startNextTurn(memberId);
+          if (!result.success && result.error !== 'Queue is empty') {
+            console.error('Error auto-starting next turn:', result.error);
           }
+        } catch (e) {
+          console.error('Error auto-starting next turn:', e);
         }
       });
 

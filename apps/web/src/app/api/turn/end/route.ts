@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
+import { startNextTurn } from '@/lib/turn';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,20 +58,13 @@ export async function POST(request: NextRequest) {
     if (nextInQueue) {
       // Start the next person's turn
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3002');
         console.log('[turn/end] Auto-starting next turn for', nextInQueue.citizen_id);
-        const startRes = await fetch(new URL('/api/turn/start', baseUrl), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memberId }),
-        });
-
-        const startData = await startRes.json();
-        if (startRes.ok) {
-          nextTurn = startData.turn;
+        const result = await startNextTurn(memberId);
+        if (result.success) {
+          nextTurn = result.turn;
           console.log('[turn/end] Next turn started successfully');
         } else {
-          console.error('[turn/end] Failed to start next turn:', startData.error);
+          console.error('[turn/end] Failed to start next turn:', result.error);
         }
       } catch (e) {
         console.error('[turn/end] Error auto-starting next turn:', e);
