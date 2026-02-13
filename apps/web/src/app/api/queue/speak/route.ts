@@ -140,17 +140,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
       }
 
-      // Get queue position
-      const { count } = await supabase
-        .from('queue_entries')
-        .select('*', { count: 'exact', head: true })
-        .eq('member_id', memberId)
-        .eq('status', 'waiting');
+      // Get accurate queue position using RPC
+      const [positionResult, lengthResult] = await Promise.all([
+        supabase.rpc('get_queue_position', { p_member_id: memberId, p_citizen_id: citizenId }),
+        supabase.rpc('get_queue_length', { p_member_id: memberId }),
+      ]);
 
       return NextResponse.json({
         action: 'queued',
-        position: (count ?? 1) - 1,
-        queueLength: count ?? 1,
+        position: positionResult.data ?? 0,
+        queueLength: lengthResult.data ?? 1,
       });
     }
 
