@@ -172,7 +172,19 @@ export async function POST(request: NextRequest) {
     }
 
     // We got the turn! Now send the message
-    if (speakResult.action === 'turn_started' && speakResult.turn_id && speakResult.session_id) {
+    if (speakResult.action === 'turn_started') {
+      // If turn_started but missing IDs, something went wrong - treat as queued
+      if (!speakResult.turn_id || !speakResult.session_id) {
+        console.error(`[speak] citizenId=${citizenId} turn_started but missing IDs - treating as queued`, {
+          turn_id: speakResult.turn_id,
+          session_id: speakResult.session_id,
+        });
+        return NextResponse.json({
+          action: 'queued',
+          position: speakResult.queue_position ?? 1,
+          queueLength: speakResult.queue_length ?? 1,
+        });
+      }
       console.log(`[speak] citizenId=${citizenId} GOT TURN - turnId=${speakResult.turn_id}`);
       const sessionId = speakResult.session_id;
       const turnId = speakResult.turn_id;
@@ -337,7 +349,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.error(`[speak] citizenId=${citizenId} FAILED - unexpected state, speakResult.action=${speakResult?.action}`);
+    console.error(`[speak] citizenId=${citizenId} FAILED - unexpected state`, {
+      action: speakResult?.action,
+      turn_id: speakResult?.turn_id,
+      session_id: speakResult?.session_id,
+      queue_position: speakResult?.queue_position,
+      full_result: JSON.stringify(speakResult),
+    });
     return NextResponse.json({ error: 'Unexpected state' }, { status: 500 });
   } catch (error) {
     console.error(`[speak] FAILED - caught error:`, error);
