@@ -5,12 +5,14 @@ import type { NextRequest } from 'next/server';
 const securityHeaders = {
   'Content-Security-Policy': [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' challenges.cloudflare.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' *.supabase.co wss://*.supabase.co challenges.cloudflare.com",
-    "frame-src challenges.cloudflare.com",
+    "connect-src 'self' *.supabase.co wss://*.supabase.co https://challenges.cloudflare.com",
+    "frame-src https://challenges.cloudflare.com",
+    "child-src https://challenges.cloudflare.com blob:",
+    "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
