@@ -366,7 +366,7 @@ export function CouncilOffice({
                 }`}
               >
                 {msg.citizenName && (
-                  <p className="font-retro text-[10px] text-gray-500">{msg.citizenName}</p>
+                  <p className="font-retro text-[10px] text-gray-500 text-right">{msg.citizenName}</p>
                 )}
                 <p className="font-retro text-xs text-gray-700 whitespace-pre-wrap">
                   {msg.content}
