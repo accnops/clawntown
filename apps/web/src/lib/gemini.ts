@@ -31,7 +31,7 @@ IMPORTANT: Do NOT prefix your responses with your name or any label like "[Name]
   });
 
   // Convert history to Gemini's chat format, prefixing citizen messages with their name
-  const chatHistory = conversationHistory.map((msg) => ({
+  let chatHistory = conversationHistory.map((msg) => ({
     role: msg.role === 'citizen' ? 'user' : 'model',
     parts: [{
       text: msg.role === 'citizen' && msg.citizenName
@@ -39,6 +39,12 @@ IMPORTANT: Do NOT prefix your responses with your name or any label like "[Name]
         : msg.content
     }],
   }));
+
+  // Gemini requires first message to be from 'user', not 'model'
+  // Drop leading 'model' messages if present
+  while (chatHistory.length > 0 && chatHistory[0].role === 'model') {
+    chatHistory = chatHistory.slice(1);
+  }
 
   // Use the chat API for proper multi-turn conversation
   const chat = model.startChat({

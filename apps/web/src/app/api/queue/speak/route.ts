@@ -196,6 +196,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Handle already_has_turn - user is trying to speak during their existing turn
+    // This can happen due to race conditions or retries
+    if (speakResult.action === 'already_has_turn' && speakResult.turn_id) {
+      console.log(`[speak] citizenId=${citizenId} already_has_turn - fetching session and proceeding`);
+
+      // Get the session_id from the existing turn
+      const { data: existingTurn } = await supabase
+        .from('turns')
+        .select('session_id')
+        .eq('id', speakResult.turn_id)
+        .single();
+
+      if (!existingTurn?.session_id) {
+        console.error(`[speak] citizenId=${citizenId} already_has_turn but no session found`);
+        return NextResponse.json({ error: 'Turn session not found' }, { status: 500 });
+      }
+
+      // Use the existing turn - override speakResult values
+      speakResult.session_id = existingTurn.session_id;
+      speakResult.action = 'turn_started'; // Treat as turn_started for the rest of the flow
+    }
+
     // We got the turn! Now send the message
     if (speakResult.action === 'turn_started') {
       // If turn_started but missing IDs, something went wrong - treat as queued
