@@ -93,11 +93,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Convert 0-indexed DB position to 1-indexed for UI
+    const position = result.queue_position != null ? result.queue_position + 1 : null;
+
     return NextResponse.json({
       action: result.action,
       turnStarted: result.turn_started,
       turnId: result.turn_id,
-      position: result.queue_position,
+      position,
       queueLength: result.queue_length,
       nextHeartbeatMs: result.next_heartbeat_ms,
       // Include current turn for UI sync (full data for normalizeTurn)

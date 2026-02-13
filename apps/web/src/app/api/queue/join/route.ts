@@ -138,9 +138,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Convert 0-indexed DB position to 1-indexed for UI
     return NextResponse.json({
       entry,
-      position: position ?? 0,
+      position: (position ?? 0) + 1,
       queueLength: queueLength ?? 1,
       turn,
     });

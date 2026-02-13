@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json({
           action: 'queued',
-          position: speakResult.queue_position ?? 1,
+          position: (speakResult.queue_position ?? 0) + 1,
           queueLength: speakResult.queue_length ?? 1,
         });
       }

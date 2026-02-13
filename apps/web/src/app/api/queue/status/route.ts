@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       messages = recentMessages || [];
     }
 
-    // Get citizen's position if citizenId provided
+    // Get citizen's position if citizenId provided (convert 0-indexed to 1-indexed)
     let position: number | null = null;
     if (citizenId) {
       const { data: pos } = await supabase
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
       // Check if citizen is in queue
       const isInQueue = queue?.some(e => e.citizen_id === citizenId);
-      position = isInQueue ? (pos ?? 0) : null;
+      position = isInQueue ? (pos ?? 0) + 1 : null;
     }
 
     return NextResponse.json({
