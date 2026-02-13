@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       console.log(`[speak] citizenId=${citizenId} try_speak failed, falling back to queue join. Error: ${rpcError?.message || 'no result'}`);
 
       // Try to insert - constraint will handle duplicates
-      await supabase
+      const { error: insertError } = await supabase
         .from('queue_entries')
         .insert({
           member_id: memberId,
@@ -134,17 +134,40 @@ export async function POST(request: NextRequest) {
           last_heartbeat_at: new Date().toISOString(),
         });
 
-      // Get queue position (works whether insert succeeded or was duplicate)
+      // Check if insert failed (ignore duplicate key errors - code 23505)
+      if (insertError && !insertError.message?.includes('duplicate')) {
+        console.error(`[speak] citizenId=${citizenId} fallback insert failed:`, insertError);
+        return NextResponse.json({ error: 'Failed to join queue' }, { status: 500 });
+      }
+
+      // Verify user is actually in queue and get position
+      const { data: queueEntry } = await supabase
+        .from('queue_entries')
+        .select('id, joined_at')
+        .eq('member_id', memberId)
+        .eq('citizen_id', citizenId)
+        .eq('status', 'waiting')
+        .maybeSingle();
+
+      if (!queueEntry) {
+        console.error(`[speak] citizenId=${citizenId} not found in queue after fallback insert`);
+        return NextResponse.json({ error: 'Failed to join queue' }, { status: 500 });
+      }
+
+      // Get queue position and length
       const [positionResult, lengthResult] = await Promise.all([
         supabase.rpc('get_queue_position', { p_member_id: memberId, p_citizen_id: citizenId }),
         supabase.rpc('get_queue_length', { p_member_id: memberId }),
       ]);
 
-      console.log(`[speak] citizenId=${citizenId} QUEUED via fallback - position=${positionResult.data} queueLength=${lengthResult.data}`);
+      // Position is 0-indexed (0 = first), convert to 1-indexed for UI
+      const position = (positionResult.data ?? 0) + 1;
+
+      console.log(`[speak] citizenId=${citizenId} QUEUED via fallback - position=${position} queueLength=${lengthResult.data}`);
 
       return NextResponse.json({
         action: 'queued',
-        position: positionResult.data ?? 0,
+        position,
         queueLength: lengthResult.data ?? 1,
       });
     }
@@ -156,17 +179,19 @@ export async function POST(request: NextRequest) {
       console.log(`[speak] citizenId=${citizenId} QUEUED (no speakResult, treating as queued)`);
       return NextResponse.json({
         action: 'queued',
-        position: 0,
+        position: 1,
         queueLength: 1,
       });
     }
 
     // If we got queued (race lost), return early - client keeps message in input
+    // Note: queue_position from DB is 0-indexed, convert to 1-indexed for UI
     if (speakResult.action === 'queued' || speakResult.action === 'already_in_queue') {
-      console.log(`[speak] citizenId=${citizenId} QUEUED via try_speak - action=${speakResult.action} position=${speakResult.queue_position}`);
+      const position = (speakResult.queue_position ?? 0) + 1;
+      console.log(`[speak] citizenId=${citizenId} QUEUED via try_speak - action=${speakResult.action} position=${position}`);
       return NextResponse.json({
         action: 'queued',
-        position: speakResult.queue_position,
+        position,
         queueLength: speakResult.queue_length,
       });
     }
