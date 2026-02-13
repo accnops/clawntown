@@ -116,15 +116,53 @@ export async function POST(request: NextRequest) {
       p_time_budget_seconds: TIME_BUDGET_MS / 1000,
     });
 
-    if (rpcError) {
-      console.error('Error in try_speak:', rpcError);
-      return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+    // If RPC failed or returned no result, fall back to explicitly joining the queue
+    if (rpcError || !result) {
+      console.error('Error in try_speak, falling back to queue join:', rpcError);
+
+      // Fallback: just join the queue
+      const { data: queueEntry, error: joinError } = await supabase
+        .from('queue_entries')
+        .upsert({
+          member_id: memberId,
+          citizen_id: citizenId,
+          status: 'waiting',
+          last_heartbeat_at: new Date().toISOString(),
+        }, {
+          onConflict: 'member_id,citizen_id',
+          ignoreDuplicates: false,
+        })
+        .select()
+        .single();
+
+      if (joinError && !joinError.message.includes('duplicate')) {
+        console.error('Fallback queue join failed:', joinError);
+        return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+      }
+
+      // Get queue position
+      const { count } = await supabase
+        .from('queue_entries')
+        .select('*', { count: 'exact', head: true })
+        .eq('member_id', memberId)
+        .eq('status', 'waiting');
+
+      return NextResponse.json({
+        action: 'queued',
+        position: (count ?? 1) - 1,
+        queueLength: count ?? 1,
+      });
     }
 
     const speakResult = (result as { action: string; turn_id: string | null; session_id: string | null; queue_position: number | null; queue_length: number }[])?.[0];
 
     if (!speakResult) {
-      return NextResponse.json({ error: 'No result from try_speak' }, { status: 500 });
+      // No result but no error - treat as queued
+      return NextResponse.json({
+        action: 'queued',
+        position: 0,
+        queueLength: 1,
+      });
     }
 
     // If we got queued (race lost), return early - client keeps message in input
