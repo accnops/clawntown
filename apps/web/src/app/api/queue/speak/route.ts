@@ -124,35 +124,17 @@ export async function POST(request: NextRequest) {
     if (rpcError || !result) {
       console.log(`[speak] citizenId=${citizenId} try_speak failed, falling back to queue join. Error: ${rpcError?.message || 'no result'}`);
 
-      // Check if already in queue
-      const { data: existingEntry } = await supabase
+      // Try to insert - constraint will handle duplicates
+      await supabase
         .from('queue_entries')
-        .select('id, status')
-        .eq('member_id', memberId)
-        .eq('citizen_id', citizenId)
-        .in('status', ['waiting', 'active'])
-        .maybeSingle();
+        .insert({
+          member_id: memberId,
+          citizen_id: citizenId,
+          status: 'waiting',
+          last_heartbeat_at: new Date().toISOString(),
+        });
 
-      if (!existingEntry) {
-        // Not in queue yet, insert
-        const { error: insertError } = await supabase
-          .from('queue_entries')
-          .insert({
-            member_id: memberId,
-            citizen_id: citizenId,
-            status: 'waiting',
-            last_heartbeat_at: new Date().toISOString(),
-          });
-
-        if (insertError) {
-          console.log(`[speak] citizenId=${citizenId} fallback insert error (may be duplicate):`, insertError.message);
-          // Continue anyway - they might have been inserted by another request
-        }
-      } else {
-        console.log(`[speak] citizenId=${citizenId} already in queue with status=${existingEntry.status}`);
-      }
-
-      // Get accurate queue position using RPC
+      // Get queue position (works whether insert succeeded or was duplicate)
       const [positionResult, lengthResult] = await Promise.all([
         supabase.rpc('get_queue_position', { p_member_id: memberId, p_citizen_id: citizenId }),
         supabase.rpc('get_queue_length', { p_member_id: memberId }),
