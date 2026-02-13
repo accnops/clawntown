@@ -167,8 +167,12 @@ export function useCouncilOffice({ member, citizenId, citizenName, citizenAvatar
         // Check if user is in queue or has active turn
         if (data.currentTurn?.citizen_id === citizenId) {
           const expiresAt = new Date(data.currentTurn.expires_at).getTime();
-          startTurnExpiryTimer(expiresAt, '');
-          setChatState({ status: 'myTurn', expiresAt, pendingContent: '' });
+          // Only set myTurn if turn hasn't expired yet
+          if (expiresAt > Date.now()) {
+            startTurnExpiryTimer(expiresAt, '');
+            setChatState({ status: 'myTurn', expiresAt, pendingContent: '' });
+          }
+          // If expired, stay in idle state - turn will be cleaned up
         } else if (data.position !== undefined && data.position !== null) {
           setChatState({
             status: 'queued',
