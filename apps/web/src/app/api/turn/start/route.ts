@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
       session = newSession;
     }
 
-    // Calculate expires_at (20 seconds from now)
+    // Calculate expires_at
     const now = new Date();
     const expiresAt = new Date(now.getTime() + TIME_BUDGET_MS);
 

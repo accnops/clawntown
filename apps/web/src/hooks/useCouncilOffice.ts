@@ -16,7 +16,7 @@ function normalizeTurn(dbTurn: Record<string, unknown> | null): CitizenTurn | nu
     charsUsed: (dbTurn.chars_used ?? dbTurn.charsUsed ?? 0) as number,
     charBudget: (dbTurn.char_budget ?? dbTurn.charBudget ?? 500) as number,
     timeUsedMs: (dbTurn.time_used_ms ?? dbTurn.timeUsedMs ?? 0) as number,
-    timeBudgetMs: (dbTurn.time_budget_ms ?? dbTurn.timeBudgetMs ?? 20000) as number,
+    timeBudgetMs: (dbTurn.time_budget_ms ?? dbTurn.timeBudgetMs ?? 10000) as number,
     messagesUsed: (dbTurn.messages_used ?? dbTurn.messagesUsed ?? 0) as number,
     messageLimit: (dbTurn.message_limit ?? dbTurn.messageLimit ?? 2) as number,
     startedAt: new Date(dbTurn.started_at as string || dbTurn.startedAt as string).getTime(),
