@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
+import { verifyCaptcha, getVisitorIP } from '@/lib/captcha';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,16 +11,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify captcha
-    const origin = request.headers.get('origin') || new URL(request.url).origin;
-    const captchaResponse = await fetch(`${origin}/api/captcha/verify`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: captchaToken }),
-    });
+    const ip = getVisitorIP(request.headers);
+    const captchaResult = await verifyCaptcha(captchaToken, ip);
 
-    if (!captchaResponse.ok) {
-      const data = await captchaResponse.json();
-      return NextResponse.json({ error: data.error || 'Captcha verification failed' }, { status: 400 });
+    if (!captchaResult.success) {
+      return NextResponse.json({ error: captchaResult.error || 'Captcha verification failed' }, { status: 400 });
     }
 
     const supabase = getSupabaseAdmin();
