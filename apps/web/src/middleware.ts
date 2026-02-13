@@ -9,7 +9,7 @@ const securityHeaders = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https: blob:",
     "font-src 'self' data:",
-    "connect-src 'self' *.supabase.co generativelanguage.googleapis.com challenges.cloudflare.com api.github.com fal.run",
+    "connect-src 'self' *.supabase.co wss://*.supabase.co generativelanguage.googleapis.com challenges.cloudflare.com api.github.com fal.run",
     "frame-src challenges.cloudflare.com",
     "object-src 'none'",
     "base-uri 'self'",
