@@ -105,6 +105,8 @@ export async function POST(request: NextRequest) {
       }, { status: 422 });
     }
 
+    console.log(`[speak] citizenId=${citizenId} memberId=${memberId} attempting try_speak`);
+
     // Use advisory lock for atomic queue check + join + turn start
     const { data: result, error: rpcError } = await (supabase.rpc as CallableFunction)('try_speak', {
       p_member_id: memberId,
@@ -116,9 +118,11 @@ export async function POST(request: NextRequest) {
       p_time_budget_seconds: TIME_BUDGET_MS / 1000,
     });
 
+    console.log(`[speak] citizenId=${citizenId} try_speak result:`, { result, rpcError: rpcError?.message });
+
     // If RPC failed or returned no result, fall back to explicitly joining the queue
     if (rpcError || !result) {
-      console.error('Error in try_speak, falling back to queue join:', rpcError);
+      console.log(`[speak] citizenId=${citizenId} try_speak failed, falling back to queue join. Error: ${rpcError?.message || 'no result'}`);
 
       // Fallback: just join the queue
       const { data: queueEntry, error: joinError } = await supabase
@@ -135,8 +139,10 @@ export async function POST(request: NextRequest) {
         .select()
         .single();
 
+      console.log(`[speak] citizenId=${citizenId} fallback upsert result:`, { queueEntry, joinError: joinError?.message });
+
       if (joinError && !joinError.message.includes('duplicate')) {
-        console.error('Fallback queue join failed:', joinError);
+        console.error(`[speak] citizenId=${citizenId} FAILED - fallback queue join error:`, joinError);
         return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
       }
 
@@ -145,6 +151,8 @@ export async function POST(request: NextRequest) {
         supabase.rpc('get_queue_position', { p_member_id: memberId, p_citizen_id: citizenId }),
         supabase.rpc('get_queue_length', { p_member_id: memberId }),
       ]);
+
+      console.log(`[speak] citizenId=${citizenId} QUEUED via fallback - position=${positionResult.data} queueLength=${lengthResult.data}`);
 
       return NextResponse.json({
         action: 'queued',
@@ -157,6 +165,7 @@ export async function POST(request: NextRequest) {
 
     if (!speakResult) {
       // No result but no error - treat as queued
+      console.log(`[speak] citizenId=${citizenId} QUEUED (no speakResult, treating as queued)`);
       return NextResponse.json({
         action: 'queued',
         position: 0,
@@ -165,7 +174,8 @@ export async function POST(request: NextRequest) {
     }
 
     // If we got queued (race lost), return early - client keeps message in input
-    if (speakResult.action === 'queued') {
+    if (speakResult.action === 'queued' || speakResult.action === 'already_in_queue') {
+      console.log(`[speak] citizenId=${citizenId} QUEUED via try_speak - action=${speakResult.action} position=${speakResult.queue_position}`);
       return NextResponse.json({
         action: 'queued',
         position: speakResult.queue_position,
@@ -175,6 +185,7 @@ export async function POST(request: NextRequest) {
 
     // We got the turn! Now send the message
     if (speakResult.action === 'turn_started' && speakResult.turn_id && speakResult.session_id) {
+      console.log(`[speak] citizenId=${citizenId} GOT TURN - turnId=${speakResult.turn_id}`);
       const sessionId = speakResult.session_id;
       const turnId = speakResult.turn_id;
 
@@ -329,6 +340,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      console.log(`[speak] citizenId=${citizenId} SENT successfully`);
       return NextResponse.json({
         action: 'sent',
         citizenMessage,
@@ -337,9 +349,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    console.error(`[speak] citizenId=${citizenId} FAILED - unexpected state, speakResult.action=${speakResult?.action}`);
     return NextResponse.json({ error: 'Unexpected state' }, { status: 500 });
   } catch (error) {
-    console.error('Error in speak endpoint:', error);
+    console.error(`[speak] FAILED - caught error:`, error);
     return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
   }
 }
