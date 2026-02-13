@@ -19,7 +19,7 @@ export async function generateCouncilResponse(
 ): Promise<string> {
   const client = getGeminiClient();
   const model = client.getGenerativeModel({
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-2.5-flash',
     // Safety settings removed - we moderate inputs separately via moderate.ts
     systemInstruction: `${personality}
 
