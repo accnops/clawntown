@@ -24,12 +24,12 @@ interface PhaserGameProps {
   onBuildingHover?: (building: Building | null) => void;
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
-  isAuthenticated?: boolean;
+  showStartHere?: boolean;
 }
 
 const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
   function PhaserGame(
-    { onBuildingClick, onBuildingHover, zoom = 1, onZoomChange, isAuthenticated },
+    { onBuildingClick, onBuildingHover, zoom = 1, onZoomChange, showStartHere },
     ref
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -112,12 +112,12 @@ const PhaserGame = forwardRef<PhaserGameHandle, PhaserGameProps>(
       }
     }, [zoom]);
 
-    // Update "Start Here" arrow visibility when auth state changes or scene becomes ready
+    // Update "Start Here" arrow visibility when showStartHere prop changes or scene becomes ready
     useEffect(() => {
       if (sceneReady && sceneRef.current) {
-        sceneRef.current.setShowStartHere(!isAuthenticated);
+        sceneRef.current.setShowStartHere(!!showStartHere);
       }
-    }, [isAuthenticated, sceneReady]);
+    }, [showStartHere, sceneReady]);
 
     // Update event callbacks when they change
     useEffect(() => {

@@ -225,7 +225,7 @@ export class MainScene extends Phaser.Scene {
   private renderWaterBackground(): void {
     // Create solid background for areas beyond water tiles
     const bgGraphics = this.add.graphics();
-    bgGraphics.fillStyle(0x4a90d9);
+    bgGraphics.fillStyle(0x357a99);
     bgGraphics.fillRect(-10000, -10000, 25000, 25000);
     bgGraphics.setDepth(-1000000);
 
@@ -902,6 +902,7 @@ export class MainScene extends Phaser.Scene {
     const containerY = labelY - 15;
     this.startHereContainer = this.add.container(pos.x, containerY, [graphics, shadow, text]);
     this.startHereContainer.setDepth(999999);
+    this.startHereContainer.setVisible(false); // Start hidden, React will show if needed
 
     // Bobbing tween
     this.tweens.add({

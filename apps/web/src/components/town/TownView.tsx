@@ -10,7 +10,7 @@ import { BuildYourOwnTownDialog } from "@/components/ui";
 const PhaserGame = dynamic(() => import("./phaser/PhaserGame"), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center h-full bg-gradient-to-b from-sky-400 via-cyan-500 to-blue-600">
+    <div className="flex items-center justify-center h-full bg-[#357a99]">
       <div className="text-white font-pixel text-lg animate-pulse">
         Loading Clawntown...
       </div>
@@ -21,10 +21,10 @@ const PhaserGame = dynamic(() => import("./phaser/PhaserGame"), {
 interface TownViewProps {
   onBuildingClick?: (building: Building) => void;
   population?: number | null;
-  isAuthenticated?: boolean;
+  showStartHere?: boolean;
 }
 
-export function TownView({ onBuildingClick, population, isAuthenticated }: TownViewProps) {
+export function TownView({ onBuildingClick, population, showStartHere }: TownViewProps) {
   const [hoveredBuilding, setHoveredBuilding] = useState<Building | null>(null);
   const [showBuildDialog, setShowBuildDialog] = useState(false);
   const phaserRef = useRef<PhaserGameHandle>(null);
@@ -41,12 +41,12 @@ export function TownView({ onBuildingClick, population, isAuthenticated }: TownV
   }, []);
 
   return (
-    <div className="w-full h-full bg-gradient-to-b from-sky-400 via-cyan-500 to-blue-600 overflow-hidden relative">
+    <div className="w-full h-full bg-[#357a99] overflow-hidden relative">
       <PhaserGame
         ref={phaserRef}
         onBuildingClick={handleBuildingClick}
         onBuildingHover={handleBuildingHover}
-        isAuthenticated={isAuthenticated}
+        showStartHere={showStartHere}
       />
 
       {/* Header HUD */}

@@ -27,7 +27,7 @@ export function createGameConfig(
     parent,
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
-    backgroundColor: "#4a90d9", // Ocean blue background
+    transparent: true, // Let TownView gradient show through until tiles render
     pixelArt: true, // Crisp pixel rendering
     roundPixels: true,
     antialias: false,
