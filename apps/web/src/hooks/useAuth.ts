@@ -61,21 +61,6 @@ export function useAuth() {
     });
   }, []);
 
-  const sendMagicLink = useCallback(async (email: string): Promise<{ error: Error | null }> => {
-    if (!isSupabaseConfigured()) {
-      return { error: new Error('Auth not configured') };
-    }
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    return { error: error ? new Error(error.message) : null };
-  }, []);
-
   const signOut = useCallback(async (): Promise<void> => {
     if (!isSupabaseConfigured()) return;
     await supabase.auth.signOut();
@@ -107,7 +92,6 @@ export function useAuth() {
     profile,
     isLoading,
     isAuthenticated: !!session,
-    sendMagicLink,
     signOut,
     updateCaptchaTimestamp,
     needsCaptcha,
