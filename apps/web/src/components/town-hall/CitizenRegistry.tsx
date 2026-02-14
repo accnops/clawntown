@@ -184,7 +184,7 @@ export function CitizenRegistry({
         <div className="bg-white border-2 border-gray-400 rounded p-3 relative flex-1">
           <div className="absolute -left-2 top-4 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-gray-400 border-b-8 border-b-transparent" />
           <div className="absolute -left-[6px] top-4 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-white border-b-8 border-b-transparent" />
-          <p className="font-retro text-xs text-gray-700">{getClerkMessage()}</p>
+          <p className={`font-retro text-xs ${error ? 'text-red-600' : 'text-gray-700'}`}>{getClerkMessage()}</p>
         </div>
       </div>
 
