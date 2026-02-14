@@ -49,7 +49,7 @@ export function TownHallLobby({
           </span>
           <button
             onClick={onSignOut}
-            className="font-retro text-xs text-green-600 hover:underline"
+            className="font-retro text-xs text-green-600 hover:underline cursor-pointer"
           >
             Sign Out
           </button>
