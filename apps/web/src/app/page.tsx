@@ -31,7 +31,7 @@ export default function Home() {
   // Track visitor and fetch stats
   useTrackVisit();
   const stats = useStats();
-  const { isAuthenticated, profile, sendMagicLink, signOut, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, profile, signOut, isLoading: authLoading } = useAuth();
 
   const handleBuildingClick = (building: Building) => {
     setSelectedBuilding(building);
@@ -70,7 +70,7 @@ export default function Home() {
   return (
     <main className="h-dvh w-screen overflow-hidden">
       {/* Full screen town view */}
-      <TownView onBuildingClick={handleBuildingClick} population={stats.citizens} isAuthenticated={isAuthenticated} />
+      <TownView onBuildingClick={handleBuildingClick} population={stats.citizens} showStartHere={!authLoading && !isAuthenticated} />
 
       {/* Welcome dialog */}
       <Dialog
@@ -129,7 +129,6 @@ export default function Home() {
 
         {townHallView === 'registry' && (
           <CitizenRegistry
-            onSendMagicLink={sendMagicLink}
             onBack={handleBackToLobby}
           />
         )}

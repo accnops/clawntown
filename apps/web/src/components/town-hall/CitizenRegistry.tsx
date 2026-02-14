@@ -7,7 +7,6 @@ import { Captcha, type CaptchaHandle } from '@/components/auth/Captcha';
 type RegistryStep = 'welcome' | 'name' | 'avatar' | 'email' | 'sent';
 
 interface CitizenRegistryProps {
-  onSendMagicLink: (email: string) => Promise<{ error: Error | null }>;
   onBack: () => void;
 }
 
@@ -21,7 +20,6 @@ const CLERK_DIALOGUE = {
 };
 
 export function CitizenRegistry({
-  onSendMagicLink,
   onBack,
 }: CitizenRegistryProps) {
   const [step, setStep] = useState<RegistryStep>('welcome');
@@ -113,21 +111,20 @@ export function CitizenRegistry({
           throw new Error(data.error || 'Signup failed');
         }
       } else {
-        // Sign-in flow - verify captcha first, then send magic link
-        const captchaResponse = await fetch('/api/captcha/verify', {
+        // Sign-in flow - call signin API (handles captcha + user check + magic link)
+        const response = await fetch('/api/auth/signin', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: captchaToken }),
+          body: JSON.stringify({
+            email,
+            captchaToken,
+          }),
         });
 
-        if (!captchaResponse.ok) {
-          const data = await captchaResponse.json();
-          throw new Error(data.error || 'Captcha verification failed');
-        }
+        const data = await response.json();
 
-        const result = await onSendMagicLink(email);
-        if (result.error) {
-          throw result.error;
+        if (!response.ok) {
+          throw new Error(data.error || 'Signin failed');
         }
       }
 
