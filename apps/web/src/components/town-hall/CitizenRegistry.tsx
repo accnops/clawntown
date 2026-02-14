@@ -338,7 +338,6 @@ export function CitizenRegistry({
                 ref={captchaRef}
                 onVerify={(token) => {
                   setCaptchaToken(token);
-                  setError(null); // Clear any previous error
                 }}
                 onError={() => setCaptchaToken(null)}
                 onExpire={() => setCaptchaToken(null)}
