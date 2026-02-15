@@ -29,8 +29,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get optional days parameter for history (default 14)
-    const { searchParams } = new URL(request.url);
-    const days = Math.min(parseInt(searchParams.get('days') || '14', 10), 90);
+    const days = Math.min(parseInt(request.nextUrl.searchParams.get('days') || '14', 10), 90);
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
