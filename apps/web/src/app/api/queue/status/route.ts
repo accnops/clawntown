@@ -34,12 +34,22 @@ export async function GET(request: NextRequest) {
       .single();
 
     // Get active session and recent messages
-    const { data: session } = await supabase
+    let { data: session } = await supabase
       .from('conversation_sessions')
-      .select('id')
+      .select('id, started_at')
       .eq('member_id', memberId)
       .eq('status', 'active')
       .single();
+
+    // Close stale sessions (older than max slot duration of 8 hours)
+    const maxSlotDurationMs = 8 * 60 * 60 * 1000;
+    if (session && Date.now() - new Date(session.started_at).getTime() > maxSlotDurationMs) {
+      await supabase
+        .from('conversation_sessions')
+        .update({ status: 'ended', ended_at: new Date().toISOString() })
+        .eq('id', session.id);
+      session = null;
+    }
 
     let messages: unknown[] = [];
     if (session) {
