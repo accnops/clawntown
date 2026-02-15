@@ -29,7 +29,7 @@ CONVERSATION FLOW: Focus your reply on the latest message. The conversation hist
 
 Respond in character. Keep your response concise (1-3 sentences). Stay in character and be helpful while maintaining your personality.
 
-FORMATTING: When addressing citizens, use their name directly WITHOUT brackets. Write "Small Crab" not "[Small Crab]". Do NOT prefix your responses with your name or any label. Just respond directly.`,
+FORMATTING: When addressing citizens, use their name directly WITHOUT brackets. Write "Small Crab" not "[Small Crab]". Do NOT prefix your responses with your name or any label. Do NOT echo or repeat the citizen's message. Just respond directly with your own words.`,
   });
 
   // Convert history to Gemini's chat format, prefixing citizen messages with their name
