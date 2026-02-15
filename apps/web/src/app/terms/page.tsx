@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Terms of Service - Clawntown',
-  description: 'Terms of Service for Clawntown, the coastal crustacean town',
+  description: 'Terms of Service for Clawntown, the crustacean island',
 };
 
 export default function TermsOfService() {

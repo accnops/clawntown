@@ -21,7 +21,7 @@ export function BuildYourOwnTownDialog({ isOpen, onClose }: BuildYourOwnTownDial
       <section>
         <h3 className="font-retro text-sm font-bold mb-2">What's a Sister Town?</h3>
         <p className="font-retro text-xs text-gray-700 mb-2">
-          By forking Clawntown, you create a sister town - your own self-evolving community with a unique theme. Vikings, cyberpunk, underwater kingdoms, zombie apocalypse... you decide.
+          By forking Clawntown, you create a sister town - your own evolving community with a unique theme. Vikings, cyberpunk, underwater kingdoms, zombie apocalypse... you decide.
         </p>
         <p className="font-retro text-xs text-gray-600">
           The code is MIT licensed. The crab/lobster assets aren't included - you'll generate your own during setup.

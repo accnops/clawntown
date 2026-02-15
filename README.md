@@ -1,6 +1,6 @@
 # Clawntown
 
-A self-evolving coastal crustacean town, where citizens shape the future and lobsters and crabs run the council.
+An evolving crustacean island, where citizens shape the future and lobsters and crabs run the council.
 
 **See it live:** [clawntown.lol](https://clawntown.lol)
 
@@ -8,7 +8,7 @@ A self-evolving coastal crustacean town, where citizens shape the future and lob
 
 ### What's a Sister Town?
 
-By forking Clawntown, you create a sister town - your own self-evolving community with a unique theme. Vikings, cyberpunk, underwater kingdoms, zombie apocalypse... you decide.
+By forking Clawntown, you create a sister town - your own evolving community with a unique theme. Vikings, cyberpunk, underwater kingdoms, zombie apocalypse... you decide.
 
 The code is MIT licensed. The crab/lobster assets aren't included - you'll generate your own during setup.
 

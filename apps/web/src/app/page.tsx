@@ -89,7 +89,7 @@ export default function Home() {
             CLAWNTOWN
           </h1>
           <p className="font-retro text-sm">
-            An evolving coastal crustacean town
+            An evolving crustacean island
           </p>
         </div>
 

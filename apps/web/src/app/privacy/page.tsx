@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy - Clawntown',
-  description: 'Privacy Policy for Clawntown, the coastal crustacean town',
+  description: 'Privacy Policy for Clawntown, the crustacean island',
 };
 
 export default function PrivacyPolicy() {
@@ -220,7 +220,7 @@ export default function PrivacyPolicy() {
               </ul>
               <p className="text-gray-700 leading-relaxed mt-2">
                 We don't use tracking cookies for advertising. We're not trying to follow you
-                around the internet — we're just running a crustacean town here.
+                around the internet — we're just running a crustacean island here.
               </p>
             </section>
 
