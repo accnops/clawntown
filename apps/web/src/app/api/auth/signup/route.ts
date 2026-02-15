@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { verifyCaptcha, getVisitorIP } from '@/lib/captcha';
 import { withRateLimit } from '@/lib/rate-limit';
+import { validateUsername } from '@/lib/sanitize';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,6 +24,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: captchaResult.error || 'Captcha verification failed' }, { status: 400 });
     }
 
+    // Validate username if provided
+    if (name) {
+      const usernameResult = await validateUsername(name);
+      if (!usernameResult.ok) {
+        return NextResponse.json({ error: usernameResult.reason }, { status: 400 });
+      }
+    }
+
     const origin = request.headers.get('origin') || new URL(request.url).origin;
     const supabase = getSupabaseAdmin();
 
@@ -31,20 +40,7 @@ export async function POST(request: NextRequest) {
     const existingUser = existingUsers?.users?.find(u => u.email === email);
 
     if (existingUser) {
-      // User exists - just send a new magic link (works for both verified and unverified)
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${origin}/auth/callback`,
-        },
-      });
-
-      if (otpError) {
-        console.error('Error sending magic link:', otpError);
-        return NextResponse.json({ error: 'Failed to send magic link' }, { status: 500 });
-      }
-
-      return NextResponse.json({ success: true, message: 'Magic link sent' });
+      return NextResponse.json({ error: 'An account with this email already exists, sign in instead' }, { status: 409 });
     }
 
     // Create new unverified user with profile metadata

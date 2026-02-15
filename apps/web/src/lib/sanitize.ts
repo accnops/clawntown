@@ -1,10 +1,44 @@
 import filter from 'leo-profanity';
+import { moderateWithLLM } from './moderate';
 
 export interface SanitizeResult {
   ok: boolean;
   sanitized: string;
   reason?: string;
   category?: string;
+}
+
+export interface UsernameValidationResult {
+  ok: boolean;
+  reason?: string;
+}
+
+const USERNAME_MAX_LENGTH = 30;
+const USERNAME_MIN_LENGTH = 2;
+
+export async function validateUsername(name: string): Promise<UsernameValidationResult> {
+  const trimmed = name.trim();
+
+  // Length checks
+  if (trimmed.length < USERNAME_MIN_LENGTH) {
+    return { ok: false, reason: 'Username must be at least 2 characters' };
+  }
+  if (trimmed.length > USERNAME_MAX_LENGTH) {
+    return { ok: false, reason: 'Username must be 30 characters or less' };
+  }
+
+  // Profanity check - block if found
+  if (filter.check(trimmed)) {
+    return { ok: false, reason: 'Username contains inappropriate language' };
+  }
+
+  // LLM moderation check
+  const modResult = await moderateWithLLM(trimmed);
+  if (!modResult.safe) {
+    return { ok: false, reason: 'Username is not appropriate for Clawntown' };
+  }
+
+  return { ok: true };
 }
 
 const MAX_LENGTH = 1000;
