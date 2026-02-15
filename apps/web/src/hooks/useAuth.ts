@@ -86,6 +86,32 @@ export function useAuth() {
     return lastCaptcha < oneHourAgo;
   }, [getLastCaptchaAt]);
 
+  const deleteAccount = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!isSupabaseConfigured() || !session) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    try {
+      const response = await fetch('/api/auth/delete', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        return { success: false, error: data.error || 'Failed to delete account' };
+      }
+
+      // Sign out after successful deletion
+      await signOut();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: 'Failed to delete account' };
+    }
+  }, [session, signOut]);
+
   return {
     user,
     session,
@@ -93,6 +119,7 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!session,
     signOut,
+    deleteAccount,
     updateCaptchaTimestamp,
     needsCaptcha,
   };
