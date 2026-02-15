@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { COUNCIL_MEMBERS, isCouncilMemberOnline, getMinutesUntilOnline, formatTimeUntilOnline } from '@/data/council-members';
 import { CouncilMemberCard } from './CouncilMemberCard';
+import { UserMenu } from '@/components/auth';
 import type { CouncilMember } from '@clawntown/shared';
 
 interface TownHallLobbyProps {
@@ -11,6 +12,7 @@ interface TownHallLobbyProps {
   isAuthenticated: boolean;
   citizenName?: string;
   onSignOut?: () => void;
+  onDeleteAccount?: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export function TownHallLobby({
@@ -19,6 +21,7 @@ export function TownHallLobby({
   isAuthenticated,
   citizenName,
   onSignOut,
+  onDeleteAccount,
 }: TownHallLobbyProps) {
   const [now, setNow] = useState(new Date());
 
@@ -42,17 +45,15 @@ export function TownHallLobby({
       </div>
 
       {/* Auth Section */}
-      {isAuthenticated ? (
+      {isAuthenticated && citizenName && onSignOut && onDeleteAccount ? (
         <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded p-2">
           <span className="font-retro text-xs text-green-800">
             🦀 Welcome, {citizenName}!
           </span>
-          <button
-            onClick={onSignOut}
-            className="font-retro text-xs text-green-600 hover:underline cursor-pointer"
-          >
-            Sign Out
-          </button>
+          <UserMenu
+            onSignOut={onSignOut}
+            onDeleteAccount={onDeleteAccount}
+          />
         </div>
       ) : (
         <button

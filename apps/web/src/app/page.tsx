@@ -31,7 +31,7 @@ export default function Home() {
   // Track visitor and fetch stats
   useTrackVisit();
   const stats = useStats();
-  const { isAuthenticated, profile, signOut, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, profile, signOut, deleteAccount, isLoading: authLoading } = useAuth();
 
   const handleBuildingClick = (building: Building) => {
     setSelectedBuilding(building);
@@ -114,6 +114,7 @@ export default function Home() {
             isAuthenticated={isAuthenticated}
             citizenName={profile?.name}
             onSignOut={signOut}
+            onDeleteAccount={deleteAccount}
           />
         )}
 
