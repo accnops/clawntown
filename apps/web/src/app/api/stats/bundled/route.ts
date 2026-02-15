@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export const revalidate = 30; // Cache for 30 seconds
+export const dynamic = 'force-dynamic';
 
 // Bundled stats endpoint - returns visitors, citizens, and history in one request
 
