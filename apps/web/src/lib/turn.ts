@@ -70,9 +70,9 @@ export async function startNextTurn(memberId: string): Promise<StartTurnResult> 
     .eq('status', 'active')
     .single();
 
-  // Safety check: close stale sessions (older than 24 hours)
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  if (session && new Date(session.started_at) < twentyFourHoursAgo) {
+  // Safety check: close stale sessions (older than max slot duration of 8 hours)
+  const maxSlotDurationMs = 8 * 60 * 60 * 1000;
+  if (session && Date.now() - new Date(session.started_at).getTime() > maxSlotDurationMs) {
     await supabase
       .from('conversation_sessions')
       .update({ status: 'ended', ended_at: new Date().toISOString() })
