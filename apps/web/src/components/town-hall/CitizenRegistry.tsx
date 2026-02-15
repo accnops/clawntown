@@ -394,6 +394,9 @@ export function CitizenRegistry({
               <p className="font-retro text-xs text-green-800 font-bold">
                 {email}
               </p>
+              <p className="font-retro text-[10px] text-green-600 mt-2 italic">
+                (Check spam too - seagulls steal mail.)
+              </p>
             </div>
             <button
               onClick={onBack}
