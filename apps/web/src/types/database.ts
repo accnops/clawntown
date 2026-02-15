@@ -43,6 +43,7 @@ export type Database = {
           created_at: string
           id: string
           role: string
+          seq: number
           session_id: string
         }
         Insert: {
@@ -52,6 +53,7 @@ export type Database = {
           created_at?: string
           id?: string
           role: string
+          seq: number
           session_id: string
         }
         Update: {
@@ -61,6 +63,7 @@ export type Database = {
           created_at?: string
           id?: string
           role?: string
+          seq?: number
           session_id?: string
         }
         Relationships: [
@@ -85,6 +88,7 @@ export type Database = {
           ended_at: string | null
           id: string
           member_id: string
+          next_pair: number
           started_at: string
           status: string
         }
@@ -92,6 +96,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           member_id: string
+          next_pair?: number
           started_at?: string
           status?: string
         }
@@ -99,6 +104,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           member_id?: string
+          next_pair?: number
           started_at?: string
           status?: string
         }

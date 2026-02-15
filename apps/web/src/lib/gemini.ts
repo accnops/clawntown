@@ -29,7 +29,7 @@ CONVERSATION FLOW: Focus your reply on the latest message. The conversation hist
 
 Respond in character. Keep your response concise (1-3 sentences). Stay in character and be helpful while maintaining your personality.
 
-IMPORTANT: Do NOT prefix your responses with your name or any label like "[Name]:". Just respond directly with your message.`,
+FORMATTING: When addressing citizens, use their name directly WITHOUT brackets. Write "Small Crab" not "[Small Crab]". Do NOT prefix your responses with your name or any label. Just respond directly.`,
   });
 
   // Convert history to Gemini's chat format, prefixing citizen messages with their name
@@ -58,6 +58,9 @@ IMPORTANT: Do NOT prefix your responses with your name or any label like "[Name]
 
   // Strip any [Name]: prefix the LLM might add (it sometimes mimics the citizen format)
   text = text.replace(/^\[[\w\s]+\]:\s*/i, '');
+
+  // Strip brackets from names used mid-response (e.g., "[Small Crab]" -> "Small Crab")
+  text = text.replace(/\[([\w\s]+)\]/g, '$1');
 
   return text;
 }

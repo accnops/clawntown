@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         .from('conversation_messages')
         .select('*')
         .eq('session_id', session.id)
-        .order('created_at', { ascending: true })
+        .order('seq', { ascending: true })
         .limit(50);  // Load last 50 messages
       messages = recentMessages || [];
     }

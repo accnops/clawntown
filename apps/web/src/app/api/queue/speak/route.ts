@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
               .from('conversation_messages')
               .select('role, content, citizen_name')
               .eq('session_id', sessionId)
-              .order('created_at', { ascending: false })
+              .order('seq', { ascending: false })
               .limit(20)
           : Promise.resolve({ data: null }),
       ]);
@@ -290,17 +290,28 @@ export async function POST(request: NextRequest) {
         ? await generateCouncilResponse(member.personality, finalCitizenName, sanitizedContent, conversationHistory)
         : null;
 
+      // Allocate message pair BEFORE responding (atomic, handles race conditions)
+      // This ensures ordering is determined at request time, not DB insert time
+      // Returns pair number: citizen_seq = pair * 2 (even), council_seq = pair * 2 + 1 (odd)
+      const { data: pair } = await (supabase.rpc as CallableFunction)('allocate_message_pair', {
+        p_session_id: sessionId,
+      });
+      const pairNum = pair ?? 0;
+      const citizenSeq = pairNum * 2;  // even
+      const councilSeq = councilResponseText ? pairNum * 2 + 1 : null;  // odd
+
       // Pre-generate UUIDs and timestamps for immediate broadcast + return
       const nowDate = new Date();
       const now = nowDate.toISOString();
-      const councilNow = new Date(nowDate.getTime() + 1).toISOString(); // +1ms for ordering
+      const councilNow = new Date(nowDate.getTime() + 1).toISOString(); // +1ms for fallback ordering
       const citizenMessageId = crypto.randomUUID();
       const councilMessageId = councilResponseText ? crypto.randomUUID() : null;
 
-      // Build message objects with pre-generated IDs
+      // Build message objects with pre-generated IDs and sequence numbers
       const citizenMessage = {
         id: citizenMessageId,
         session_id: sessionId,
+        seq: citizenSeq,
         role: 'citizen' as const,
         citizen_id: citizenId,
         citizen_name: finalCitizenName,
@@ -312,6 +323,7 @@ export async function POST(request: NextRequest) {
       const councilMessage = councilResponseText ? {
         id: councilMessageId!,
         session_id: sessionId,
+        seq: councilSeq!,
         role: 'council' as const,
         citizen_id: null,
         citizen_name: null,
@@ -320,49 +332,51 @@ export async function POST(request: NextRequest) {
         created_at: councilNow,
       } : null;
 
-      // Broadcast messages immediately (before DB save)
+      // Broadcast messages immediately
       const channel = supabase.channel(`council:${memberId}`);
       await channel.httpSend('message', { message: citizenMessage });
       if (councilMessage) {
         await channel.httpSend('message', { message: councilMessage });
       }
 
-      // Broadcast turn ended (queueLength will be updated by after())
+      // Store messages BEFORE ending turn (so next user's history query sees them)
+      const messagesToInsert = [
+        {
+          id: citizenMessageId,
+          session_id: sessionId,
+          seq: citizenSeq,
+          role: 'citizen' as const,
+          citizen_id: citizenId,
+          citizen_name: finalCitizenName,
+          citizen_avatar: finalCitizenAvatar,
+          content: sanitizedContent,
+        },
+        ...(councilResponseText ? [{
+          id: councilMessageId!,
+          session_id: sessionId,
+          seq: councilSeq!,
+          role: 'council' as const,
+          citizen_id: null,
+          citizen_name: null,
+          citizen_avatar: null,
+          content: councilResponseText,
+        }] : []),
+      ];
+      await supabase.from('conversation_messages').insert(messagesToInsert);
+
+      // NOW broadcast turn ended (messages are persisted)
       await channel.httpSend('turn_ended', {
         endedTurn: { id: turnId },
         nextTurn: null, // Will be handled by after()
         queueLength: 0, // Approximate - real value comes from end_turn_batch
       });
 
-      // Defer ALL DB operations to after response
+      // Defer turn management to after response
       after(async () => {
         const afterSupabase = getSupabaseAdmin();
 
-        // Save both messages + end turn in parallel
+        // End turn and record throttle
         await Promise.all([
-          afterSupabase
-            .from('conversation_messages')
-            .insert({
-              id: citizenMessageId,
-              session_id: sessionId,
-              role: 'citizen',
-              citizen_id: citizenId,
-              citizen_name: finalCitizenName,
-              citizen_avatar: finalCitizenAvatar,
-              content: sanitizedContent,
-            }),
-          councilResponseText
-            ? afterSupabase
-                .from('conversation_messages')
-                .insert({
-                  id: councilMessageId!,
-                  session_id: sessionId,
-                  role: 'council',
-                  citizen_id: null,
-                  citizen_name: null,
-                  content: councilResponseText,
-                })
-            : Promise.resolve(),
           (afterSupabase.rpc as CallableFunction)('end_turn_batch', {
             p_turn_id: turnId,
             p_citizen_id: citizenId,
