@@ -56,11 +56,15 @@ FORMATTING: When addressing citizens, use their name directly WITHOUT brackets. 
   const result = await chat.sendMessage(`[${citizenName}]: ${citizenMessage}`);
   let text = result.response.text();
 
-  // Strip any [Name]: prefix the LLM might add (it sometimes mimics the citizen format)
-  text = text.replace(/^\[[\w\s]+\]:\s*/i, '');
+  // Strip any echoed user message (Gemini sometimes repeats the input)
+  // Matches: [Name]: message content\n at the start
+  text = text.replace(/^\[[\w\s.]+\]:.*\n?/i, '');
+
+  // Strip any [Name]: prefix without full echo
+  text = text.replace(/^\[[\w\s.]+\]:\s*/i, '');
 
   // Strip brackets from names used mid-response (e.g., "[Small Crab]" -> "Small Crab")
-  text = text.replace(/\[([\w\s]+)\]/g, '$1');
+  text = text.replace(/\[([\w\s.]+)\]/g, '$1');
 
-  return text;
+  return text.trim();
 }
