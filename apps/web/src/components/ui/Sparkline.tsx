@@ -19,10 +19,10 @@ export function Sparkline({
   const max = Math.max(...data);
   const range = max - min || 1;
 
-  // Normalize data to 0-100 range for viewBox
+  // Normalize data to 8-100 range for viewBox (top padding)
   const points = data.map((value, index) => ({
     x: (index / (data.length - 1)) * 100,
-    y: 100 - ((value - min) / range) * 100,
+    y: 100 - ((value - min) / range) * 92,
   }));
 
   // Create smooth monotonic curve that doesn't overshoot

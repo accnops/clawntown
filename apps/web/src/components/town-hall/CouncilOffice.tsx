@@ -328,8 +328,9 @@ export function CouncilOffice({
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <p className="font-retro text-xs text-gray-400 text-center">
-              No messages yet.<br />Be the first to speak!
+            <p className="font-retro text-xs text-gray-500 text-center">
+              Public audience with {member.name}.<br />
+              All citizens can join this conversation.
             </p>
           </div>
         ) : messages.map((msg) => {
