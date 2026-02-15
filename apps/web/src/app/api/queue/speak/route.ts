@@ -9,6 +9,7 @@ import { isEmailBanned } from '@/lib/violations';
 import { checkMessageThrottle, recordMessageSent } from '@/lib/throttle';
 import { startNextTurn } from '@/lib/turn';
 import { runCleanupIfNeeded } from '@/lib/cleanup';
+import { withRateLimit } from '@/lib/rate-limit';
 
 const CHAR_BUDGET = 256;
 const TIME_BUDGET_MS = 10000;
@@ -25,6 +26,10 @@ const MESSAGE_LIMIT = 1;
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 20 requests per minute per IP
+    const rateLimited = await withRateLimit('queue/speak', { limit: 20 });
+    if (rateLimited) return rateLimited;
+
     const supabase = getSupabaseAdmin();
     const { memberId, citizenId, citizenName, citizenAvatar, content } = await request.json();
 

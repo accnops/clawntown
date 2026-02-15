@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const revalidate = 30; // Cache for 30 seconds
+
 // Simple privacy-respecting visitor counter
 // No cookies, no personal data - just counts unique daily visitors by hashed IP
 

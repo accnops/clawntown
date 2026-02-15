@@ -4,9 +4,14 @@ import { generateCouncilResponse, isGeminiConfigured } from '@/lib/gemini';
 import { getCouncilMember } from '@/data/council-members';
 import { sanitizeMessage } from '@/lib/sanitize';
 import { moderateWithLLM } from '@/lib/moderate';
+import { withRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 requests per minute per IP
+    const rateLimited = await withRateLimit('chat', { limit: 10 });
+    if (rateLimited) return rateLimited;
+
     // Check authentication
     const authHeader = request.headers.get('authorization');
     if (authHeader) {

@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { isEmailBanned } from '@/lib/violations';
 import { startNextTurn } from '@/lib/turn';
+import { withRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 10 requests per minute per IP
+    const rateLimited = await withRateLimit('queue/join', { limit: 10 });
+    if (rateLimited) return rateLimited;
+
     const supabase = getSupabaseAdmin();
     const { memberId, citizenId } = await request.json();
 

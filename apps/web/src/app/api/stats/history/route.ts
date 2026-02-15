@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const revalidate = 60; // Cache for 60 seconds
+
 // Returns last 30 days of stats history for sparklines
 
 export async function GET(request: NextRequest) {

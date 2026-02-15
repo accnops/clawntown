@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
+import { withRateLimit } from '@/lib/rate-limit';
 
 export async function DELETE(request: NextRequest) {
   try {
+    // Rate limit: 3 requests per minute per IP
+    const rateLimited = await withRateLimit('auth/delete', { limit: 3 });
+    if (rateLimited) return rateLimited;
+
     // Verify user is authenticated via Authorization header
     const authHeader = request.headers.get('authorization');
     if (!authHeader) {

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase-server';
 import { verifyCaptcha, getVisitorIP } from '@/lib/captcha';
+import { withRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 requests per minute per IP
+    const rateLimited = await withRateLimit('auth/signup', { limit: 5 });
+    if (rateLimited) return rateLimited;
+
     const { email, name, avatarId, captchaToken } = await request.json();
 
     if (!email || !captchaToken) {

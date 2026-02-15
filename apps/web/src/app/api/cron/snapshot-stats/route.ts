@@ -60,6 +60,13 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
+    // Cleanup old rate limit entries (non-blocking)
+    try {
+      await supabase.rpc('cleanup_rate_limits');
+    } catch (cleanupError) {
+      console.error('Rate limit cleanup failed:', cleanupError);
+    }
+
     return NextResponse.json({
       success: true,
       date: today,

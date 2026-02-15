@@ -198,6 +198,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_ip_hash: string
+          p_endpoint: string
+          p_limit: number
+          p_window_minutes: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          reset_at: string
+        }[]
+      }
       get_queue_length: { Args: { p_member_id: string }; Returns: number }
       get_queue_position: {
         Args: { p_citizen_id: string; p_member_id: string }
