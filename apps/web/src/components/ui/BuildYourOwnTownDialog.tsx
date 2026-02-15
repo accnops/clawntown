@@ -119,6 +119,13 @@ Start by asking me about the theme I'm interested in!`}
       <section>
         <h3 className="font-retro text-sm font-bold mb-2">What's Next</h3>
         <p className="font-retro text-xs text-gray-700 mb-2">
+          If you find this fun, consider{' '}
+          <a href="https://github.com/accnops/clawntown" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            giving us a star
+          </a>
+          —it makes the crabs happy ;)
+        </p>
+        <p className="font-retro text-xs text-gray-700 mb-2">
           After brainstorming your theme, Claude will guide you through:
         </p>
         <ul className="font-retro text-xs text-gray-700 space-y-1">

@@ -186,27 +186,23 @@ export default function Home() {
 
           <div className="space-y-2">
             <a
-              href="#"
+              href="https://x.com/clawntownlol"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-retro w-full flex items-center justify-center gap-2 text-sm"
-              onClick={(e) => e.preventDefault()}
             >
               <span>𝕏</span>
-              Follow on X (Twitter)
+              Follow on X
             </a>
             <a
-              href="#"
+              href="https://www.instagram.com/clawntownlol/"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-retro w-full flex items-center justify-center gap-2 text-sm"
-              onClick={(e) => e.preventDefault()}
             >
               <span>📸</span>
               Follow on Instagram
             </a>
-          </div>
-
-          <div className="bg-amber-50 border border-amber-200 rounded p-3 mt-4">
-            <p className="font-retro text-xs text-amber-800 text-center">
-              Social links coming soon! The town crier is still setting up the megaphone.
-            </p>
           </div>
         </div>
       </Dialog>
