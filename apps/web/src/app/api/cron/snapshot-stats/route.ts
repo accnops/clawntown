@@ -30,23 +30,23 @@ export async function GET(request: NextRequest) {
     // Fetch current GitHub stats
     const githubStats = await fetchGitHubStats();
 
-    // Get today's visitor count
-    const today = new Date().toISOString().split('T')[0];
+    // Get yesterday's visitor count (cron runs at midnight, so previous day is complete)
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const { count: dailyVisitors } = await supabase
       .from('visitors')
       .select('*', { count: 'exact', head: true })
-      .eq('visit_date', today);
+      .eq('visit_date', yesterday);
 
     // Get citizen count
     const { count: citizenCount } = await supabase
       .from('citizens')
       .select('*', { count: 'exact', head: true });
 
-    // Upsert today's snapshot
+    // Upsert yesterday's snapshot (cron runs at midnight, so we record the completed day)
     const { error } = await supabase
       .from('stats_history')
       .upsert({
-        snapshot_date: today,
+        snapshot_date: yesterday,
         contributors: githubStats.contributors,
         pull_requests: githubStats.pullRequests,
         commits: githubStats.commits,
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      date: today,
+      date: yesterday,
       stats: {
         ...githubStats,
         dailyVisitors: dailyVisitors || 0,
